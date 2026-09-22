@@ -1,0 +1,6 @@
+.next
+node_modules
+public
+src/components/brand/logo-paths.ts
+src/components/stage/bottle-meta.ts
+*.md

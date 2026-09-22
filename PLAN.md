@@ -1,6 +1,6 @@
 # ZALFI: Build Plan
 
-Status: **approved 2026-09-22, revision 2.** M0 is in progress.
+Status: **approved 2026-09-22, revision 2.** M0 complete. Next: M1 (data layer).
 
 ## What changed in revision 2
 
@@ -116,7 +116,7 @@ Placeholder prices (USD, editable in the `variants` table):
 | **Riven** | gunmetal, ribbed | Cool greens, glassy light | `#E3EEE9` → `#1E2B24` → `#C7D95A` → `#12201A` | *A green so cold it rings like glass.* |
 | **Maree** | gold, ribbed | Seaside garden at dusk | `#F1EEE6` → `#22302C` → `#9DB8AE` → `#1A2220` | *White flowers at low tide, cedar still warm from the sun.* |
 | **Solea** | chrome sphere | Warm sand and cream | `#F4EAD8` → `#5A3A22` → `#E3B64B` → `#2B1D12` | *Skin, sun, and a slow vanilla afternoon.* |
-| **Bond** | black sphere | Tailored iris and dark wood | `#B9B3C4` → `#2A2629` → `#7A4B2F` → `#F2EADB` | *Iris in a dark suit, with oud keeping its secrets.* |
+| **Bond** | black sphere | Tailored iris and dark wood | `#2A2629` → `#141213` → `#B9B3C4` → `#F2EADB` | *Iris in a dark suit, with oud keeping its secrets.* |
 | **Oudor** | gold sphere | Burgundy, smoke, gold | `#4A0F1A` → `#2A080E` → `#C9962E` → `#F3E6D6` | *Saffron and red rose, burning slowly into smoke and gold.* |
 
 ---
@@ -168,7 +168,7 @@ Each milestone ends with lint, typecheck, `next build` and `next dev`, then Play
 
 | # | Milestone | Contents |
 |---|---|---|
-| **M0** | Foundation + asset pipeline | Scaffold, `CLAUDE.md`, fonts and tokens, grain, cursor, Lenis↔ScrollTrigger, reduced-motion hook, frame fallbacks. **Move and rename the bottles, trace the logo to SVG, bake the bottle lighting maps** |
+| **M0** ✓ | Foundation + asset pipeline | Scaffold, `CLAUDE.md`, fonts and tokens, grain, cursor, Lenis↔ScrollTrigger, reduced-motion hook, frame fallbacks. **Move and rename the bottles, trace the logo to SVG, bake the bottle lighting maps** |
 | **M1** | Data layer | Drizzle schema, migrations, seed, queries, `/api/newsletter`, `/api/stock`, `.env.example` |
 | **M2** | WebGL stage *(new)* | Canvas, relit bottle material, reflective floor, caustics, world background, post FX, quality tiers, fallbacks. Includes a **`/lab` page** (dev only) with a bottle picker and light sliders, so you can judge the lighting directly |
 | **M3** | Logo intro + hero | SVG logo reveal and the handoff to Reva on the stage |
@@ -186,3 +186,9 @@ Each milestone ends with lint, typecheck, `next build` and `next dev`, then Play
 1. **Recommended: you generate them** with the prompt pack in `NOTES_IMAGES_CHECKLIST.md` (one shared style block plus one line per note) in any image tool. Then upload them to the repo root or `public/images/notes/`, as you did with the bottles. I'll handle renaming, trimming and optimisation.
 2. **Alternative:** allow `commons.wikimedia.org` and `upload.wikimedia.org` in this environment's network policy. I can then source openly licensed real photographs, cut them out, and record the credits in `CREDITS.md`.
 3. Either way, the site shows a tasteful empty frame with the filename wherever an image is missing. It never falls back to a cartoon or stand-in.
+
+---
+
+## Changelog
+
+- **M0:** Bond's palette changed to a graphite background with iris-ash accents. The earlier light-ash background with light ink failed contrast. All six worlds now pass WCAG AAA for body text.

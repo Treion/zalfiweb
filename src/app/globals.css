@@ -1,0 +1,148 @@
+@import "tailwindcss";
+
+/*
+ * ZALFI design tokens. See CLAUDE.md for the rules.
+ * The active fragrance world is expressed through the four --world-* variables, which
+ * chapters and product pages set on a wrapper. Never hard-code a world colour in a component.
+ */
+:root {
+  --noir: #0e0d0c;
+  --noir-soft: #1a1816;
+  --bone: #efeae1;
+  --bone-dim: #b9b2a6;
+  --smoke: #6f6a64;
+
+  --world-bg: var(--noir);
+  --world-deep: #000000;
+  --world-accent: var(--bone);
+  --world-ink: var(--bone);
+
+  --ease-cinema: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-silk: cubic-bezier(0.65, 0, 0.35, 1);
+
+  --gutter: clamp(1rem, 4vw, 3.5rem);
+}
+
+@theme inline {
+  --color-noir: var(--noir);
+  --color-noir-soft: var(--noir-soft);
+  --color-bone: var(--bone);
+  --color-bone-dim: var(--bone-dim);
+  --color-smoke: var(--smoke);
+  --color-world-bg: var(--world-bg);
+  --color-world-deep: var(--world-deep);
+  --color-world-accent: var(--world-accent);
+  --color-world-ink: var(--world-ink);
+
+  --font-display: var(--font-bodoni), "Bodoni 72", "Didot", serif;
+  --font-sans: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+
+  /* Oversized editorial scale: type is a design element */
+  --text-mega: clamp(4.5rem, 17vw, 17rem);
+  --text-mega--line-height: 0.82;
+  --text-display: clamp(3rem, 9vw, 9rem);
+  --text-display--line-height: 0.9;
+  --text-headline: clamp(2rem, 4.5vw, 4.25rem);
+  --text-headline--line-height: 1;
+  --text-eyebrow: 0.6875rem;
+  --text-eyebrow--line-height: 1.2;
+  --text-eyebrow--letter-spacing: 0.28em;
+
+  --ease-cinema: var(--ease-cinema);
+  --ease-silk: var(--ease-silk);
+
+  --spacing-gutter: var(--gutter);
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background: var(--noir);
+    color: var(--bone);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background: var(--world-accent);
+    color: var(--world-deep);
+  }
+
+  :focus-visible {
+    outline: 1px solid currentColor;
+    outline-offset: 4px;
+  }
+
+  /* The custom cursor replaces the system one only on fine pointers with motion allowed */
+  html.has-custom-cursor,
+  html.has-custom-cursor * {
+    cursor: none !important;
+  }
+}
+
+/* Lenis */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis:not(.lenis-autoToggle).lenis-stopped {
+  overflow: clip;
+}
+.lenis [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+@utility eyebrow {
+  font-family: var(--font-sans);
+  font-size: var(--text-eyebrow);
+  line-height: var(--text-eyebrow--line-height);
+  letter-spacing: var(--text-eyebrow--letter-spacing);
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+@utility display-italic {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+}
+
+@keyframes grain-shift {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  20% {
+    transform: translate3d(-3%, 2%, 0);
+  }
+  40% {
+    transform: translate3d(2%, -4%, 0);
+  }
+  60% {
+    transform: translate3d(-4%, -1%, 0);
+  }
+  80% {
+    transform: translate3d(3%, 3%, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
