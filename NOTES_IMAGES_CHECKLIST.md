@@ -4,7 +4,7 @@ Every note image the site needs. Drop each one into `public/images/notes/` using
 
 ## Shared photo spec (applies to every image)
 
-- **Real photography only.** No AI-generated images, illustrations, 3D renders, or clip art.
+- **Photorealistic only.** Real photos, or AI-generated images that are indistinguishable from studio photography (allowed by the owner on 2026-09-22). No illustrations, cartoon styles, visible 3D-render look, or clip art.
 - **Transparent background PNG**, cut out cleanly. Keep soft shadows off the cutout; the site adds its own.
 - **At least 2000px on the long edge.** 3000px is ideal. The site serves smaller sizes automatically through `next/image`.
 - **Lighting:** soft and directional, one key light. It should roughly match the bottle shots so everything looks like it sits in the same room.
@@ -13,18 +13,20 @@ Every note image the site needs. Drop each one into `public/images/notes/` using
 
 A missing file does not break anything. The site draws a thin empty frame with the filename written inside, never a substitute image.
 
-## Bottles (required, `public/images/bottles/`)
+## Bottles: received ✓
 
-| File | Status |
-|---|---|
-| `reva.png` | ☐ |
-| `riven.png` | ☐ |
-| `maree.png` | ☐ |
-| `solea.png` | ☐ |
-| `bond.png` | ☐ |
-| `oudor.png` | ☐ |
+The originals were uploaded to the repo root and are moved to `public/images/bottles/` in M0.
 
-Transparent-background PNGs are strongly preferred, because each bottle sits on top of its fragrance's colour world.
+| File | Status | Cap |
+|---|---|---|
+| `reva.png` | ✓ 2000×2000, transparent | silver, ribbed |
+| `riven.png` | ✓ 2000×2000, transparent | gunmetal, ribbed |
+| `maree.png` | ✓ 2000×2000, transparent | gold, ribbed |
+| `solea.png` | ✓ 2000×2000, transparent | chrome sphere |
+| `bond.png` | ✓ 2000×2000, transparent | black sphere |
+| `oudor.png` | ✓ 2000×2000, transparent | gold sphere |
+
+Logo: `logo.png` ✓ (1483×1061, black on transparent). It is traced to SVG in M0.
 
 ## Notes (26 images, `public/images/notes/`)
 
@@ -70,3 +72,46 @@ Some notes appear in more than one fragrance under different names (for example 
 ☐ tonka-bean.png       ☐ cedarwood.png        ☐ precious-woods.png
 ☐ cucumber.png         ☐ sandalwood.png       ☐ apple.png
 ```
+
+---
+
+## Prompt pack (for AI image generation)
+
+Paste the **style block** first, then the line for one note. Generate each image separately. Use a square 1:1 frame. Ask for a transparent background if your tool supports it; otherwise ask for a plain pure-white background and I'll cut it out.
+
+**Style block, identical for all 26 so the set looks like one photoshoot:**
+
+> Luxury perfume ingredient still life, photorealistic studio product photography, shot on a medium-format camera with a 100mm macro lens, f/8, single soft key light from the upper left with a gentle fill, subtle natural shadows on the object only, rich true-to-life colour, extremely fine detail and texture, the subject isolated and centred with generous empty space around it, filling about 80% of the frame, nothing touching the edges, plain pure white seamless background (or transparent), no props, no surface, no text, no logos, no hands, no people, no bottles, no illustration, no cartoon, no CGI look.
+
+**Subject lines:**
+
+| File | Subject line |
+|---|---|
+| `pineapple.png` | A whole ripe golden pineapple with a full green crown, three-quarter view, cold and dewy with fine condensation droplets on the skin. |
+| `mint.png` | A loose sprig of fresh spearmint with six vivid green leaves, two leaves slightly bruised and curled, side view. |
+| `lavender.png` | A small bundle of five fresh French lavender stems with full violet flower heads, laid diagonally. |
+| `oakmoss.png` | A clump of grey-green oakmoss lichen with delicate branching fronds, growing on a small piece of dark oak bark. |
+| `vetiver.png` | A bundle of dried golden-tan vetiver roots tied with natural twine, fibrous texture clearly visible. |
+| `tonka-bean.png` | A small cluster of seven tonka beans, wrinkled, dark brown-black with a subtle sheen. |
+| `cucumber.png` | Half a fresh cucumber with three thin translucent slices fanned out in front, wet, crisp and glassy. |
+| `jasmine.png` | A sprig of white jasmine sambac with open star-shaped flowers, a few closed buds and dark glossy leaves. |
+| `lime.png` | One whole lime and one halved lime, juicy cut face toward the camera, glistening pulp. |
+| `patchouli.png` | A sprig of fresh patchouli with broad, soft, serrated green leaves. |
+| `green-apple.png` | A single Granny Smith apple with its stem and one leaf, glossy bright green skin, side view. |
+| `tuberose.png` | One stem of waxy white tuberose flowers, several fully open with closed buds at the top. |
+| `cedarwood.png` | A cross-section slice of a cedar log showing clear growth rings and warm reddish heartwood, three-quarter view. |
+| `sandalwood.png` | Five pale-gold sandalwood sticks and a few small chips, fine wood grain visible. |
+| `apple.png` | A single red-blushed yellow Pink Lady apple with its stem, warm-toned, glossy skin. |
+| `coconut.png` | A coconut cracked cleanly in half, bright white flesh and fibrous brown husk both visible. |
+| `vanilla.png` | Four cured vanilla pods, dark, glossy and slightly oily, with one pale cream vanilla orchid flower. |
+| `iris.png` | A single purple bearded iris flower on a short stem, side view, delicate ruffled petals. |
+| `nutmeg.png` | A whole nutmeg wrapped in its bright red lace of mace, beside a halved nutmeg showing its marbled interior. |
+| `oud.png` | A small heap of dark oud wood chips with visible black resin veins. |
+| `precious-woods.png` | A small stack of polished exotic wood offcuts in mixed tones of ebony, rosewood and amber, rich grain visible. |
+| `saffron.png` | A small mound of deep crimson saffron threads with a few loose strands in front. |
+| `red-rose.png` | A single deep-red Damask rose fully open on a short stem, three-quarter view, velvety petals. |
+| `white-oud.png` | Pale blond oud wood shavings and slivers with faint light-brown resin, soft and airy, clearly lighter than dark oud. |
+| `agarwood.png` | A sculptural split section of raw agarwood branch with heavy dark resin marbling through pale wood. |
+| `musk.png` | A small heap of ambrette seeds, small, grey-brown and kidney-shaped, softly lit. |
+
+**How to hand them over:** upload them just as you did the bottles. Any filename works as long as I can tell which note it is; I'll rename, trim, resize and move them.
