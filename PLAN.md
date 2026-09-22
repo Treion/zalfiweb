@@ -1,6 +1,6 @@
 # ZALFI: Build Plan
 
-Status: **approved 2026-09-22, revision 2.** M0 complete. Next: M1 (data layer).
+Status: **approved 2026-09-22, revision 2.** M0–M9 built. Waiting on the note photographs (see §8).
 
 ## What changed in revision 2
 
@@ -169,15 +169,15 @@ Each milestone ends with lint, typecheck, `next build` and `next dev`, then Play
 | # | Milestone | Contents |
 |---|---|---|
 | **M0** ✓ | Foundation + asset pipeline | Scaffold, `CLAUDE.md`, fonts and tokens, grain, cursor, Lenis↔ScrollTrigger, reduced-motion hook, frame fallbacks. **Move and rename the bottles, trace the logo to SVG, bake the bottle lighting maps** |
-| **M1** | Data layer | Drizzle schema, migrations, seed, queries, `/api/newsletter`, `/api/stock`, `.env.example` |
-| **M2** | WebGL stage *(new)* | Canvas, relit bottle material, reflective floor, caustics, world background, post FX, quality tiers, fallbacks. Includes a **`/lab` page** (dev only) with a bottle picker and light sliders, so you can judge the lighting directly |
-| **M3** | Logo intro + hero | SVG logo reveal and the handoff to Reva on the stage |
-| **M4** | One perfect chapter (Reva) | **I'll stop for your motion feedback here** |
-| **M5** | All six chapters | Master timeline, transitions, preloading, mobile and reduced-motion versions |
-| **M6** | The Collection | Lit lineup, hover, keyboard support |
-| **M7** | Product pages + cart | Bottle view, notes pyramid, variants, cart drawer, Stripe-ready checkout stub |
-| **M8** | Story, newsletter, footer | |
-| **M9** | Polish | SEO, OG images, sitemap, JSON-LD, Lighthouse, accessibility, 375px sweep |
+| **M1** ✓ | Data layer | Drizzle schema, migrations, seed, queries, `/api/newsletter`, `/api/stock`, `.env.example` |
+| **M2** ✓ | WebGL stage *(new)* | Canvas, relit bottle material, reflective floor, caustics, world background, post FX, quality tiers, fallbacks. Includes a **`/lab` page** (dev only) with a bottle picker and light sliders, so you can judge the lighting directly |
+| **M3** ✓ | Logo intro + hero | SVG logo reveal and the handoff to Reva on the stage |
+| **M4** ✓ | One perfect chapter (Reva) | **I'll stop for your motion feedback here** |
+| **M5** ✓ | All six chapters | Master timeline, transitions, preloading, mobile and reduced-motion versions |
+| **M6** ✓ | The Collection | Lit lineup, hover, keyboard support |
+| **M7** ✓ | Product pages + cart | Bottle view, notes pyramid, variants, cart drawer, Stripe-ready checkout stub |
+| **M8** ✓ | Story, newsletter, footer | |
+| **M9** ✓ | Polish | SEO, OG images, sitemap, JSON-LD, Lighthouse, accessibility, 375px sweep |
 
 ---
 
@@ -191,4 +191,7 @@ Each milestone ends with lint, typecheck, `next build` and `next dev`, then Play
 
 ## Changelog
 
+- **M1:** Next 16 deprecates `runtime = "edge"`. The API routes are written to be edge-portable but run on Vercel's default runtime (a one-line change pins them to the Edge). Dev uses a local Neon-protocol proxy, so one driver path runs everywhere.
+- **M3–M5:** The intro uses the traced logo (masked letter rise + glint). The fragrance name is set huge in WebGL behind the bottle. Earlier note layers recede and drift upward as later ones arrive, the way top notes evaporate first.
+- **Notes:** You chose option 2 (Wikimedia). The sandbox still blocks those domains, so `npm run notes:fetch` is ready (tested offline) to run once they are allowed. Empty frames show until then.
 - **M0:** Bond's palette changed to a graphite background with iris-ash accents. The earlier light-ash background with light ink failed contrast. All six worlds now pass WCAG AAA for body text.

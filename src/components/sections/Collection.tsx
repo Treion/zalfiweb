@@ -74,7 +74,6 @@ function CollectionItem({ fragrance: f, index }: { fragrance: Fragrance; index: 
       onFocus={on}
       onBlur={off}
       className="group block outline-offset-8"
-      aria-label={`${f.name}: ${f.tagline}`}
     >
       <StageAnchor
         kind="collection"

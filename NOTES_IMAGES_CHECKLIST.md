@@ -11,6 +11,14 @@ Every note image the site needs. Drop each one into `public/images/notes/` using
 - **Crop:** the subject fills about 80% of the frame with a little air around it. Nothing touching the edges.
 - **Filenames:** lowercase kebab-case, `.png`.
 
+**Chosen route: real, openly licensed photos from Wikimedia Commons.** Run `npm run notes:fetch` once `commons.wikimedia.org` and `upload.wikimedia.org` are allowed in the environment's network settings. The script:
+
+- only accepts photos already isolated on a plain light background
+- cuts them out and centres them at 2000×2000
+- writes `CREDITS.md`, which you should keep with the site
+
+Review each result. Any note it can't source cleanly stays as a frame, and the prompt pack below remains a fallback.
+
 A missing file does not break anything. The site draws a thin empty frame with the filename written inside, never a substitute image.
 
 ## Bottles: received ✓

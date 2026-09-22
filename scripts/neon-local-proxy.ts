@@ -77,16 +77,14 @@ const server = http.createServer(async (req, res) => {
   } catch (e) {
     await client.query("ROLLBACK").catch(() => {});
     const err = e as pg.DatabaseError;
-    res
-      .writeHead(400, cors)
-      .end(
-        JSON.stringify({
-          message: err.message,
-          code: err.code,
-          detail: err.detail,
-          constraint: err.constraint,
-        }),
-      );
+    res.writeHead(400, cors).end(
+      JSON.stringify({
+        message: err.message,
+        code: err.code,
+        detail: err.detail,
+        constraint: err.constraint,
+      }),
+    );
   } finally {
     client.release();
   }

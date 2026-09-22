@@ -10,8 +10,8 @@ The build plan lives in `PLAN.md`, and the note photo list and prompts in `NOTES
 
 - Next.js 16 App Router, React Server Components, TypeScript strict. **Next 16 differs from older versions.** Read `node_modules/next/dist/docs/` before using an API you are unsure of (for example, `next/image` uses `preload`, not the deprecated `priority`, and `images.qualities` must allowlist every quality used).
 - Tailwind CSS v4. Tokens are in `src/app/globals.css` (`@theme`).
-- Vercel edge route handlers (`export const runtime = "edge"`) for `/api/*`.
-- PostgreSQL + Drizzle ORM. Neon HTTP driver in production, local Postgres 16 in dev. `src/db/seed-data.ts` is the typed catalogue source and the fallback when `DATABASE_URL` is missing.
+- Route handlers for `/api/*`, written to be edge-portable (Web APIs + Neon's fetch driver only). Next 16 deprecates `runtime = "edge"`, so it is not exported; add it back per route to pin a handler to the Edge.
+- PostgreSQL + Drizzle ORM. The Neon HTTP driver is used everywhere. In dev, `npm run db:proxy` serves Neon's HTTP protocol against local Postgres 16. `src/db/seed-data.ts` is the typed catalogue source and the fallback when `DATABASE_URL` is missing. The seed never overwrites owner edits unless `--reset` is passed.
 - GSAP + ScrollTrigger for scroll-scrubbed sequences. **Import from `@/components/motion/gsap`**, never from `gsap` directly.
 - Motion (`motion/react`) for UI interactions: hover, buttons, menus, drawer, modals, cursor.
 - Lenis smooth scroll, driven by `gsap.ticker` (`src/components/motion/SmoothScroll.tsx`).
@@ -24,7 +24,7 @@ The build plan lives in `PLAN.md`, and the note photo list and prompts in `NOTES
   - Never crop, distort, recolour or retouch them. Always `object-contain`, quality 90.
   - All six are black smoked-glass cubes and differ only by cap (silver ribbed, gunmetal ribbed, gold ribbed, chrome sphere, black sphere, gold sphere). On dark worlds they need rim or back light to read.
   - `npm run assets:bottles` bakes `maps/{slug}-{color,normal,mask}.webp` and `src/components/stage/bottle-meta.ts` for the WebGL relighting. Re-run it if a bottle photo changes. Never edit generated files by hand.
-- **Note images:** `public/images/notes/{slug}.png`. They must be photorealistic: real photos, or owner-approved AI images that are indistinguishable from studio photography. If one is missing, render `<AssetFrame>` (hairline frame + filename), **never** a cartoon, icon or placeholder art. Check availability on the server with `src/lib/assets.ts`.
+- **Note images:** `public/images/notes/{slug}.png`. They must be photorealistic: real photos, or owner-approved AI images that are indistinguishable from studio photography. If one is missing, render `<AssetFrame>` (hairline frame + filename), **never** a cartoon, icon or placeholder art. Check availability on the server with `src/lib/assets.ts`. `npm run notes:fetch` sources openly licensed Wikimedia photos (it needs those domains allowed) and writes `CREDITS.md`, which must be kept.
 
 ## Design direction: NOT generic AI design
 
@@ -61,16 +61,25 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
 - Animate **only `transform` and `opacity`** in the DOM. Never animate `filter`, `width`, `top` or colours on large layers. World colour changes happen in the WebGL shader (via uniforms) or by crossfading stacked layers' opacity.
 - Easing is cinematic (`EASE` in `motion/gsap.ts`: expo.out, power2.inOut). **No bounce, no elastic, no overshoot springs** on content.
 - Always clean up: use `useGSAP` with a scope ref.
-- `prefers-reduced-motion`: no pinning, no scrub, no canvas, no Lenis, no cursor. Show a complete static editorial layout (`useReducedMotion()` returns `true` on the server, so SSR output is the static version).
+- `prefers-reduced-motion`: no pinning, no scrub, no canvas, no Lenis, no cursor. Show a complete static editorial layout. That layout is chosen by CSS (the `static:` variant), so SSR and hydration always agree. `useReducedMotion()` returns `true` on the server, so no animation code runs before the client has checked.
 - Mobile (<768px, test at 375px): shorter pins, fewer floating notes (2 per layer), Low WebGL tier, no cursor or tilt effects.
 - 60fps target. Pause WebGL when the tab is hidden or the stage is off-screen.
 
+## Layout of the home experience
+
+- `Experience` is one sticky viewport holding the intro, hero and six `FragranceChapter`s over the stage. A single master GSAP timeline, where 1 unit = 1vh of scroll, is scrubbed by ScrollTrigger. Its segment timings live in `components/stage/config.ts` and are shared by the DOM timeline and `stage/choreography.ts`, so type and light never drift. Change timings there, and only there.
+- Each chapter renders two views of the same data: the motion layout, and a static spread shown by the `static:` variant (reduced motion, or no WebGL via `html.static-experience`).
+- `data-reveal` elements are hidden until their timeline runs, but only with JS and motion allowed (`html.js`, set before paint).
+- Unlayered CSS beats Tailwind utilities. Put custom component CSS in `@layer components`.
+
 ## WebGL stage rules
 
-- There is one persistent fixed `<Stage />` canvas. GSAP writes to a mutable `stageState` object, and the render loop reads it. **Do not drive per-frame values through React state.**
+- There is one persistent fixed `<Stage />` canvas with a negative z-index, behind page content. Opaque sections cover it; transparent ones reveal it. GSAP writes to a mutable `stageState` object, and `StageDirector` (a plain class, outside React) reads it every frame. **Do not drive per-frame values through React state.**
+- Placement comes from DOM anchors (`<StageAnchor kind="experience|collection|product">`). Layout stays in CSS, and the stage draws at each anchor's rect. DOM fallbacks inside anchors carry `data-stage-fallback={slug}` and crossfade out when that bottle is ready.
+- Bottle anchors use each bottle's trimmed aspect ratio (`bottleAspect(slug)`), and DOM fallbacks use `<BottleImage fit="trim">`, so the fallback and the render line up pixel for pixel.
 - The bottle is the real photo, relit in GLSL with the baked normal and mask maps: GGX key light, palette-tinted environment reflection, Fresnel rim, metal-cap highlights, reflective floor, caustics.
 - Load three.js after first paint (`next/dynamic`). The LCP element is the DOM `next/image` hero bottle, and the canvas crossfades in over it.
-- Quality tiers: high / medium / low, chosen by device and frame time. Fallback when there is no WebGL or reduced motion is on: static `next/image` layout.
+- Quality tiers: high / low, chosen by device. Software renderers (SwiftShader, llvmpipe: no GPU, or GPU blocklisted) get the static layout, as with no WebGL or reduced motion (`stage/support.ts`). Headless test browsers are software renderers, so use `?stage=force` (per session, `?stage=off` to reset) when screenshotting the stage.
 - The canvas is `aria-hidden`. Every visual element has a DOM equivalent with alt text.
 
 ## Performance, SEO, accessibility

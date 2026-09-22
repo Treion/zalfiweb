@@ -324,7 +324,16 @@ export class StageDirector {
     const order = [...this.rigs].sort(
       (a, b) => Number(b.slug === productSlug) - Number(a.slug === productSlug),
     );
-    for (const rig of order) {
+    const idle = () =>
+      new Promise<void>((r) =>
+        "requestIdleCallback" in window
+          ? window.requestIdleCallback(() => r(), { timeout: 800 })
+          : setTimeout(r, 120),
+      );
+    for (const [n, rig] of order.entries()) {
+      // Spread GPU uploads across idle periods so no single frame pays for all six bottles
+      if (n > 0) await idle();
+      if (this.disposed) return;
       const base = `/images/bottles/maps/${rig.slug}`;
       try {
         const [c, n, m] = await Promise.all([

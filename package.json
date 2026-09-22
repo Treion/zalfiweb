@@ -18,7 +18,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx src/db/seed.ts",
     "db:proxy": "tsx scripts/neon-local-proxy.ts",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "notes:fetch": "tsx scripts/fetch-note-images.ts"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
