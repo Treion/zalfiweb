@@ -3,18 +3,10 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { useReducedMotion } from "@/components/motion/use-reduced-motion";
+import { canRunStage } from "./support";
 import type { StageFragrance } from "./worlds";
 
 const Stage = dynamic(() => import("./Stage"), { ssr: false });
-
-function webglAvailable() {
-  try {
-    const c = document.createElement("canvas");
-    return !!(c.getContext("webgl2") || c.getContext("webgl"));
-  } catch {
-    return false;
-  }
-}
 
 /**
  * Loads the WebGL stage after first paint, when the browser is idle, so three.js never competes
@@ -27,10 +19,7 @@ export function StageLoader({ fragrances }: { fragrances: StageFragrance[] }) {
 
   useEffect(() => {
     if (reduced) return;
-    if (!webglAvailable()) {
-      document.documentElement.classList.add("static-experience");
-      return;
-    }
+    if (!canRunStage()) return;
     const start = () => setLoad(true);
     if ("requestIdleCallback" in window) {
       const id = window.requestIdleCallback(start, { timeout: 1200 });

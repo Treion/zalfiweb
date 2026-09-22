@@ -1,15 +1,19 @@
-import { Logo } from "@/components/brand/Logo";
+import { Experience } from "@/components/sections/Experience";
+import { getFragrances } from "@/db/queries";
+import { NOTES } from "@/db/seed-data";
+import { availability } from "@/lib/assets";
 
-/**
- * Temporary landing (M0). The cinematic intro, hero and fragrance chapters replace this in M3–M5.
- */
-export default function Home() {
+// Catalogue edits (prices, copy, stock) in Postgres appear within 5 minutes, no redeploy needed
+export const revalidate = 300;
+
+export default async function Home() {
+  const fragrances = await getFragrances();
+  const noteAvail = availability([
+    ...new Set([...NOTES, ...fragrances.flatMap((f) => f.notes)].map((n) => n.image)),
+  ]);
   return (
-    <main id="main" className="bg-noir px-gutter text-bone grid min-h-svh place-items-center">
-      <div className="flex flex-col items-center gap-10">
-        <Logo className="w-[min(58vw,26rem)]" />
-        <p className="eyebrow text-bone-dim">Maison de parfum</p>
-      </div>
+    <main id="main">
+      <Experience fragrances={fragrances} noteAvail={noteAvail} />
     </main>
   );
 }

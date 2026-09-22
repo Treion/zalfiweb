@@ -171,19 +171,77 @@ html.sr-bond [data-stage-fallback="bond"],
 html.sr-oudor [data-stage-fallback="oudor"] {
   opacity: 0;
 }
-.world-surface {
-  position: relative;
-  isolation: isolate;
+@layer components {
+  /* A surface painted in its world colour until the stage takes over. Needs a positioned
+     element (relative, sticky, ...): set that with a utility, not here. */
+  .world-surface {
+    isolation: isolate;
+  }
+  .world-surface::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--world-bg);
+    transition: opacity 0.9s var(--ease-cinema);
+    pointer-events: none;
+  }
+  html.stage-ready .world-surface::before {
+    opacity: 0;
+  }
 }
-.world-surface::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: var(--world-bg);
+
+/*
+ * `static:` variant: the complete static editorial layout, used with prefers-reduced-motion and
+ * when WebGL is unavailable (html.static-experience). Pure CSS, so SSR and hydration always agree.
+ */
+@custom-variant static {
+  @media (prefers-reduced-motion: reduce) {
+    @slot;
+  }
+  &:where(.static-experience, .static-experience *) {
+    @slot;
+  }
+}
+
+/*
+ * Pre-motion states. Elements marked data-reveal are hidden until their GSAP timeline takes over,
+ * but only when JS is running (html.js, set before paint) and motion is allowed. With reduced motion,
+ * without JS, or in the static layout, everything is simply visible.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  html.js:not(.static-experience) [data-reveal] {
+    opacity: 0;
+  }
+  html.js:not(.static-experience) [data-reveal="layer"] {
+    visibility: hidden;
+  }
+}
+
+@keyframes scroll-cue {
+  0% {
+    transform: scaleY(0);
+    transform-origin: top;
+  }
+  45% {
+    transform: scaleY(1);
+    transform-origin: top;
+  }
+  55% {
+    transform: scaleY(1);
+    transform-origin: bottom;
+  }
+  100% {
+    transform: scaleY(0);
+    transform-origin: bottom;
+  }
+}
+
+/* Once the stage paints the giant name behind the bottle, the DOM heading steps back
+   (still read by assistive tech; opacity only) */
+.chapter-name {
   transition: opacity 0.9s var(--ease-cinema);
-  pointer-events: none;
 }
-html.stage-ready .world-surface::before {
+html.stage-ready .chapter-name {
   opacity: 0;
 }

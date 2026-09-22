@@ -521,11 +521,11 @@ export class StageDirector {
         m.mesh.visible = false;
         return;
       }
-      const fontPx = Math.min(vw * (vw < 768 ? 0.28 : 0.23), exp.h * 0.62);
+      const fontPx = Math.min(vw * (vw < 768 ? 0.27 : 0.2), exp.h * 0.55);
       const w = Math.min(vw * 0.96, fontPx * m.ratio);
       const h = w / m.aspect;
       m.mesh.visible = true;
-      m.mesh.position.set(exp.cx - px * 14, exp.cy - exp.h * 0.1 + ms.lift * exp.h, -80);
+      m.mesh.position.set(exp.cx - px * 14, exp.cy + exp.h * 0.02 + ms.lift * exp.h, -80);
       m.mesh.scale.set(w, h, 1);
       m.uniforms.uReveal.value = ms.reveal;
       m.uniforms.uOpacity.value = ms.opacity * 0.92;

@@ -7,16 +7,20 @@ import clsx from "clsx";
 export function AssetFrame({
   filename,
   label,
+  ariaLabel,
   className,
 }: {
   filename: string;
   label?: string;
+  /** Accessible name when no visible label is shown */
+  ariaLabel?: string;
   className?: string;
 }) {
+  const name = label ?? ariaLabel;
   return (
     <div
       role="img"
-      aria-label={label ? `${label} (image coming soon)` : "Image coming soon"}
+      aria-label={name ? `${name} (image coming soon)` : "Image coming soon"}
       className={clsx(
         "relative flex aspect-square w-full items-center justify-center border border-current/20 text-current",
         className,

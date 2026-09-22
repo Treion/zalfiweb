@@ -5,6 +5,9 @@ import { Cursor } from "@/components/ui/Cursor";
 import { Grain } from "@/components/ui/Grain";
 import { SkipLink } from "@/components/ui/SkipLink";
 import { StageLoader } from "@/components/stage/StageLoader";
+import { CartProvider } from "@/components/cart/cart-store";
+import { CartDrawer } from "@/components/cart/CartDrawer";
+import { Nav } from "@/components/ui/Nav";
 import { getFragrances } from "@/db/queries";
 import "./globals.css";
 
@@ -53,10 +56,22 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     capFinish,
   }));
   return (
-    <html lang="en" className={`${bodoni.variable} ${hanken.variable}`}>
+    <html lang="en" className={`${bodoni.variable} ${hanken.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Marks JS before first paint so pre-motion states never flash (see globals.css) */}
+        <script
+          dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('js')" }}
+        />
+      </head>
       <body>
         <SkipLink />
-        <SmoothScroll>{children}</SmoothScroll>
+        <SmoothScroll>
+          <CartProvider>
+            <Nav />
+            {children}
+            <CartDrawer />
+          </CartProvider>
+        </SmoothScroll>
         <StageLoader fragrances={stageFragrances} />
         <Cursor />
         <Grain />
