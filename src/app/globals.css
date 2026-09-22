@@ -71,6 +71,12 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  /* Bottle photos let their transparent margins overflow their boxes; never let that scroll
+     the page sideways. clip (not hidden) keeps position: sticky working. */
+  main {
+    overflow-x: clip;
+  }
+
   ::selection {
     background: var(--world-accent);
     color: var(--world-deep);

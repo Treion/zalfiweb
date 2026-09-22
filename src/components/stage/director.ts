@@ -499,7 +499,7 @@ export class StageDirector {
       rig.caustics.material.uniforms.uOpacity.value =
         pose.opacity * g * (0.12 + darkWorld * 0.3 + (pose.sweep > 0 ? 0.2 : 0));
 
-      if (g > floorAmt) {
+      if (g > floorAmt && !cols.get(i)?.onScreen) {
         floorAmt = g;
         floorY = (base + vh / 2) / vh;
       }

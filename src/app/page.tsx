@@ -1,3 +1,4 @@
+import { Collection } from "@/components/sections/Collection";
 import { Experience } from "@/components/sections/Experience";
 import { getFragrances } from "@/db/queries";
 import { NOTES } from "@/db/seed-data";
@@ -14,6 +15,7 @@ export default async function Home() {
   return (
     <main id="main">
       <Experience fragrances={fragrances} noteAvail={noteAvail} />
+      <Collection fragrances={fragrances} />
     </main>
   );
 }
