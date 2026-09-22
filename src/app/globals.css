@@ -146,3 +146,44 @@ html.lenis body {
     scroll-behavior: auto !important;
   }
 }
+
+/*
+ * WebGL stage handshake.
+ * DOM fallbacks (real <img> bottles, world-coloured surfaces) are visible until the stage has
+ * painted the same thing, then crossfade out (opacity only). Reduced motion never loads the stage,
+ * so the fallbacks simply remain.
+ */
+.stage-layer {
+  opacity: 0;
+  transition: opacity 0.9s var(--ease-cinema);
+}
+html.stage-ready .stage-layer {
+  opacity: 1;
+}
+[data-stage-fallback] {
+  transition: opacity 0.9s var(--ease-cinema);
+}
+html.sr-reva [data-stage-fallback="reva"],
+html.sr-riven [data-stage-fallback="riven"],
+html.sr-maree [data-stage-fallback="maree"],
+html.sr-solea [data-stage-fallback="solea"],
+html.sr-bond [data-stage-fallback="bond"],
+html.sr-oudor [data-stage-fallback="oudor"] {
+  opacity: 0;
+}
+.world-surface {
+  position: relative;
+  isolation: isolate;
+}
+.world-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--world-bg);
+  transition: opacity 0.9s var(--ease-cinema);
+  pointer-events: none;
+}
+html.stage-ready .world-surface::before {
+  opacity: 0;
+}

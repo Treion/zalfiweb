@@ -4,6 +4,8 @@ import { SmoothScroll } from "@/components/motion/SmoothScroll";
 import { Cursor } from "@/components/ui/Cursor";
 import { Grain } from "@/components/ui/Grain";
 import { SkipLink } from "@/components/ui/SkipLink";
+import { StageLoader } from "@/components/stage/StageLoader";
+import { getFragrances } from "@/db/queries";
 import "./globals.css";
 
 const bodoni = Bodoni_Moda({
@@ -42,12 +44,20 @@ export const viewport: Viewport = {
   colorScheme: "dark",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const fragrances = await getFragrances();
+  const stageFragrances = fragrances.map(({ slug, name, palette, capFinish }) => ({
+    slug,
+    name,
+    palette,
+    capFinish,
+  }));
   return (
     <html lang="en" className={`${bodoni.variable} ${hanken.variable}`}>
       <body>
         <SkipLink />
         <SmoothScroll>{children}</SmoothScroll>
+        <StageLoader fragrances={stageFragrances} />
         <Cursor />
         <Grain />
       </body>
