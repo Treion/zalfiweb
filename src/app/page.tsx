@@ -1,5 +1,7 @@
 import { Collection } from "@/components/sections/Collection";
 import { Experience } from "@/components/sections/Experience";
+import { Newsletter } from "@/components/sections/Newsletter";
+import { Story } from "@/components/sections/Story";
 import { getFragrances } from "@/db/queries";
 import { NOTES } from "@/db/seed-data";
 import { availability } from "@/lib/assets";
@@ -16,6 +18,8 @@ export default async function Home() {
     <main id="main">
       <Experience fragrances={fragrances} noteAvail={noteAvail} />
       <Collection fragrances={fragrances} />
+      <Story feature={fragrances.find((f) => f.slug === "bond") ?? fragrances[0]} />
+      <Newsletter />
     </main>
   );
 }

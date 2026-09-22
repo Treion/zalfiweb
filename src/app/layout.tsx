@@ -8,6 +8,7 @@ import { StageLoader } from "@/components/stage/StageLoader";
 import { CartProvider } from "@/components/cart/cart-store";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { Nav } from "@/components/ui/Nav";
+import { Footer } from "@/components/sections/Footer";
 import { getFragrances } from "@/db/queries";
 import "./globals.css";
 
@@ -69,6 +70,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           <CartProvider>
             <Nav />
             {children}
+            <Footer fragrances={fragrances} />
             <CartDrawer />
           </CartProvider>
         </SmoothScroll>
