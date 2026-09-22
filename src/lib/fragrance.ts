@@ -58,3 +58,12 @@ export type Fragrance = {
 
 export const notesByLayer = (f: Pick<Fragrance, "notes">, layer: NoteLayer) =>
   f.notes.filter((n) => n.layer === layer).sort((a, b) => a.position - b.position);
+
+/** CSS custom properties for a fragrance's world (read by bg-world-bg, text-world-ink, ...). */
+export const worldVars = (f: Pick<Fragrance, "palette">) =>
+  ({
+    "--world-bg": f.palette.bg,
+    "--world-deep": f.palette.deep,
+    "--world-accent": f.palette.accent,
+    "--world-ink": f.palette.ink,
+  }) as import("react").CSSProperties;

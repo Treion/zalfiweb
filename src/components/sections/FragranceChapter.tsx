@@ -13,6 +13,7 @@ import { EXP, chapterStart } from "@/components/stage/config";
 import {
   NOTE_LAYERS,
   notesByLayer,
+  worldVars,
   type Fragrance,
   type FragranceNote,
   type NoteLayer,
@@ -30,14 +31,6 @@ type Props = {
 };
 
 const LAYER_LABEL: Record<NoteLayer, string> = { top: "Top", heart: "Heart", base: "Base" };
-
-export const worldVars = (f: Fragrance) =>
-  ({
-    "--world-bg": f.palette.bg,
-    "--world-deep": f.palette.deep,
-    "--world-accent": f.palette.accent,
-    "--world-ink": f.palette.ink,
-  }) as CSSProperties;
 
 /**
  * One fragrance chapter. Data in, world out: every chapter is this component, so there are no

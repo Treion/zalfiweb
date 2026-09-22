@@ -83,6 +83,6 @@ export async function POST(req: Request) {
       subtotalCents,
       currency: priced[0]?.currency ?? "USD",
     } satisfies CheckoutResponse,
-    { status: 501 },
+    { status: 200 },
   );
 }
