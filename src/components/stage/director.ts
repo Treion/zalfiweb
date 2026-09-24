@@ -3,7 +3,7 @@ import type { Palette } from "@/lib/fragrance";
 import { anchors, type Anchor } from "./anchors";
 import { BOTTLE_META } from "./bottle-meta";
 import { bottlePose, chapterProgress, mastheadState, worldBlend, type Pose } from "./choreography";
-import { chapterAt } from "./config";
+import { chapterAt, easeInOutCubic } from "./config";
 import * as S from "./shaders";
 import { stageState } from "./stage-state";
 import { HOUSE_PALETTE, type StageFragrance } from "./worlds";
@@ -79,6 +79,9 @@ type Rect = {
   top: number;
   bottom: number;
   onScreen: boolean;
+  /** The anchor element, and when it mounted (performance.now) */
+  el: HTMLElement;
+  mountedAt: number;
 };
 
 function rectOf(a: Anchor, vw: number, vh: number): Rect {
@@ -91,6 +94,8 @@ function rectOf(a: Anchor, vw: number, vh: number): Rect {
     top: r.top,
     bottom: r.bottom,
     onScreen: r.bottom > 0 && r.top < vh,
+    el: a.el,
+    mountedAt: a.mountedAt,
   };
 }
 
@@ -110,6 +115,20 @@ class BottleRig {
   model: ModelInstance | null = null;
   modelMirror: ModelInstance | null = null;
   spin = 0;
+
+  // Continuity across pages (the canvas outlives every route)
+  /** The anchor element currently showing this bottle, and where it was last drawn from it.
+   *  An element, not a key: two pages can mount anchors with the same key (the finder's result
+   *  and the product page), and that is still a move to a new place. */
+  source: HTMLElement | null = null;
+  last: Placement | null = null;
+  /** performance.now() seconds of the last frame drawn from an anchor */
+  anchoredAt = -Infinity;
+  /** A glide from where the bottle stood on the previous page to its new anchor */
+  travel: { from: Placement; start: number } | null = null;
+  /** 0..1: fades bottles in on a new page, and out where their page was taken away */
+  presence = 1;
+  leaving = false;
   private maps: Record<"uColor" | "uNormal" | "uMask", THREE.IUniform<THREE.Texture | null>>;
 
   constructor(
@@ -264,6 +283,26 @@ type Frame = {
 };
 
 const RESTING: Pose = { dx: 0, dy: 0, rotZ: 0, rotY: 0, scale: 1, opacity: 1, grounded: 1 };
+
+/** How long a bottle takes to glide from one page's anchor to the next */
+const TRAVEL_S = 1.1;
+
+const mix = (a: number, b: number, t: number) => a + (b - a) * t;
+
+/** Between two placements. Scale moves evenly (log space); the floor stays at the destination. */
+const mixPlacement = (a: Placement, b: Placement, t: number): Placement => ({
+  cx: mix(a.cx, b.cx, t),
+  cy: mix(a.cy, b.cy, t),
+  ph: a.ph * Math.pow(b.ph / Math.max(a.ph, 1e-3), t),
+  rotY: mix(a.rotY, b.rotY, t),
+  rotZ: mix(a.rotZ, b.rotZ, t),
+  opacity: mix(a.opacity, b.opacity, t),
+  grounded: mix(a.grounded, b.grounded, t),
+  rest: b.rest,
+});
+
+const withOpacity = (p: Placement, k: number): Placement =>
+  k >= 0.999 ? p : { ...p, opacity: p.opacity * k };
 
 /** The studio's key light: upper left, and it never moves */
 const KEY_LIGHT = new THREE.Vector2(-0.45, 0.6);
@@ -514,16 +553,18 @@ export class StageDirector {
     wu.uAspect.value = vw / vh;
 
     const frame: Frame = { prod, cols, exp, s, k, vw, vh, dt };
+    const now = performance.now() / 1000;
     let floorY = this.floor.y;
     let floorAmt = 0;
     this.rigs.forEach((rig, i) => {
-      const p = this.place(rig, i, frame);
+      const p = this.continuity(rig, this.place(rig, i, frame), now, dt);
       const visible = !!p && p.opacity > 0.001 && rig.ready;
       rig.setVisible(visible);
       if (!visible || !p) return;
       const g = this.draw(rig, p, cur, darkWorld);
-      // The home experience stands its bottles on a floor; the collection has none
-      if (g > floorAmt && !cols.get(i)?.onScreen) {
+      // The home experience and product pages stand their bottles on a floor; the collection
+      // has none, and a bottle dissolving off a page it has left doesn't bring its floor along
+      if (g > floorAmt && !cols.get(i)?.onScreen && !rig.leaving) {
         floorAmt = g;
         floorY = (p.rest + vh / 2) / vh;
       }
@@ -563,8 +604,57 @@ export class StageDirector {
     this.updateNotes(vw, vh, s, k);
   }
 
+  /**
+   * Carries a bottle across pages. The canvas outlives every route, so:
+   *  - when a visible bottle changes anchor (a navigation, or a jump to another section), it glides
+   *    from where it stood to its new place
+   *  - when its page is taken away from under it, it dissolves where it stood
+   *  - on a page that has only just mounted, with nothing to glide from, it fades in
+   * Scrolling never moves a visible bottle to another anchor, so normal browsing is unaffected.
+   */
+  private continuity(
+    rig: BottleRig,
+    hit: { p: Placement; rect: Rect } | null,
+    now: number,
+    dt: number,
+  ): Placement | null {
+    if (hit) {
+      if (rig.source !== hit.rect.el) {
+        const from = rig.last;
+        const recent = !!from && from.opacity > 0.5 && now - rig.anchoredAt < 0.6;
+        rig.travel = recent && from ? { from, start: now } : null;
+        if (!recent && now * 1000 - hit.rect.mountedAt < 1000) rig.presence = 0;
+        rig.source = hit.rect.el;
+        rig.leaving = false;
+      }
+      let p = hit.p;
+      if (rig.travel) {
+        const t = (now - rig.travel.start) / TRAVEL_S;
+        if (t >= 1) rig.travel = null;
+        else p = mixPlacement(rig.travel.from, p, easeInOutCubic(t));
+      }
+      rig.presence = damp(rig.presence, 1, 5, dt);
+      rig.last = p;
+      rig.anchoredAt = now;
+      return withOpacity(p, rig.presence);
+    }
+    if (rig.source) {
+      // Its anchor is gone: unmounted while the bottle was on screen means the page changed
+      const unmounted = !rig.source.isConnected;
+      rig.leaving = unmounted && !!rig.last && rig.last.opacity > 0.5 && now - rig.anchoredAt < 0.3;
+      rig.source = null;
+      rig.travel = null;
+    }
+    if (rig.leaving && rig.last) {
+      rig.presence = damp(rig.presence, 0, 6, dt);
+      if (rig.presence > 0.01) return withOpacity(rig.last, rig.presence);
+      rig.leaving = false;
+    }
+    return null;
+  }
+
   /** Where rig i belongs this frame, from whichever anchor is showing it (or null). */
-  private place(rig: BottleRig, i: number, f: Frame): Placement | null {
+  private place(rig: BottleRig, i: number, f: Frame): { p: Placement; rect: Rect } | null {
     let rect: Rect;
     let pose: Pose;
     const col = f.cols.get(i);
@@ -600,7 +690,7 @@ export class StageDirector {
 
     // Fit the photo inside the anchor (object-contain), never distorted
     const fit = Math.min(rect.h, rect.w / rig.aspect);
-    return {
+    const p: Placement = {
       cx: rect.cx + pose.dx,
       cy: rect.cy + pose.dy,
       ph: fit * pose.scale,
@@ -610,6 +700,7 @@ export class StageDirector {
       grounded: pose.grounded,
       rest: rect.cy - fit / 2,
     };
+    return { p, rect };
   }
 
   /** Draws a rig at a placement. Returns how grounded it is, for the world floor. */

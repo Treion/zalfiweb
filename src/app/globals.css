@@ -236,6 +236,36 @@ html.stage-ready .chapter-name {
   opacity: 0;
 }
 
+/*
+ * Client-side page arrivals (app/template.tsx): the page fades in and its text blocks rise into
+ * place while the stage carries the bottle across. Opacity on the page; transform only on text
+ * blocks, never on stage anchors or fixed elements.
+ */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes enter-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+[data-page-enter] {
+  animation: page-enter 0.8s var(--ease-cinema) both;
+}
+[data-page-enter] [data-enter] {
+  animation: enter-rise 1.1s var(--ease-cinema) both;
+  animation-delay: calc(140ms + var(--enter, 0) * 80ms);
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-page-enter],
+  [data-page-enter] [data-enter] {
+    animation: none;
+  }
+}
+
 /* A stage anchor the WebGL stage is drawing (a 3D note or bottle): its DOM fallback steps back */
 [data-model-fallback] {
   transition: opacity 0.9s var(--ease-cinema);

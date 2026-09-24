@@ -179,6 +179,7 @@ Each milestone ends with lint, typecheck, `next build` and `next dev`, then Play
 | **M8** ✓ | Story, newsletter, footer | |
 | **M9** ✓ | Polish | SEO, OG images, sitemap, JSON-LD, Lighthouse, accessibility, 375px sweep |
 | **M10** ✓ | Calm & butter | Still light (no rays, caustics, sweeps, pointer tilt or idle spins), static grain, gentle vertical bottle handoffs, soft scrubbed easing, Lenis lerp, transform-only cursor, intro wordmark fix |
+| **M11** ✓ | Premium touches | The bottle travels between pages, chapter index with world-wash jumps, sticky purchase bar, scent profile (`profile` jsonb), Find your world (`/find`) |
 
 ---
 
@@ -191,6 +192,14 @@ Each milestone ends with lint, typecheck, `next build` and `next dev`, then Play
 ---
 
 ## Changelog
+
+- **M11 (2026-09-24):** premium product-site touches, chosen to stay calm:
+  - The stage carries the bottle from the collection (or a chapter, or the finder) into its product page and back, while the world colour washes across.
+  - A chapter index jumps between worlds behind a veil of the destination's colour.
+  - A slim purchase bar in the fragrance's colours follows the product page.
+  - "The character" block: family, longevity, sillage, season, moment.
+  - A three-question finder with an evenly balanced result: each world wins 23 to 26 of the 144 answer combinations.
+  - **To confirm:** the scent profiles are my suggestions, read from each fragrance's notes. The owner should confirm or edit them in the `fragrances.profile` column. `npm run db:seed` only fills empty ones.
 
 - **M10 (2026-09-24):** the owner found the light from the top left "way too flashing", and the area under the collection bottles moving too much. They asked for everything calm and smooth.
   - **Causes:**

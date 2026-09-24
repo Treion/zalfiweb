@@ -10,7 +10,14 @@ import { useCallback } from "react";
  */
 export type AnchorKind = "experience" | "collection" | "collection-section" | "product" | "note";
 
-export type Anchor = { kind: AnchorKind; el: HTMLElement; index: number; slug?: string };
+export type Anchor = {
+  kind: AnchorKind;
+  el: HTMLElement;
+  index: number;
+  slug?: string;
+  /** performance.now() when the anchor mounted: a fresh page's anchors are only moments old */
+  mountedAt: number;
+};
 
 export const anchors = new Map<string, Anchor>();
 
@@ -18,7 +25,14 @@ export function useStageAnchor(kind: AnchorKind, opts: { index?: number; slug?: 
   const key = `${kind}:${opts.index ?? 0}:${opts.slug ?? ""}`;
   return useCallback(
     (el: HTMLElement | null) => {
-      if (el) anchors.set(key, { kind, el, index: opts.index ?? 0, slug: opts.slug });
+      if (el)
+        anchors.set(key, {
+          kind,
+          el,
+          index: opts.index ?? 0,
+          slug: opts.slug,
+          mountedAt: performance.now(),
+        });
       else anchors.delete(key);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps

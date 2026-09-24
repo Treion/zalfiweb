@@ -1,9 +1,11 @@
+import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BottleImage, bottleAspect } from "@/components/media/BottleImage";
 import { NotesPyramid } from "@/components/product/NotesPyramid";
 import { ProductPurchase } from "@/components/product/ProductPurchase";
+import { ScentProfile } from "@/components/product/ScentProfile";
 import { StageAnchor } from "@/components/stage/StageAnchor";
 import { BOTTLE_MODELS } from "@/components/stage/model-manifest";
 import { getFragrance, getFragrances } from "@/db/queries";
@@ -11,6 +13,12 @@ import { availability } from "@/lib/assets";
 import { NOTE_LAYERS, notesByLayer, worldVars } from "@/lib/fragrance";
 
 export const revalidate = 300;
+
+/** Text blocks that rise into place, in order, when the page is reached by navigation */
+const enter = (order: number) => ({
+  "data-enter": "",
+  style: { "--enter": order } as CSSProperties,
+});
 
 export async function generateStaticParams() {
   return (await getFragrances()).map((f) => ({ slug: f.slug }));
@@ -94,7 +102,7 @@ export default async function FragrancePage({ params }: PageProps<"/fragrances/[
         </div>
 
         <div className="col-span-12 pb-24 md:col-span-5 md:pt-40">
-          <nav aria-label="Breadcrumb" className="eyebrow opacity-70">
+          <nav aria-label="Breadcrumb" className="eyebrow opacity-70" {...enter(0)}>
             <Link href="/#collection" className="border-b border-current/40 pb-0.5">
               Collection
             </Link>
@@ -103,23 +111,35 @@ export default async function FragrancePage({ params }: PageProps<"/fragrances/[
               {String(index + 1).padStart(2, "0")}
             </span>
           </nav>
-          <h1 className="font-display mt-8 text-[clamp(4rem,9vw,9.5rem)] leading-[0.85]">
+          <h1
+            className="font-display mt-8 text-[clamp(4rem,9vw,9.5rem)] leading-[0.85]"
+            {...enter(1)}
+          >
             {f.name}
           </h1>
-          <p className="display-italic mt-6 max-w-md text-[clamp(1.4rem,2vw,2rem)] leading-snug">
+          <p
+            className="display-italic mt-6 max-w-md text-[clamp(1.4rem,2vw,2rem)] leading-snug"
+            {...enter(2)}
+          >
             {f.tagline}
           </p>
-          <p className="mt-6 max-w-md leading-relaxed opacity-80">{f.story}</p>
-          <p className="eyebrow mt-8 opacity-70">
+          <p className="mt-6 max-w-md leading-relaxed opacity-80" {...enter(3)}>
+            {f.story}
+          </p>
+          <p className="eyebrow mt-8 opacity-70" {...enter(3)}>
             Eau de parfum · {f.mood}
             {from ? ` · from ${from.sizeMl} ml` : ""}
           </p>
 
-          <div className="mt-12 max-w-md">
+          <div className="mt-12 max-w-md" {...enter(4)}>
             <ProductPurchase fragrance={f} />
           </div>
 
-          <div className="mt-24">
+          <div className="mt-20 max-w-md" {...enter(5)}>
+            <ScentProfile profile={f.profile} />
+          </div>
+
+          <div className="mt-24" {...enter(6)}>
             <NotesPyramid fragrance={f} noteAvail={noteAvail} />
           </div>
 

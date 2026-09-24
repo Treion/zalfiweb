@@ -6,6 +6,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const fragrances = await getFragrances();
   return [
     { url: site, changeFrequency: "weekly", priority: 1 },
+    { url: `${site}/find`, changeFrequency: "monthly", priority: 0.6 },
     ...fragrances.map((f) => ({
       url: `${site}/fragrances/${f.slug}`,
       changeFrequency: "weekly" as const,

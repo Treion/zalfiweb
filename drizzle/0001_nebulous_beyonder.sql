@@ -1,0 +1,1 @@
+ALTER TABLE "fragrances" ADD COLUMN "profile" jsonb;

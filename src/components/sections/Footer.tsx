@@ -44,6 +44,11 @@ export function Footer({
               </Link>
             </li>
             <li>
+              <Link href="/find" className="hover:underline">
+                Find your world
+              </Link>
+            </li>
+            <li>
               <Link href="/checkout" className="hover:underline">
                 Your bag
               </Link>

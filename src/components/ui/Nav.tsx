@@ -35,6 +35,11 @@ export function Nav() {
             </Link>
           </li>
           <li className="hidden sm:block">
+            <Link href="/find" className="eyebrow">
+              Find yours
+            </Link>
+          </li>
+          <li className="hidden sm:block">
             <Link href="/#story" className="eyebrow">
               The House
             </Link>

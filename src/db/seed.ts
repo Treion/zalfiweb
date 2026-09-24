@@ -1,7 +1,8 @@
 /**
  * Seeds the catalogue from src/db/seed-data.ts.
  *
- *   npm run db:seed          inserts anything missing and never overwrites your edits
+ *   npm run db:seed          inserts anything missing (and fills empty scent profiles); never
+ *                            overwrites your edits
  *   npm run db:seed -- --reset  overwrites fragrances, notes, prices and stock with the seed values
  *
  * Uses node-postgres directly (scripts run in Node, not on the edge).
@@ -49,6 +50,7 @@ async function main() {
         bottleImage: f.bottleImage,
         bottleAlt: f.bottleAlt,
         sortOrder: f.sortOrder,
+        profile: f.profile,
       };
       const q = tx.insert(schema.fragrances).values(values);
       await (reset
@@ -56,7 +58,11 @@ async function main() {
             target: schema.fragrances.slug,
             set: { ...values, updatedAt: sql`now()` },
           })
-        : q.onConflictDoNothing());
+        : // Never touches the owner's edits: only fills a scent profile that is still empty
+          q.onConflictDoUpdate({
+            target: schema.fragrances.slug,
+            set: { profile: sql`coalesce(${schema.fragrances.profile}, excluded.profile)` },
+          }));
       const [{ id }] = await tx
         .select({ id: schema.fragrances.id })
         .from(schema.fragrances)

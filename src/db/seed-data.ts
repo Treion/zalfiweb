@@ -11,6 +11,7 @@ import type {
   Note,
   NoteLayer,
   Palette,
+  ScentProfile,
 } from "@/lib/fragrance";
 
 const NOTE_DATA = {
@@ -92,6 +93,7 @@ const fragrance = (
   copy: { tagline: string; story: string; mood: string },
   notes: Pyramid,
   prices: [number, number],
+  profile: ScentProfile,
 ): Fragrance => ({
   slug,
   name,
@@ -101,6 +103,7 @@ const fragrance = (
   bottleImage: `/images/bottles/${slug}.png`,
   bottleAlt: `ZALFI ${name} eau de parfum: a smoked black glass cube with a ${capLabel[capFinish]} cap`,
   sortOrder,
+  profile,
   notes: pyramid(notes),
   variants: variants(slug, ...prices),
 });
@@ -142,6 +145,13 @@ export const FRAGRANCES: Fragrance[] = [
       ],
     },
     [145, 210],
+    {
+      family: "Aromatic fougère",
+      longevity: 3,
+      sillage: 3,
+      seasons: ["spring", "autumn"],
+      moments: ["day"],
+    },
   ),
   fragrance(
     2,
@@ -170,6 +180,13 @@ export const FRAGRANCES: Fragrance[] = [
       ],
     },
     [145, 210],
+    {
+      family: "Green aromatic",
+      longevity: 2,
+      sillage: 2,
+      seasons: ["spring", "summer"],
+      moments: ["day"],
+    },
   ),
   fragrance(
     3,
@@ -201,6 +218,13 @@ export const FRAGRANCES: Fragrance[] = [
       ],
     },
     [145, 210],
+    {
+      family: "Floral woody",
+      longevity: 3,
+      sillage: 3,
+      seasons: ["spring", "summer"],
+      moments: ["day", "evening"],
+    },
   ),
   fragrance(
     4,
@@ -229,6 +253,13 @@ export const FRAGRANCES: Fragrance[] = [
       ],
     },
     [145, 210],
+    {
+      family: "Ambery gourmand",
+      longevity: 4,
+      sillage: 3,
+      seasons: ["summer"],
+      moments: ["day", "evening"],
+    },
   ),
   fragrance(
     5,
@@ -258,6 +289,13 @@ export const FRAGRANCES: Fragrance[] = [
       ],
     },
     [165, 240],
+    {
+      family: "Woody iris",
+      longevity: 4,
+      sillage: 3,
+      seasons: ["autumn", "winter"],
+      moments: ["evening"],
+    },
   ),
   fragrance(
     6,
@@ -286,5 +324,12 @@ export const FRAGRANCES: Fragrance[] = [
       ],
     },
     [185, 265],
+    {
+      family: "Oud rose amber",
+      longevity: 5,
+      sillage: 4,
+      seasons: ["autumn", "winter"],
+      moments: ["evening", "night"],
+    },
   ),
 ];

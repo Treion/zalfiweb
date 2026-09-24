@@ -11,7 +11,7 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-import type { Palette } from "@/lib/fragrance";
+import type { Palette, ScentProfile } from "@/lib/fragrance";
 
 export const noteLayer = pgEnum("note_layer", ["top", "heart", "base"]);
 export const capFinish = pgEnum("cap_finish", [
@@ -37,6 +37,8 @@ export const fragrances = pgTable(
     bottleImage: text("bottle_image").notNull(),
     bottleAlt: text("bottle_alt").notNull(),
     sortOrder: integer("sort_order").notNull().default(0),
+    /** Family, longevity, sillage, seasons and moments (see ScentProfile). Null hides it. */
+    profile: jsonb("profile").$type<ScentProfile>(),
     published: boolean("published").notNull().default(true),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

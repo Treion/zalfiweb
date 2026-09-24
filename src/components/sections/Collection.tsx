@@ -33,9 +33,18 @@ export function Collection({ fragrances }: { fragrances: Fragrance[] }) {
           <br />
           <span className="display-italic">Choose yours.</span>
         </h2>
-        <p className="text-bone-dim col-span-12 max-w-xs self-end text-sm leading-relaxed md:col-span-3">
-          The same smoked glass, six different lights. Hover to lift a bottle and read its notes.
-        </p>
+        <div className="col-span-12 max-w-xs self-end md:col-span-3">
+          <p className="text-bone-dim text-sm leading-relaxed">
+            The same smoked glass, six different lights. Hover to lift a bottle and read its notes.
+          </p>
+          <Link
+            href="/find"
+            data-cursor="Begin"
+            className="eyebrow mt-6 inline-block border-b border-current/50 pb-1"
+          >
+            Not sure? Find your world
+          </Link>
+        </div>
       </header>
 
       <ul className="mt-20 grid grid-cols-2 gap-x-5 gap-y-16 md:mt-28 md:grid-cols-6 md:gap-x-6">

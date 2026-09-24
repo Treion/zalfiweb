@@ -76,6 +76,10 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
 - `Experience` is one sticky viewport holding the intro, hero and six `FragranceChapter`s over the stage. A single master GSAP timeline, where 1 unit = 1vh of scroll, is scrubbed by ScrollTrigger. Its segment timings live in `components/stage/config.ts` and are shared by the DOM timeline and `stage/choreography.ts`, so type and light never drift. Change timings there, and only there.
 - Each chapter renders two views of the same data: the motion layout, and a static spread shown by the `static:` variant (reduced motion, or no WebGL via `html.static-experience`).
 - `data-reveal` elements are hidden until their timeline runs, but only with JS and motion allowed (`html.js`, set before paint).
+- `ChapterIndex` (desktop) lists the six chapters. A jump never scrolls through the worlds in between:
+  1. A `WorldVeil` in the destination's colour fades in.
+  2. The scroll and the scrub tween (`st.getTween().progress(1)`) move behind it.
+  3. The veil lifts.
 - Unlayered CSS beats Tailwind utilities. Put custom component CSS in `@layer components`.
 
 ## WebGL stage rules
@@ -83,6 +87,11 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
 - There is one persistent fixed `<Stage />` canvas with a negative z-index, behind page content. Opaque sections cover it; transparent ones reveal it. GSAP writes to a mutable `stageState` object, and `StageDirector` (a plain class, outside React) reads it every frame. **Do not drive per-frame values through React state.**
 - Placement comes from DOM anchors (`<StageAnchor kind="experience|collection|product">`). Layout stays in CSS, and the stage draws at each anchor's rect. DOM fallbacks inside anchors carry `data-stage-fallback={slug}` and crossfade out when that bottle is ready.
 - Bottle anchors use each bottle's trimmed aspect ratio (`bottleAspect(slug)`), and DOM fallbacks use `<BottleImage fit="trim">`, so the fallback and the render line up pixel for pixel.
+- **Continuity across pages** (`StageDirector.continuity`). The canvas outlives every route, and continuity is tracked by anchor element, not key:
+  - A visible bottle whose anchor changes glides from where it stood to its new anchor (1.1s). This happens on collection → product, chapter → product, finder → product, and back.
+  - A bottle whose anchor unmounts while visible dissolves in place.
+  - A bottle appearing on a freshly mounted anchor fades in.
+  - `app/template.tsx` fades client-navigated pages in, and `[data-enter]` text blocks rise with `--enter` order. Never put `[data-enter]` on a stage anchor or around a fixed element.
 - The bottle is the real photo, relit in GLSL with the baked normal and mask maps: GGX key light, palette-tinted softbox reflections, Fresnel rim, metal-cap highlights, reflective floor.
   - It is lit in the photo's own frame, like a still life, so its reflections never slide across the glass when it moves.
   - The world background has one still key light from the upper left and a haze baked once into a texture (`bakeHaze`).
@@ -101,7 +110,7 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
 ## Code conventions
 
 - Folders:
-  - `src/components/{motion,ui,media,brand,sections,stage,product}`
+  - `src/components/{motion,ui,media,brand,sections,stage,product,cart,finder}`
   - `src/db` (schema, client, queries, seed)
   - `src/lib` (domain types, helpers)
   - `scripts/` (asset pipeline)

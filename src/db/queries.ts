@@ -52,6 +52,7 @@ export async function getFragrances(): Promise<Fragrance[]> {
       bottleImage: f.bottleImage,
       bottleAlt: f.bottleAlt,
       sortOrder: f.sortOrder,
+      profile: f.profile ?? null,
       notes: noteRows
         .filter((n) => n.fragranceId === f.id)
         .map((n) => ({
