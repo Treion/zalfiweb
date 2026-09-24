@@ -53,23 +53,20 @@ export function Experience({ fragrances, noteAvail }: Props) {
           { scale: 1, opacity: 1, duration: 1.6 },
           "<0.12",
         )
+        // The rise moves each letter's path; the scroll drift below moves its group. Kept on
+        // separate elements because GSAP folds SVG percentages into px when a second tween re-reads
+        // the transform matrix (on ScrollTrigger refresh), which left the letters stuck below.
         .fromTo(
-          q("[data-logo-letter]"),
+          q("[data-letter-rise]"),
           { yPercent: 115, opacity: 1 },
           { yPercent: 0, duration: 1.5, stagger: 0.085 },
           "<0.3",
         )
         .fromTo(
-          q("#zalfi-glint"),
-          { attr: { x1: -700, x2: -200 } },
-          { attr: { x1: 1700, x2: 2200 }, duration: 2.8, ease: EASE.silk },
-          "-=0.5",
-        )
-        .fromTo(
           q("[data-intro-meta]"),
           { opacity: 0, y: 14 },
-          { opacity: 1, y: 0, duration: 1.2, stagger: 0.12 },
-          "-=1.4",
+          { opacity: 1, y: 0, duration: 1.4, stagger: 0.12 },
+          "-=0.6",
         );
 
       // 2. Scroll: one master timeline per breakpoint
@@ -86,7 +83,8 @@ export function Experience({ fragrances, noteAvail }: Props) {
             trigger: root.current,
             start: "top top",
             end: "bottom bottom",
-            scrub: 0.9,
+            // Lenis already smooths the wheel; a one-second scrub lets type and light settle as one
+            scrub: 1,
             invalidateOnRefresh: true,
           },
           onUpdate: () => {
@@ -121,20 +119,21 @@ export function Experience({ fragrances, noteAvail }: Props) {
         // fallback until then), and the headline sets
         const h = heroStart(k);
         const H = EXP.hero_;
+        // (mirrors bottlePose in stage/choreography.ts, so the fallback and the render agree)
         tl.fromTo(
           q("[data-hero-fallback]"),
-          { y: () => window.innerHeight * 0.95, opacity: 0 },
-          { y: 0, opacity: 1, duration: (H.rise[1] - H.rise[0]) * k, ease: "power3.out" },
+          { y: () => window.innerHeight * 0.55, opacity: 0 },
+          { y: 0, opacity: 1, duration: (H.rise[1] - H.rise[0]) * k, ease: "power2.out" },
           h + H.rise[0] * k,
         );
         tl.to(
           q("[data-hero-fallback]"),
           {
-            y: () => -window.innerHeight * 0.72,
-            x: () => -window.innerWidth * 0.3,
+            y: () => -window.innerHeight * 0.35,
+            x: () => -window.innerWidth * 0.03,
             opacity: 0,
-            duration: 80 * k,
-            ease: "power2.inOut",
+            duration: (EXP.ch.exit[1] - EXP.ch.exit[0]) * k,
+            ease: EASE.glide,
           },
           chapterStart(0, k) + EXP.ch.exit[0] * k,
         );
@@ -147,7 +146,7 @@ export function Experience({ fragrances, noteAvail }: Props) {
         tl.fromTo(
           q("[data-hero-copy] [data-w]"),
           { yPercent: 110, opacity: 1 },
-          { yPercent: 0, duration: 40 * k, stagger: 3 * k, ease: EASE.cinema },
+          { yPercent: 0, duration: 40 * k, stagger: 3 * k, ease: EASE.soft },
           h + H.headline[0] * k,
         );
         tl.fromTo(
@@ -164,25 +163,6 @@ export function Experience({ fragrances, noteAvail }: Props) {
 
         // Chapters
         q("[data-chapter]").forEach((el, i) => buildChapterTimeline(tl, el as HTMLElement, i, k));
-
-        // Pointer parallax for floating notes (desktop only), via quickTo: no per-frame React
-        if (ctx.conditions?.desktop) {
-          const layers = q("[data-pointer-depth]").map((el) => ({
-            depth: Number((el as HTMLElement).dataset.pointerDepth),
-            x: gsap.quickTo(el, "x", { duration: 1.1, ease: "power3.out" }),
-            y: gsap.quickTo(el, "y", { duration: 1.1, ease: "power3.out" }),
-          }));
-          const move = (e: PointerEvent) => {
-            const nx = e.clientX / window.innerWidth - 0.5;
-            const ny = e.clientY / window.innerHeight - 0.5;
-            for (const l of layers) {
-              l.x(-nx * 36 * l.depth);
-              l.y(-ny * 26 * l.depth);
-            }
-          };
-          window.addEventListener("pointermove", move, { passive: true });
-          return () => window.removeEventListener("pointermove", move);
-        }
       });
       return () => mm.revert();
     },
@@ -266,27 +246,14 @@ function Intro() {
                 height={wm[3] - wm[1] + 34}
               />
             </clipPath>
-            <linearGradient
-              id="zalfi-glint"
-              gradientUnits="userSpaceOnUse"
-              x1="-700"
-              y1="0"
-              x2="-200"
-              y2="220"
-            >
-              <stop offset="0" stopColor="#fff" stopOpacity="0" />
-              <stop offset="0.5" stopColor="#fff" stopOpacity="0.4" />
-              <stop offset="1" stopColor="#fff" stopOpacity="0" />
-            </linearGradient>
           </defs>
           {emblem.map((p) => (
             <path key={p.id} d={p.d} data-logo-part={p.id} data-reveal />
           ))}
           <g clipPath="url(#zalfi-wm-clip)">
             {letters.map((p) => (
-              <g key={p.id} data-logo-letter data-reveal>
-                <path d={p.d} data-logo-part={p.id} />
-                <path d={p.d} fill="url(#zalfi-glint)" style={{ mixBlendMode: "overlay" }} />
+              <g key={p.id} data-logo-letter>
+                <path d={p.d} data-logo-part={p.id} data-letter-rise data-reveal />
               </g>
             ))}
           </g>
@@ -303,7 +270,7 @@ function Intro() {
           Scroll
         </span>
         <span className="bg-bone/15 block h-12 w-px overflow-hidden">
-          <span className="bg-bone block h-full w-full motion-safe:animate-[scroll-cue_2.4s_var(--ease-silk)_infinite]" />
+          <span className="bg-bone block h-full w-full motion-safe:animate-[scroll-cue_3.6s_var(--ease-silk)_infinite]" />
         </span>
       </div>
     </div>

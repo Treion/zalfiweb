@@ -6,12 +6,13 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { gsap } from "@/components/motion/gsap";
 import { anchors } from "./anchors";
 import { FOV, StageDirector, type Tier } from "./director";
+import { anyModels } from "./models";
 import type { StageFragrance } from "./worlds";
 
 /**
  * The persistent WebGL stage. One fixed canvas behind the page draws:
- *   the world background → giant fragrance names → back glow → caustics → contact shadow →
- *   floor reflection → the relit bottle photo.
+ *   the world background → giant fragrance names → back glow → contact shadow →
+ *   floor reflection → the relit bottle photo (or its 3D model).
  * It renders only while a stage anchor is on screen, driven by gsap.ticker so it is frame-locked
  * with Lenis and ScrollTrigger. All per-frame work lives in StageDirector (outside React).
  */
@@ -29,7 +30,8 @@ export default function Stage({ fragrances }: { fragrances: StageFragrance[] }) 
         flat
         dpr={tier === "high" ? [1, 2] : [1, 1.5]}
         gl={{
-          antialias: tier === "high",
+          // Photo planes have no visible geometry edges, so MSAA only pays off for 3D models
+          antialias: tier === "high" && anyModels(),
           alpha: false,
           depth: true,
           stencil: false,
@@ -37,7 +39,7 @@ export default function Stage({ fragrances }: { fragrances: StageFragrance[] }) 
         }}
         camera={{ fov: FOV, near: 1, far: 30000, position: [0, 0, 1500] }}
       >
-        <Scene fragrances={fragrances} tier={tier} layer={layer} />
+        <Scene fragrances={fragrances} layer={layer} />
       </Canvas>
     </div>
   );
@@ -45,18 +47,16 @@ export default function Stage({ fragrances }: { fragrances: StageFragrance[] }) 
 
 function Scene({
   fragrances,
-  tier,
   layer,
 }: {
   fragrances: StageFragrance[];
-  tier: Tier;
   layer: React.RefObject<HTMLDivElement | null>;
 }) {
   const { scene, gl, advance } = useThree();
   const director = useRef<StageDirector | null>(null);
 
   useEffect(() => {
-    const d = new StageDirector(fragrances, tier);
+    const d = new StageDirector(fragrances);
     director.current = d;
     d.attach(scene, gl);
     void d.load(gl);
@@ -64,7 +64,7 @@ function Scene({
       d.detach(scene);
       director.current = null;
     };
-  }, [fragrances, tier, scene, gl]);
+  }, [fragrances, scene, gl]);
 
   // Frame-lock rendering to gsap.ticker (after Lenis has updated scroll), and only when needed
   useEffect(() => {

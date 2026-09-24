@@ -20,7 +20,7 @@ export function Story({ feature }: { feature: Fragrance }) {
     () => {
       if (reduced) return;
       const q = gsap.utils.selector(root);
-      const st = { trigger: root.current, start: "top bottom", end: "bottom top", scrub: 0.8 };
+      const st = { trigger: root.current, start: "top bottom", end: "bottom top", scrub: 1 };
       gsap.fromTo(
         q("[data-story-bottle]"),
         { yPercent: 14 },
@@ -43,7 +43,7 @@ export function Story({ feature }: { feature: Fragrance }) {
             trigger: q("[data-story-head]")[0],
             start: "top 80%",
             end: "top 35%",
-            scrub: 0.8,
+            scrub: 1,
           },
         },
       );
@@ -59,7 +59,7 @@ export function Story({ feature }: { feature: Fragrance }) {
             trigger: q("[data-story-body]")[0],
             start: "top 85%",
             end: "top 45%",
-            scrub: 0.8,
+            scrub: 1,
           },
         },
       );

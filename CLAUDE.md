@@ -14,8 +14,8 @@ The build plan lives in `PLAN.md`, and the note photo list and prompts in `NOTES
 - PostgreSQL + Drizzle ORM. The Neon HTTP driver is used everywhere. In dev, `npm run db:proxy` serves Neon's HTTP protocol against local Postgres 16. `src/db/seed-data.ts` is the typed catalogue source and the fallback when `DATABASE_URL` is missing. The seed never overwrites owner edits unless `--reset` is passed.
 - GSAP + ScrollTrigger for scroll-scrubbed sequences. **Import from `@/components/motion/gsap`**, never from `gsap` directly.
 - Motion (`motion/react`) for UI interactions: hover, buttons, menus, drawer, modals, cursor.
-- Lenis smooth scroll, driven by `gsap.ticker` (`src/components/motion/SmoothScroll.tsx`).
-- three.js + React Three Fiber + custom GLSL for the WebGL stage (bottle relighting, reflections, caustics).
+- Lenis smooth scroll (`lerp: 0.08`, one continuous damped glide), driven by `gsap.ticker` (`src/components/motion/SmoothScroll.tsx`).
+- three.js + React Three Fiber + custom GLSL for the WebGL stage (bottle relighting, reflections).
 
 ## Brand assets
 
@@ -37,7 +37,7 @@ The build plan lives in `PLAN.md`, and the note photo list and prompts in `NOTES
   - **Hanken Grotesk** (`font-sans`) for body text.
   - Sizes: `text-mega`, `text-display`, `text-headline`.
   - `eyebrow` for small uppercase tracked labels.
-- Film grain overlay (`<Grain />`) stays on every page.
+- Film grain overlay (`<Grain />`) stays on every page. It is still, like grain in a print: moving grain reads as flicker.
 - Custom cursor (`<Cursor />`). Mark interactive elements with `data-cursor="Discover"` to show a word in the cursor. It is disabled on touch devices and with reduced motion.
 - Hairlines (`border-current/20`) over boxes. Square corners. No rounded cards.
 - Copy: short, sensual, confident, like a niche perfume house. Sentences under 15 words. Sensory nouns over adjectives.
@@ -59,7 +59,13 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
 
 - Scroll sequences are **scrubbed** to scroll position (`scrub: true` or a small number), not just triggered.
 - Animate **only `transform` and `opacity`** in the DOM. Never animate `filter`, `width`, `top` or colours on large layers. World colour changes happen in the WebGL shader (via uniforms) or by crossfading stacked layers' opacity.
-- Easing is cinematic (`EASE` in `motion/gsap.ts`: expo.out, power2.inOut). **No bounce, no elastic, no overshoot springs** on content.
+- Easing is cinematic (`EASE` in `motion/gsap.ts`). Time-based UI uses `cinema` (expo.out). Scrubbed motion uses `soft` (power2.out) for reveals and `glide` (sine.inOut) for recedes and exits, so movement spreads evenly over the scroll instead of snapping. **No bounce, no elastic, no overshoot springs** on content.
+- **Calm over spectacle.** The owner is sensitive to motion, so keep this strict:
+  - **The light is still.** Nothing on the stage runs on a clock or follows the pointer: no light rays, caustics, sweeps, pointer tilt, pointer parallax or idle spins.
+  - Things move only with scroll, hover or focus, drag, and navigation.
+  - With no input, consecutive frames are pixel-identical. Check this with Playwright (see the calm check in Workflow).
+  - Keep scrubbed distances small: notes rise ≤ 14%, bottles travel ≤ 0.4vh with ≤ 8° of turn.
+- On SVG, never tween `xPercent`/`yPercent` on an element that another tween also transforms. GSAP folds SVG percentages into px when it re-reads the matrix (on ScrollTrigger refresh), so split the tweens across nested elements (see the intro logo).
 - Always clean up: use `useGSAP` with a scope ref.
 - `prefers-reduced-motion`: no pinning, no scrub, no canvas, no Lenis, no cursor. Show a complete static editorial layout. That layout is chosen by CSS (the `static:` variant), so SSR and hydration always agree. `useReducedMotion()` returns `true` on the server, so no animation code runs before the client has checked.
 - Mobile (<768px, test at 375px): shorter pins, fewer floating notes (2 per layer), Low WebGL tier, no cursor or tilt effects.
@@ -77,7 +83,9 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
 - There is one persistent fixed `<Stage />` canvas with a negative z-index, behind page content. Opaque sections cover it; transparent ones reveal it. GSAP writes to a mutable `stageState` object, and `StageDirector` (a plain class, outside React) reads it every frame. **Do not drive per-frame values through React state.**
 - Placement comes from DOM anchors (`<StageAnchor kind="experience|collection|product">`). Layout stays in CSS, and the stage draws at each anchor's rect. DOM fallbacks inside anchors carry `data-stage-fallback={slug}` and crossfade out when that bottle is ready.
 - Bottle anchors use each bottle's trimmed aspect ratio (`bottleAspect(slug)`), and DOM fallbacks use `<BottleImage fit="trim">`, so the fallback and the render line up pixel for pixel.
-- The bottle is the real photo, relit in GLSL with the baked normal and mask maps: GGX key light, palette-tinted environment reflection, Fresnel rim, metal-cap highlights, reflective floor, caustics.
+- The bottle is the real photo, relit in GLSL with the baked normal and mask maps: GGX key light, palette-tinted softbox reflections, Fresnel rim, metal-cap highlights, reflective floor.
+  - It is lit in the photo's own frame, like a still life, so its reflections never slide across the glass when it moves.
+  - The world background has one still key light from the upper left and a haze baked once into a texture (`bakeHaze`).
 - Load three.js after first paint (`next/dynamic`). The LCP element is the DOM `next/image` hero bottle, and the canvas crossfades in over it.
 - Quality tiers: high / low, chosen by device. Software renderers (SwiftShader, llvmpipe: no GPU, or GPU blocklisted) get the static layout, as with no WebGL or reduced motion (`stage/support.ts`). Headless test browsers are software renderers, so use `?stage=force` (per session, `?stage=off` to reset) when screenshotting the stage.
 - **3D models (Higgsfield):** GLBs listed in `stage/model-manifest.ts` (generated by `npm run models:ingest`; see `assets/models/README.md`) replace the relit photo for that bottle, or the frame/photo for that note. Missing models always fall back gracefully, so never ship placeholder or test meshes. Bottles turn with scroll in chapters, on hover in the collection, and by drag or arrow keys on product pages (`<StageAnchor spin>`). Notes are `note` anchors inside `FloatingNote`: the stage reads their rect and the inline GSAP opacities up the DOM (`domOpacity`), so the DOM choreography drives the 3D objects. DOM fallbacks inside anchors use `[data-model-fallback]` and fade when the stage sets `data-ready`. Never put `data-stage-fallback` on an element GSAP animates: inline opacity overrides the CSS fade.
@@ -106,6 +114,9 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
 - Work one milestone at a time (see `PLAN.md`). After each one:
   1. Run `npm run check` (lint + typecheck + build).
   2. Run the dev server and take Playwright screenshots at 1440px and 375px, plus one with reduced motion.
-  3. Commit and push to the working branch.
-  4. Summarise for review.
+  3. Calm check, with `?stage=force`, once frames have settled:
+     - With no input, two screenshots 1.5s apart must be pixel-identical on the hero, a chapter, the collection and a product page.
+     - Moving the pointer (without hovering anything) must not change the stage.
+  4. Commit and push to the working branch.
+  5. Summarise for review.
 - Playwright uses the preinstalled Chromium (`/opt/pw-browsers`). Do not run `playwright install`.

@@ -103,7 +103,6 @@ class BottleRig {
   readonly mirror: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
   readonly glow: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
   readonly shadow: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
-  readonly caustics: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
   readonly aspect: number;
   ready = false;
   lift = 0;
@@ -116,7 +115,6 @@ class BottleRig {
   constructor(
     readonly slug: string,
     shared: Record<string, THREE.IUniform>,
-    tier: Tier,
   ) {
     const meta = BOTTLE_META[slug];
     this.aspect = meta.trim.w / meta.trim.h;
@@ -125,7 +123,6 @@ class BottleRig {
       ...shared,
       ...this.maps,
       uLift: { value: 0 },
-      uEnvShift: { value: 0 },
       uCapTint: { value: new THREE.Color().setRGB(...meta.capTint, THREE.SRGBColorSpace) },
     };
     const bottleMaterial = (u: Record<string, THREE.IUniform>) =>
@@ -138,22 +135,12 @@ class BottleRig {
         depthWrite: false,
       });
     this.bottle = quad(
-      bottleMaterial({
-        ...common,
-        uMirror: { value: 0 },
-        uOpacity: { value: 0 },
-        uSweep: { value: 0 },
-      }),
+      bottleMaterial({ ...common, uMirror: { value: 0 }, uOpacity: { value: 0 } }),
       6,
     );
     // The floor reflection shares textures, palette and light; only mirror/opacity differ
     this.mirror = quad(
-      bottleMaterial({
-        ...common,
-        uMirror: { value: 1 },
-        uOpacity: { value: 0 },
-        uSweep: { value: 0 },
-      }),
+      bottleMaterial({ ...common, uMirror: { value: 1 }, uOpacity: { value: 0 } }),
       5,
     );
     this.glow = quad(
@@ -165,16 +152,7 @@ class BottleRig {
       2,
     );
     this.shadow = quad(spriteMaterial(S.shadowFragment, { uOpacity: { value: 0 } }), 4);
-    this.caustics = quad(
-      spriteMaterial(
-        S.causticsFragment,
-        { uColor: shared.uAccent, uOpacity: { value: 0 }, uTime: shared.uTime },
-        { blending: THREE.AdditiveBlending },
-      ),
-      3,
-    );
     this.group.add(this.glow, this.shadow, this.mirror, this.bottle);
-    if (tier === "high") this.group.add(this.caustics);
   }
 
   setTextures(color: THREE.Texture, normal: THREE.Texture, mask: THREE.Texture) {
@@ -207,8 +185,7 @@ class BottleRig {
   dispose() {
     this.model?.dispose();
     this.modelMirror?.dispose();
-    for (const m of [this.bottle, this.mirror, this.glow, this.shadow, this.caustics])
-      m.material.dispose();
+    for (const m of [this.bottle, this.mirror, this.glow, this.shadow]) m.material.dispose();
     for (const u of Object.values(this.maps)) u.value?.dispose();
   }
 }
@@ -260,9 +237,45 @@ class Masthead {
 
 /* ---------------------------------------------------------------------------------------------- */
 
+/** Where one bottle is drawn this frame: CSS px, y up, relative to the viewport centre. */
+type Placement = {
+  cx: number;
+  cy: number;
+  /** Photo height (the width follows the bottle's aspect ratio) */
+  ph: number;
+  rotY: number;
+  rotZ: number;
+  opacity: number;
+  /** 0..1 how "grounded" on the floor (drives reflection and shadow) */
+  grounded: number;
+  /** The anchor's resting base line: where the floor meets the bottle once it has landed */
+  rest: number;
+};
+
+type Frame = {
+  prod: (Rect & { slug?: string }) | null;
+  cols: Map<number, Rect>;
+  exp: Rect | null;
+  s: number;
+  k: number;
+  vw: number;
+  vh: number;
+  dt: number;
+};
+
+const RESTING: Pose = { dx: 0, dy: 0, rotZ: 0, rotY: 0, scale: 1, opacity: 1, grounded: 1 };
+
+/** The studio's key light: upper left, and it never moves */
+const KEY_LIGHT = new THREE.Vector2(-0.45, 0.6);
+
+const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+
 /**
- * The imperative heart of the stage. Owns all three.js objects and turns (scroll, anchors,
- * pointer) into a frame. Kept outside React so per-frame mutation never touches React state.
+ * The imperative heart of the stage. Owns all three.js objects and turns (scroll, anchors, hover)
+ * into a frame. Kept outside React so per-frame mutation never touches React state.
+ *
+ * The light is still: nothing follows the pointer or runs on a clock. Bottles move only with
+ * scroll, hover, drag and navigation.
  */
 export class StageDirector {
   private palettes: LinPalette[];
@@ -272,13 +285,12 @@ export class StageDirector {
     uBg: THREE.IUniform<THREE.Color>;
     uDeep: THREE.IUniform<THREE.Color>;
     uAccent: THREE.IUniform<THREE.Color>;
-    uTime: THREE.IUniform<number>;
     uLight: THREE.IUniform<THREE.Vector2>;
   };
   private world: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
+  private haze: THREE.DataTexture;
   private rigs: BottleRig[];
   private mastheads: Masthead[];
-  private pointer = { x: 0, y: 0 };
   private floor = { y: 0.2, amount: 0 };
   private disposed = false;
   private scene: THREE.Scene | null = null;
@@ -287,18 +299,26 @@ export class StageDirector {
   private keyLight = new THREE.DirectionalLight(0xffffff, 1.7);
   private rimLight = new THREE.DirectionalLight(0xffffff, 0.8);
 
-  constructor(
-    private fragrances: StageFragrance[],
-    private tier: Tier,
-  ) {
+  constructor(private fragrances: StageFragrance[]) {
     this.palettes = [HOUSE_PALETTE, ...fragrances.map((f) => f.palette)].map(toLinear);
     this.shared = {
       uBg: { value: this.current.bg },
       uDeep: { value: this.current.deep },
       uAccent: { value: this.current.accent },
-      uTime: { value: 0 },
-      uLight: { value: new THREE.Vector2(-0.5, 0.55) },
+      uLight: { value: KEY_LIGHT.clone() },
     };
+    const haze = S.bakeHaze();
+    this.haze = new THREE.DataTexture(
+      haze.data,
+      haze.width,
+      haze.height,
+      THREE.RedFormat,
+      THREE.UnsignedByteType,
+    );
+    this.haze.minFilter = THREE.LinearFilter;
+    this.haze.magFilter = THREE.LinearFilter;
+    this.haze.generateMipmaps = false;
+    this.haze.needsUpdate = true;
     this.world = new THREE.Mesh(
       new THREE.PlaneGeometry(2, 2),
       new THREE.ShaderMaterial({
@@ -308,11 +328,10 @@ export class StageDirector {
           uBg: this.shared.uBg,
           uDeep: this.shared.uDeep,
           uAccent: this.shared.uAccent,
-          uTime: this.shared.uTime,
           uFloorY: { value: 0.2 },
           uFloor: { value: 0 },
           uAspect: { value: 1 },
-          uPointer: { value: new THREE.Vector2() },
+          uHaze: { value: this.haze },
         },
         depthTest: false,
         depthWrite: false,
@@ -320,7 +339,7 @@ export class StageDirector {
     );
     this.world.renderOrder = -10;
     this.world.frustumCulled = false;
-    this.rigs = fragrances.map((f) => new BottleRig(f.slug, this.shared, tier));
+    this.rigs = fragrances.map((f) => new BottleRig(f.slug, this.shared));
     this.mastheads = fragrances.map(() => new Masthead());
   }
 
@@ -329,11 +348,12 @@ export class StageDirector {
     scene.add(this.world, ...this.rigs.map((r) => r.group), ...this.mastheads.map((m) => m.mesh));
     this.fragrances.forEach((f, i) => void this.mastheads[i].draw(f.name));
     if (anyModels()) {
-      // Real 3D models need physically based light: a studio environment for reflections, a key
-      // light that follows the pointer, and a rim light in the world's accent colour.
+      // Real 3D models need physically based light: a studio environment for reflections, the
+      // same fixed key light as the photos, and a rim light in the world's accent colour.
       scene.environment = studioEnvironment(gl);
       gl.toneMapping = THREE.AgXToneMapping;
       gl.toneMappingExposure = 1.05;
+      this.keyLight.position.set(KEY_LIGHT.x, KEY_LIGHT.y, 0.85);
       this.rimLight.position.set(0.2, 0.5, -1);
       scene.add(this.keyLight, this.rimLight);
     }
@@ -360,6 +380,7 @@ export class StageDirector {
     this.mastheads.forEach((m) => m.dispose());
     this.world.material.dispose();
     this.world.geometry.dispose();
+    this.haze.dispose();
   }
 
   /** Load textures: whatever is on screen first (product page / hero), then the rest in order. */
@@ -440,8 +461,6 @@ export class StageDirector {
 
   update(camera: THREE.PerspectiveCamera, vw: number, vh: number, time: number, delta: number) {
     const dt = Math.min(delta, 0.1);
-    const t = time;
-    this.shared.uTime.value = t;
 
     // Camera: 1 world unit = 1 CSS pixel at z = 0
     const dist = vh / 2 / Math.tan((FOV * DEG) / 2);
@@ -450,12 +469,6 @@ export class StageDirector {
       camera.far = dist * 4;
       camera.updateProjectionMatrix();
     }
-
-    // Heavily damped: light follows the pointer like a slow studio lamp, never a flicker
-    this.pointer.x = damp(this.pointer.x, stageState.pointer.x, 2.2, dt);
-    this.pointer.y = damp(this.pointer.y, stageState.pointer.y, 2.2, dt);
-    const px = this.pointer.x;
-    const py = this.pointer.y;
 
     // Gather anchors
     let exp: Rect | null = null;
@@ -470,11 +483,12 @@ export class StageDirector {
       else if (a.kind === "collection") cols.set(a.index, r);
     }
 
-    // World palette
+    // World palette: a slow wash towards whichever world is on screen. Inside the home
+    // experience it follows the scrubbed scroll closely instead.
     const s = stageState.s;
     const k = stageState.k;
     const P = this.palettes;
-    let rate = 5;
+    let rate = 3;
     if (prod) {
       const idx = this.fragrances.findIndex((f) => f.slug === prod!.slug);
       const p = P[idx + 1] ?? P[0];
@@ -494,132 +508,24 @@ export class StageDirector {
     const bgLum = cur.bg.r * 0.2126 + cur.bg.g * 0.7152 + cur.bg.b * 0.0722;
     const darkWorld = 1 - Math.min(1, Math.max(0, (bgLum - 0.02) / 0.3));
 
-    this.shared.uLight.value.set(-0.5 + px * 0.3, 0.55 + py * 0.15);
-    this.keyLight.position.set(-0.5 + px * 0.3, 0.55 + py * 0.15, 0.85);
     this.rimLight.color.copy(cur.accent).lerp(WHITE, 0.2);
     this.rimLight.intensity = 0.5 + darkWorld * 1.0;
     const wu = this.world.material.uniforms;
     wu.uAspect.value = vw / vh;
-    wu.uPointer.value.set(px, py);
 
+    const frame: Frame = { prod, cols, exp, s, k, vw, vh, dt };
     let floorY = this.floor.y;
     let floorAmt = 0;
-
     this.rigs.forEach((rig, i) => {
-      let rect: Rect | null = null;
-      let pose: Pose | null = null;
-      let tiltX = -py * 3 * DEG;
-      let tiltY = px * 6 * DEG;
-
-      if (prod && prod.slug === rig.slug) {
-        rect = prod;
-        pose = {
-          dx: 0,
-          dy: 0,
-          rotZ: 0,
-          rotY: 0,
-          scale: 1,
-          opacity: 1,
-          sweep: 0,
-          grounded: 1,
-        };
-        tiltY = px * 11 * DEG;
-        tiltX = -py * 5 * DEG;
-        // drag to turn (stageState.spin), with a slow breathing turn when left alone
-        rig.spin = damp(rig.spin, stageState.spin + Math.sin(t * 0.35) * 0.3, 5, dt);
-      } else if (cols.get(i)?.onScreen) {
-        rect = cols.get(i)!;
-        const e = Math.min(1, Math.max(0, (vh - rect.top) / (vh * 0.45)));
-        const rise = e * e * (3 - 2 * e);
-        rig.lift = damp(rig.lift, stageState.collectionHover === i ? 1 : 0, 7, dt);
-        pose = {
-          dx: 0,
-          dy: -(1 - rise) * 140 + rig.lift * rect.h * 0.06,
-          rotZ: 0,
-          rotY: rig.lift * 8 * DEG,
-          scale: 1 + rig.lift * 0.03,
-          opacity: rise,
-          sweep: 0,
-          grounded: rise * (1 - rig.lift * 0.6),
-        };
-        tiltY = px * 5 * DEG;
-        rig.spin = damp(rig.spin, rig.lift * 0.9 + Math.sin(t * 0.4 + i) * 0.12, 6, dt);
-      } else if (exp?.onScreen) {
-        rect = exp;
-        pose = bottlePose(s, i, k, vw, vh);
-        // a scrubbed turntable: each bottle turns through ~70° across its chapter
-        rig.spin = (chapterProgress(s, i, k) - 0.5) * 1.2;
-      }
-
-      const visible = !!rect && !!pose && pose.opacity > 0.001 && rig.ready;
+      const p = this.place(rig, i, frame);
+      const visible = !!p && p.opacity > 0.001 && rig.ready;
       rig.setVisible(visible);
-      if (!visible || !rect || !pose) return;
-
-      // Fit the photo inside the anchor (object-contain), never distorted
-      const ph = Math.min(rect.h, rect.w / rig.aspect) * pose.scale;
-      const pw = ph * rig.aspect;
-      const cx = rect.cx + pose.dx;
-      const cy = rect.cy + pose.dy;
-      const base = cy - ph / 2;
-
-      const upright3 = Math.max(0, 1 - Math.abs(pose.rotZ) / (10 * DEG));
-      if (rig.model && rig.modelMirror) {
-        const entry = BOTTLE_MODELS[rig.slug];
-        const g3 = pose.grounded * upright3;
-        const rotY = rig.spin + pose.rotY + tiltY;
-        const m = rig.model.object;
-        m.position.set(cx, base, 0);
-        m.rotation.set(tiltX * 0.6, rotY, pose.rotZ);
-        m.scale.setScalar(ph);
-        rig.model.setOpacity(pose.opacity);
-        const mm = rig.modelMirror.object;
-        mm.position.set(cx, base, 0);
-        mm.rotation.set(-tiltX * 0.6, rotY, -pose.rotZ);
-        mm.scale.set(ph, -ph, ph);
-        mm.visible = g3 > 0.01;
-        rig.modelMirror.uniforms.uFloorY.value = base;
-        rig.modelMirror.uniforms.uFadeH.value = ph * 0.4;
-        rig.modelMirror.setOpacity(pose.opacity * g3);
-        if (entry) {
-          // sprites follow the model's real footprint
-          const w3 = ph * Math.max(entry.size[0], entry.size[2]);
-          rig.glow.scale.set(w3 * 2.4, ph * 1.45, 1);
-        }
-      }
-
-      const bu = rig.bottle.material.uniforms;
-      rig.bottle.position.set(cx, cy, 0);
-      rig.bottle.rotation.set(tiltX, pose.rotY + tiltY, pose.rotZ);
-      rig.bottle.scale.set(pw, ph, 1);
-      bu.uOpacity.value = pose.opacity;
-      bu.uSweep.value = pose.sweep;
-      bu.uLift.value = rig.lift;
-      bu.uEnvShift.value = px * 0.25 + (pose.rotY + tiltY) * 1.0;
-
-      const upright = Math.max(0, 1 - Math.abs(pose.rotZ) / (10 * DEG));
-      const g = pose.grounded * upright;
-      rig.mirror.position.set(cx, base - ph / 2, 0);
-      rig.mirror.rotation.set(-tiltX, pose.rotY + tiltY, -pose.rotZ);
-      rig.mirror.scale.set(pw, ph, 1);
-      rig.mirror.material.uniforms.uOpacity.value = pose.opacity * g;
-
-      rig.glow.position.set(cx, cy + ph * 0.04, -ph * 0.6);
-      if (!rig.model) rig.glow.scale.set(pw * 2.4, ph * 1.45, 1);
-      const glowU = rig.glow.material.uniforms;
-      glowU.uColor.value.copy(cur.accent).lerp(WHITE, 0.25);
-      glowU.uOpacity.value = pose.opacity * (0.03 + darkWorld * 0.12) * (1 + rig.lift * 0.15);
-
-      rig.shadow.position.set(cx, base + ph * 0.01, rig.model ? -ph * 0.35 : -2);
-      rig.shadow.scale.set(pw * 1.35, ph * 0.1, 1);
-      rig.shadow.material.uniforms.uOpacity.value = pose.opacity * g * (0.55 - darkWorld * 0.2);
-
-      rig.caustics.position.set(cx + pw * 0.42, base - ph * 0.035, rig.model ? -ph * 0.35 : -1);
-      rig.caustics.scale.set(pw * 1.7, ph * 0.18, 1);
-      rig.caustics.material.uniforms.uOpacity.value = pose.opacity * g * (0.07 + darkWorld * 0.13);
-
+      if (!visible || !p) return;
+      const g = this.draw(rig, p, cur, darkWorld);
+      // The home experience stands its bottles on a floor; the collection has none
       if (g > floorAmt && !cols.get(i)?.onScreen) {
         floorAmt = g;
-        floorY = (base + vh / 2) / vh;
+        floorY = (p.rest + vh / 2) / vh;
       }
     });
 
@@ -644,7 +550,7 @@ export class StageDirector {
       const h = w / m.aspect;
       m.mesh.visible = true;
       m.mesh.position.set(
-        exp.cx - px * 14,
+        exp.cx,
         exp.cy + exp.h * 0.02 + ms.lift * exp.h,
         -Math.max(80, exp.h * 0.6),
       );
@@ -654,23 +560,117 @@ export class StageDirector {
       m.uniforms.uColor.value.copy(P[i + 1].ink);
     });
 
-    this.updateNotes(vw, vh, t, px, py, s, k);
+    this.updateNotes(vw, vh, s, k);
+  }
+
+  /** Where rig i belongs this frame, from whichever anchor is showing it (or null). */
+  private place(rig: BottleRig, i: number, f: Frame): Placement | null {
+    let rect: Rect;
+    let pose: Pose;
+    const col = f.cols.get(i);
+    if (f.prod && f.prod.slug === rig.slug) {
+      rect = f.prod;
+      pose = RESTING;
+      rig.lift = damp(rig.lift, 0, 4, f.dt);
+      // A 3D bottle turns only when the visitor drags it; left alone, it stays still
+      rig.spin = damp(rig.spin, stageState.spin, 5, f.dt);
+    } else if (col?.onScreen) {
+      rect = col;
+      // Bottles settle gently into the line-up as it scrolls in
+      const e = clamp01((f.vh - rect.top) / (f.vh * 0.45));
+      const rise = e * e * (3 - 2 * e);
+      rig.lift = damp(rig.lift, stageState.collectionHover === i ? 1 : 0, 4, f.dt);
+      pose = {
+        dx: 0,
+        dy: -(1 - rise) * 56 + rig.lift * rect.h * 0.04,
+        rotZ: 0,
+        rotY: rig.lift * 4 * DEG,
+        scale: 1 + rig.lift * 0.02,
+        opacity: rise,
+        grounded: rise * (1 - rig.lift * 0.6),
+      };
+      rig.spin = damp(rig.spin, rig.lift * 0.5, 4, f.dt);
+    } else if (f.exp?.onScreen) {
+      rect = f.exp;
+      pose = bottlePose(f.s, i, f.k, f.vw, f.vh);
+      rig.lift = damp(rig.lift, 0, 4, f.dt);
+      // A scrubbed turntable for 3D bottles: each turns through ~40° across its chapter
+      rig.spin = (chapterProgress(f.s, i, f.k) - 0.5) * 0.7;
+    } else return null;
+
+    // Fit the photo inside the anchor (object-contain), never distorted
+    const fit = Math.min(rect.h, rect.w / rig.aspect);
+    return {
+      cx: rect.cx + pose.dx,
+      cy: rect.cy + pose.dy,
+      ph: fit * pose.scale,
+      rotY: pose.rotY,
+      rotZ: pose.rotZ,
+      opacity: pose.opacity,
+      grounded: pose.grounded,
+      rest: rect.cy - fit / 2,
+    };
+  }
+
+  /** Draws a rig at a placement. Returns how grounded it is, for the world floor. */
+  private draw(rig: BottleRig, p: Placement, cur: LinPalette, darkWorld: number) {
+    const ph = p.ph;
+    const pw = ph * rig.aspect;
+    const base = p.cy - ph / 2;
+    const upright = Math.max(0, 1 - Math.abs(p.rotZ) / (10 * DEG));
+    const g = p.grounded * upright;
+
+    if (rig.model && rig.modelMirror) {
+      const entry = BOTTLE_MODELS[rig.slug];
+      const rotY = rig.spin + p.rotY;
+      const m = rig.model.object;
+      m.position.set(p.cx, base, 0);
+      m.rotation.set(0, rotY, p.rotZ);
+      m.scale.setScalar(ph);
+      rig.model.setOpacity(p.opacity);
+      const mm = rig.modelMirror.object;
+      mm.position.set(p.cx, base, 0);
+      mm.rotation.set(0, rotY, -p.rotZ);
+      mm.scale.set(ph, -ph, ph);
+      mm.visible = g > 0.01;
+      rig.modelMirror.uniforms.uFloorY.value = base;
+      rig.modelMirror.uniforms.uFadeH.value = ph * 0.4;
+      rig.modelMirror.setOpacity(p.opacity * g);
+      // sprites follow the model's real footprint
+      if (entry)
+        rig.glow.scale.set(ph * Math.max(entry.size[0], entry.size[2]) * 2.4, ph * 1.45, 1);
+    }
+
+    const bu = rig.bottle.material.uniforms;
+    rig.bottle.position.set(p.cx, p.cy, 0);
+    rig.bottle.rotation.set(0, p.rotY, p.rotZ);
+    rig.bottle.scale.set(pw, ph, 1);
+    bu.uOpacity.value = p.opacity;
+    bu.uLift.value = rig.lift;
+
+    rig.mirror.position.set(p.cx, base - ph / 2, 0);
+    rig.mirror.rotation.set(0, p.rotY, -p.rotZ);
+    rig.mirror.scale.set(pw, ph, 1);
+    rig.mirror.material.uniforms.uOpacity.value = p.opacity * g;
+
+    rig.glow.position.set(p.cx, p.cy + ph * 0.04, -ph * 0.6);
+    if (!rig.model) rig.glow.scale.set(pw * 2.4, ph * 1.45, 1);
+    const glowU = rig.glow.material.uniforms;
+    glowU.uColor.value.copy(cur.accent).lerp(WHITE, 0.25);
+    glowU.uOpacity.value = p.opacity * (0.03 + darkWorld * 0.12) * (1 + rig.lift * 0.15);
+
+    rig.shadow.position.set(p.cx, base + ph * 0.01, rig.model ? -ph * 0.35 : -2);
+    rig.shadow.scale.set(pw * 1.35, ph * 0.1, 1);
+    rig.shadow.material.uniforms.uOpacity.value = p.opacity * g * (0.55 - darkWorld * 0.2);
+    return g;
   }
 
   /**
    * 3D notes: every DOM note in the chapters is an anchor. When a Higgsfield model exists for that
    * ingredient, it is drawn exactly where the DOM note is (so the GSAP arrive / recede / scatter
-   * choreography and the depth parallax carry over), turning slowly in the stage's light.
+   * choreography and the depth parallax carry over), turning slowly as the visitor scrolls.
    */
-  private updateNotes(
-    vw: number,
-    vh: number,
-    t: number,
-    px: number,
-    py: number,
-    s: number,
-    k: number,
-  ) {
+  private updateNotes(vw: number, vh: number, s: number, k: number) {
     if (!this.scene || !Object.keys(NOTE_MODELS).length) return;
     const active = chapterAt(s, k);
     const seen = new Set<string>();
@@ -704,9 +704,9 @@ export class StageDirector {
       inst.object.position.set(r.cx, r.cy - size / 2, 0);
       inst.object.scale.setScalar(size);
       inst.object.rotation.set(
-        Math.sin(t * 0.5 + rec.seed) * 0.08 - py * 0.12,
-        t * 0.32 + rec.seed * 6.283 + px * 0.35,
-        Math.sin(t * 0.4 + rec.seed * 3) * 0.05,
+        (rec.seed - 0.5) * 0.16,
+        rec.seed * 6.283 + s * 0.004,
+        (rec.seed - 0.5) * 0.1,
       );
       inst.setOpacity(opacity);
       if (a.el.dataset.ready !== "true") a.el.dataset.ready = "true";

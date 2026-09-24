@@ -178,6 +178,7 @@ Each milestone ends with lint, typecheck, `next build` and `next dev`, then Play
 | **M7** ✓ | Product pages + cart | Bottle view, notes pyramid, variants, cart drawer, Stripe-ready checkout stub |
 | **M8** ✓ | Story, newsletter, footer | |
 | **M9** ✓ | Polish | SEO, OG images, sitemap, JSON-LD, Lighthouse, accessibility, 375px sweep |
+| **M10** ✓ | Calm & butter | Still light (no rays, caustics, sweeps, pointer tilt or idle spins), static grain, gentle vertical bottle handoffs, soft scrubbed easing, Lenis lerp, transform-only cursor, intro wordmark fix |
 
 ---
 
@@ -190,6 +191,21 @@ Each milestone ends with lint, typecheck, `next build` and `next dev`, then Play
 ---
 
 ## Changelog
+
+- **M10 (2026-09-24):** the owner found the light from the top left "way too flashing", and the area under the collection bottles moving too much. They asked for everything calm and smooth.
+  - **Causes:**
+    - Pointer-driven light rays in the world shader.
+    - Animated caustics under each bottle.
+    - Reflections and tilt that followed the pointer.
+    - Idle spins.
+    - Jittering grain.
+    - Large swoops.
+  - **Fixes:**
+    - The stage no longer uses time or the pointer at all, and idle frames are now pixel-identical.
+    - Scroll uses a continuous Lenis glide.
+    - Reveals ease with the scroll.
+    - Amplitudes are roughly halved.
+    - The intro's ZALFI letters had been stuck below their mask since a ScrollTrigger refresh started re-reading their SVG transform. They now rise again.
 
 - **3D (2026-09-24):** the owner asked for Higgsfield 3D models of the bottles and notes. The pipeline is built and tested with throwaway meshes, which are not committed:
   - ingest: optimise, normalise, manifest

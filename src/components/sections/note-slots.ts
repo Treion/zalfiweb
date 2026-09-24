@@ -2,7 +2,7 @@ import type { NoteLayer } from "@/lib/fragrance";
 
 /**
  * Where notes float around the bottle, as offsets from the viewport centre.
- * x in vw, y in vh, size in vw. depth drives scroll + pointer parallax; far notes get a static
+ * x in vw, y in vh, size in vw. depth drives the scroll parallax; far notes get a static
  * depth-of-field blur (never animated).
  */
 export type Slot = { x: number; y: number; size: number; depth: number; far?: boolean };

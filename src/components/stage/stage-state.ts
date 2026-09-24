@@ -7,8 +7,6 @@ export const stageState = {
   s: 0,
   /** Length multiplier for the experience (1 desktop, MOBILE_SCALE mobile) */
   k: 1,
-  /** Pointer in -1..1 (x right, y up), raw; the stage damps it */
-  pointer: { x: 0, y: 0 },
   /** Collection slot index under the pointer / focus, or -1 */
   collectionHover: -1,
   /** Product page: rotation (radians) the visitor has dragged the 3D bottle to */
@@ -19,14 +17,3 @@ export const stageState = {
 };
 
 export type StageState = typeof stageState;
-
-if (typeof window !== "undefined") {
-  window.addEventListener(
-    "pointermove",
-    (e) => {
-      stageState.pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
-      stageState.pointer.y = -((e.clientY / window.innerHeight) * 2 - 1);
-    },
-    { passive: true },
-  );
-}

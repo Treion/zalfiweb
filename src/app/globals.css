@@ -121,27 +121,6 @@ html.lenis body {
   font-weight: 400;
 }
 
-@keyframes grain-shift {
-  0% {
-    transform: translate3d(0, 0, 0);
-  }
-  20% {
-    transform: translate3d(-3%, 2%, 0);
-  }
-  40% {
-    transform: translate3d(2%, -4%, 0);
-  }
-  60% {
-    transform: translate3d(-4%, -1%, 0);
-  }
-  80% {
-    transform: translate3d(3%, 3%, 0);
-  }
-  100% {
-    transform: translate3d(0, 0, 0);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -221,6 +200,11 @@ html.sr-oudor [data-stage-fallback="oudor"] {
   }
   html.js:not(.static-experience) [data-reveal="layer"] {
     visibility: hidden;
+  }
+  /* Notes scale as they arrive and recede: keep them on the compositor rather than
+     re-rasterising them (and their depth-of-field blur) on every frame */
+  html.js:not(.static-experience) [data-note-anim] {
+    will-change: transform, opacity;
   }
 }
 

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import clsx from "clsx";
 import { motion } from "motion/react";
-import type { CSSProperties } from "react";
+import { memo, type CSSProperties } from "react";
 import { EASE as GSAP_EASE, type gsap } from "@/components/motion/gsap";
 import { SplitWords } from "@/components/motion/SplitWords";
 import { useCart } from "@/components/cart/cart-store";
@@ -39,14 +39,14 @@ const LAYER_LABEL: Record<NoteLayer, string> = { top: "Top", heart: "Heart", bas
  *  - the motion layout: layered over the WebGL stage, choreographed by buildChapterTimeline
  *  - the static spread: shown by CSS for reduced motion or when WebGL is unavailable
  */
-export function FragranceChapter(props: Props) {
+export const FragranceChapter = memo(function FragranceChapter(props: Props) {
   return (
     <>
       <MotionChapter {...props} />
       <StaticSpread {...props} />
     </>
   );
-}
+});
 
 function useAddToBag(f: Fragrance) {
   const { add } = useCart();
@@ -217,7 +217,7 @@ function FloatingNote({
     >
       <div data-depth={d.depth}>
         <div data-note-anim data-reveal>
-          <div data-pointer-depth={d.depth} className={clsx(d.far && "blur-[2.5px] md:blur-[3px]")}>
+          <div className={clsx(d.far && "blur-[2.5px] md:blur-[3px]")}>
             <motion.figure
               tabIndex={d.far ? -1 : 0}
               className="group pointer-events-auto relative outline-none"
@@ -345,50 +345,51 @@ export function buildChapterTimeline(
   const len = (seg: readonly [number, number]) => (seg[1] - seg[0]) * k;
   const C = EXP.ch;
 
-  // Visibility window (autoAlpha keeps hidden chapters out of the tab order)
+  // Visibility window (autoAlpha keeps hidden chapters out of the tab order). It closes only once
+  // the outro fade has finished, so nothing is ever cut mid-fade.
   tl.fromTo(el, { autoAlpha: 0 }, { autoAlpha: 1, duration: 8 * k }, at(C.eyebrow[0] - 8));
-  tl.to(el, { autoAlpha: 0, duration: 6 * k }, at(C.exit[1] - 30));
+  tl.to(el, { autoAlpha: 0, duration: 6 * k }, at(C.textOut[1]));
 
   tl.fromTo(
     q('[data-a="eyebrow"]'),
     { yPercent: 110, opacity: 1 },
-    { yPercent: 0, duration: len(C.eyebrow), ease: GSAP_EASE.cinema },
+    { yPercent: 0, duration: len(C.eyebrow), ease: GSAP_EASE.soft },
     at(C.eyebrow[0]),
   );
   tl.fromTo(
     q('[data-a="name"] [data-w]'),
     { yPercent: 105, opacity: 1 },
-    { yPercent: 0, duration: len(C.masthead), ease: GSAP_EASE.cinema },
+    { yPercent: 0, duration: len(C.masthead), ease: GSAP_EASE.soft },
     at(C.masthead[0]),
   );
   tl.fromTo(
     q('[data-a="tagline"] [data-w]'),
     { yPercent: 110, opacity: 1 },
-    { yPercent: 0, duration: 30 * k, stagger: 2.5 * k, ease: GSAP_EASE.cinema },
+    { yPercent: 0, duration: 34 * k, stagger: 2.5 * k, ease: GSAP_EASE.soft },
     at(C.tagline[0]),
   );
   tl.fromTo(
     q('[data-a="story"]'),
-    { opacity: 0, y: 18 },
-    { opacity: 0.8, y: 0, duration: 30 * k },
+    { opacity: 0, y: 14 },
+    { opacity: 0.8, y: 0, duration: 30 * k, ease: GSAP_EASE.soft },
     at(C.tagline[0] + 25),
   );
 
   // Notes arrive in three layers. As each new layer arrives, the previous one recedes and drifts
-  // upward: top notes evaporate first, exactly as they do on skin.
+  // upward: top notes evaporate first, exactly as they do on skin. Small distances, soft curves.
   NOTE_LAYERS.forEach((layer, li) => {
     const seg = C[layer];
     const notes = q(`[data-layer="${layer}"] [data-note-anim]`);
     tl.fromTo(
       notes,
-      { opacity: 0, scale: 0.55, yPercent: 45 },
+      { opacity: 0, scale: 0.9, yPercent: 14 },
       {
         opacity: 1,
         scale: 1,
         yPercent: 0,
         duration: len(seg),
-        stagger: 7 * k,
-        ease: GSAP_EASE.enter,
+        stagger: 6 * k,
+        ease: GSAP_EASE.soft,
       },
       at(seg[0]),
     );
@@ -397,7 +398,7 @@ export function buildChapterTimeline(
       const ns = C[next];
       tl.to(
         notes,
-        { opacity: 0.4, scale: 0.8, yPercent: -35, duration: len(ns), ease: GSAP_EASE.silk },
+        { opacity: 0.4, scale: 0.94, yPercent: -10, duration: len(ns), ease: GSAP_EASE.glide },
         at(ns[0]),
       );
     }
@@ -405,24 +406,24 @@ export function buildChapterTimeline(
 
   tl.fromTo(
     q('[data-a="cta"]'),
-    { opacity: 0, y: 26 },
-    { opacity: 1, y: 0, duration: len(C.cta), ease: GSAP_EASE.enter },
+    { opacity: 0, y: 14 },
+    { opacity: 1, y: 0, duration: len(C.cta), ease: GSAP_EASE.soft },
     at(C.cta[0]),
   );
 
-  // Outro: type lifts away, notes scatter outward and dissolve
+  // Outro: type lifts away, notes drift outward and dissolve
   tl.to(
     q('[data-a="text"]'),
-    { opacity: 0, y: -24, duration: len(C.textOut), ease: GSAP_EASE.exit },
+    { opacity: 0, y: -14, duration: len(C.textOut), ease: GSAP_EASE.glide },
     at(C.textOut[0]),
   );
   tl.to(
     q("[data-note-scatter]"),
     {
-      x: (_: number, t: HTMLElement) => Number(t.dataset.dir) * window.innerWidth * 0.14,
+      x: (_: number, t: HTMLElement) => Number(t.dataset.dir) * window.innerWidth * 0.04,
       opacity: 0,
       duration: len(C.textOut),
-      ease: GSAP_EASE.exit,
+      ease: GSAP_EASE.glide,
     },
     at(C.textOut[0]),
   );
@@ -430,9 +431,9 @@ export function buildChapterTimeline(
   // Continuous depth parallax across the chapter: near notes travel further than far ones
   tl.fromTo(
     q("[data-depth]"),
-    { y: (_: number, t: HTMLElement) => Number(t.dataset.depth) * 70 },
+    { y: (_: number, t: HTMLElement) => Number(t.dataset.depth) * 32 },
     {
-      y: (_: number, t: HTMLElement) => Number(t.dataset.depth) * -70,
+      y: (_: number, t: HTMLElement) => Number(t.dataset.depth) * -32,
       duration: (EXP.chapter + 60) * k,
       ease: "none",
     },

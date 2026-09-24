@@ -8,10 +8,16 @@ type CursorState = { kind: "idle" | "link" | "label"; label?: string };
 
 const INTERACTIVE = "a, button, [role='button'], input, select, textarea, label, [data-cursor]";
 
+/** Ring diameter at rest, and how far it grows over links and labelled elements */
+const RING = 34;
+const RING_SCALE = { idle: 1, link: 56 / RING, label: 96 / RING } as const;
+const EASE = [0.22, 1, 0.36, 1] as const;
+
 /**
- * A custom cursor: a precise dot plus a trailing ring. The ring grows over interactive elements, and
- * elements with data-cursor="Discover" show that word inside it. It uses mix-blend-difference so it
- * stays visible on every fragrance world. It only renders on fine pointers with motion allowed.
+ * A custom cursor: a precise dot plus a softly trailing ring. The ring grows over interactive
+ * elements, and elements with data-cursor="Discover" show that word inside it. It uses
+ * mix-blend-difference so it stays visible on every fragrance world. Only transform and opacity
+ * ever animate. It only renders on fine pointers with motion allowed.
  */
 export function Cursor() {
   const fine = useFinePointer();
@@ -20,8 +26,9 @@ export function Cursor() {
 
   const x = useMotionValue(-100);
   const y = useMotionValue(-100);
-  const rx = useSpring(x, { stiffness: 380, damping: 38, mass: 0.6 });
-  const ry = useSpring(y, { stiffness: 380, damping: 38, mass: 0.6 });
+  // Overdamped: a soft trail that never overshoots
+  const rx = useSpring(x, { stiffness: 200, damping: 30, mass: 0.6 });
+  const ry = useSpring(y, { stiffness: 200, damping: 30, mass: 0.6 });
 
   const [state, setState] = useState<CursorState>({ kind: "idle" });
   const [visible, setVisible] = useState(false);
@@ -64,31 +71,41 @@ export function Cursor() {
 
   if (!enabled) return null;
 
-  const ringSize = state.kind === "label" ? 96 : state.kind === "link" ? 56 : 34;
+  const label = state.kind === "label";
+  const transition = { duration: 0.5, ease: EASE };
 
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 z-[95] mix-blend-difference">
-      <motion.div
-        className="absolute top-0 left-0 flex items-center justify-center rounded-full border border-white/80"
-        style={{ x: rx, y: ry, translateX: "-50%", translateY: "-50%" }}
-        animate={{
-          width: ringSize,
-          height: ringSize,
-          opacity: visible ? 1 : 0,
-          scale: pressed ? 0.85 : 1,
-          backgroundColor: state.kind === "label" ? "rgba(255,255,255,1)" : "rgba(255,255,255,0)",
-        }}
-        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-      >
+      {/* The trailing group: ring, the fill it grows into, and the label */}
+      <motion.div className="absolute top-0 left-0" style={{ x: rx, y: ry }}>
+        <motion.div
+          className="absolute rounded-full border border-white/80"
+          style={{ width: RING, height: RING, left: -RING / 2, top: -RING / 2 }}
+          initial={false}
+          animate={{
+            scale: RING_SCALE[state.kind] * (pressed ? 0.85 : 1),
+            opacity: visible ? 1 : 0,
+          }}
+          transition={transition}
+        />
+        <motion.div
+          className="absolute size-24 -translate-1/2 rounded-full bg-white"
+          initial={false}
+          animate={{
+            scale: label ? (pressed ? 0.85 : 1) : RING / 96,
+            opacity: visible && label ? 1 : 0,
+          }}
+          transition={transition}
+        />
         <AnimatePresence>
-          {state.kind === "label" && (
+          {label && (
             <motion.span
               key={state.label}
-              className="eyebrow text-black"
+              className="eyebrow absolute -translate-1/2 whitespace-nowrap text-black"
               initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
+              animate={{ opacity: visible ? 1 : 0, y: 0 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.35, ease: EASE }}
             >
               {state.label}
             </motion.span>
@@ -96,9 +113,9 @@ export function Cursor() {
         </AnimatePresence>
       </motion.div>
       <motion.div
-        className="absolute top-0 left-0 size-1.5 rounded-full bg-white"
-        style={{ x, y, translateX: "-50%", translateY: "-50%" }}
-        animate={{ opacity: visible && state.kind !== "label" ? 1 : 0 }}
+        className="absolute top-0 left-0 size-1.5 -translate-1/2 rounded-full bg-white"
+        style={{ x, y }}
+        animate={{ opacity: visible && !label ? 1 : 0 }}
         transition={{ duration: 0.2 }}
       />
     </div>

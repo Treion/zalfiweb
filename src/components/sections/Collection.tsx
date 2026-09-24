@@ -84,7 +84,7 @@ function CollectionItem({ fragrance: f, index }: { fragrance: Fragrance; index: 
         <div data-stage-fallback={f.slug} className="absolute inset-0">
           <motion.div
             className="absolute inset-0"
-            animate={{ y: active ? -14 : 0 }}
+            animate={{ y: active ? -10 : 0 }}
             transition={{ duration: 0.8, ease: EASE }}
           >
             <BottleImage fragrance={f} fit="trim" sizes="(min-width: 768px) 12vw, 38vw" />

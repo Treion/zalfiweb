@@ -12,18 +12,20 @@ export const EXP = {
   outro: 80,
   /** Offsets within a chapter, relative to its start (may be negative = overlaps the previous one) */
   ch: {
-    enter: [-40, 40],
-    world: [-30, 30],
-    masthead: [10, 70],
-    eyebrow: [0, 50],
-    tagline: [30, 90],
-    top: [70, 125],
-    heart: [140, 195],
-    base: [210, 265],
+    // Bottles hand over in sequence with a short crossfade: the outgoing one lifts away and
+    // dissolves as the incoming one rises, while the world washes slowly from one to the next.
+    enter: [-20, 70],
+    world: [-45, 45],
+    masthead: [15, 85],
+    eyebrow: [5, 55],
+    tagline: [35, 95],
+    top: [75, 130],
+    heart: [145, 200],
+    base: [215, 270],
     cta: [270, 305],
-    mastheadOut: [300, 340],
-    textOut: [305, 345],
-    exit: [320, 400],
+    mastheadOut: [295, 340],
+    textOut: [300, 345],
+    exit: [300, 360],
   },
   hero_: {
     introOut: [0, 80],
@@ -50,7 +52,8 @@ export const prog = (s: number, a: number, b: number) =>
   Math.min(1, Math.max(0, (s - a) / (b - a)));
 
 export const smooth = (t: number) => t * t * (3 - 2 * t);
-export const easeOutExpo = (t: number) => (t >= 1 ? 1 : 1 - Math.pow(2, -10 * t));
+export const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+export const easeInOutSine = (t: number) => -(Math.cos(Math.PI * t) - 1) / 2;
 export const easeInOutCubic = (t: number) =>
   t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
