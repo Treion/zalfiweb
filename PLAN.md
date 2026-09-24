@@ -191,6 +191,13 @@ Each milestone ends with lint, typecheck, `next build` and `next dev`, then Play
 
 ## Changelog
 
+- **3D (2026-09-24):** the owner asked for Higgsfield 3D models of the bottles and notes. The pipeline is built and tested with throwaway meshes, which are not committed:
+  - ingest: optimise, normalise, manifest
+  - PBR stage rendering: environment, key and rim lights, tone mapping
+  - scroll, hover and drag turning
+  - notes anchored to the DOM choreography
+  The six bottle photos are uploaded to Higgsfield (media IDs in `assets/models/higgsfield-plan.json`). Generation is blocked on two things: the Higgsfield account has 0 credits (about 500–600 needed), and the environment's network blocks Higgsfield's CloudFront CDN, so results can't be downloaded.
+
 - **M1:** Next 16 deprecates `runtime = "edge"`. The API routes are written to be edge-portable but run on Vercel's default runtime (a one-line change pins them to the Edge). Dev uses a local Neon-protocol proxy, so one driver path runs everywhere.
 - **M3–M5:** The intro uses the traced logo (masked letter rise + glint). The fragrance name is set huge in WebGL behind the bottle. Earlier note layers recede and drift upward as later ones arrive, the way top notes evaporate first.
 - **Notes:** You chose option 2 (Wikimedia). The sandbox still blocks those domains, so `npm run notes:fetch` is ready (tested offline) to run once they are allowed. Empty frames show until then.

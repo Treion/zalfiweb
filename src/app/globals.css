@@ -251,3 +251,11 @@ html.sr-oudor [data-stage-fallback="oudor"] {
 html.stage-ready .chapter-name {
   opacity: 0;
 }
+
+/* A stage anchor the WebGL stage is drawing (a 3D note or bottle): its DOM fallback steps back */
+[data-model-fallback] {
+  transition: opacity 0.9s var(--ease-cinema);
+}
+[data-stage-anchor][data-ready="true"] [data-model-fallback] {
+  opacity: 0;
+}

@@ -1,0 +1,85 @@
+{
+  "_readme": "Execution plan for the Higgsfield connector. See assets/models/README.md. Media IDs refer to the owner's Higgsfield account uploads (2026-09-24).",
+  "bottles": {
+    "model": "tripo_h3_1_image_to_3d",
+    "params": {
+      "texture": true,
+      "pbr": true,
+      "texture_quality": "detailed",
+      "geometry_quality": "detailed",
+      "texture_alignment": "original_image",
+      "orientation": "align_image"
+    },
+    "estimated_credits_each": 18,
+    "sources": {
+      "reva": {
+        "media_id": "a4fed5d3-bad2-49ed-9edf-b7001142086f",
+        "file": "public/images/bottles/reva.png"
+      },
+      "riven": {
+        "media_id": "4b685d10-99ad-4f38-849a-acc051a3e985",
+        "file": "public/images/bottles/riven.png"
+      },
+      "maree": {
+        "media_id": "1d278e18-d647-4748-ae93-ca95312c9cfe",
+        "file": "public/images/bottles/maree.png"
+      },
+      "solea": {
+        "media_id": "82b779dc-d2b1-423d-aca0-4c0cb1ef39cc",
+        "file": "public/images/bottles/solea.png"
+      },
+      "bond": {
+        "media_id": "3edd6510-f183-47f7-8bc6-c2a06f55d9c7",
+        "file": "public/images/bottles/bond.png"
+      },
+      "oudor": {
+        "media_id": "08002eff-35e7-485a-a607-c340ba6924c9",
+        "file": "public/images/bottles/oudor.png"
+      }
+    }
+  },
+  "notes": {
+    "image_model": "gpt_image_2_5",
+    "image_params": {
+      "aspect_ratio": "1:1"
+    },
+    "estimated_image_credits_each": 0.25,
+    "then": "remove_background on each image, then 3D",
+    "model_3d": "hunyuan3d_v3_image_to_3d",
+    "params_3d": {
+      "enable_pbr": true,
+      "generate_type": "Normal",
+      "face_count": 40000
+    },
+    "estimated_3d_credits_each": 15,
+    "style_block": "Luxury perfume ingredient still life, photorealistic studio product photography, shot on a medium-format camera with a 100mm macro lens, f/8, single soft key light from the upper left with a gentle fill, subtle natural shadows on the object only, rich true-to-life colour, extremely fine detail and texture, the subject isolated and centred with generous empty space around it, filling about 80% of the frame, nothing touching the edges, plain pure white seamless background (or transparent), no props, no surface, no text, no logos, no hands, no people, no bottles, no illustration, no cartoon, no CGI look.",
+    "subjects": {
+      "pineapple": "A whole ripe golden pineapple with a full green crown, three-quarter view, cold and dewy with fine condensation droplets on the skin.",
+      "mint": "A loose sprig of fresh spearmint with six vivid green leaves, two leaves slightly bruised and curled, side view.",
+      "lavender": "A small bundle of five fresh French lavender stems with full violet flower heads, laid diagonally.",
+      "oakmoss": "A clump of grey-green oakmoss lichen with delicate branching fronds, growing on a small piece of dark oak bark.",
+      "vetiver": "A bundle of dried golden-tan vetiver roots tied with natural twine, fibrous texture clearly visible.",
+      "tonka-bean": "A small cluster of seven tonka beans, wrinkled, dark brown-black with a subtle sheen.",
+      "cucumber": "Half a fresh cucumber with three thin translucent slices fanned out in front, wet, crisp and glassy.",
+      "jasmine": "A sprig of white jasmine sambac with open star-shaped flowers, a few closed buds and dark glossy leaves.",
+      "lime": "One whole lime and one halved lime, juicy cut face toward the camera, glistening pulp.",
+      "patchouli": "A sprig of fresh patchouli with broad, soft, serrated green leaves.",
+      "green-apple": "A single Granny Smith apple with its stem and one leaf, glossy bright green skin, side view.",
+      "tuberose": "One stem of waxy white tuberose flowers, several fully open with closed buds at the top.",
+      "cedarwood": "A cross-section slice of a cedar log showing clear growth rings and warm reddish heartwood, three-quarter view.",
+      "sandalwood": "Five pale-gold sandalwood sticks and a few small chips, fine wood grain visible.",
+      "apple": "A single red-blushed yellow Pink Lady apple with its stem, warm-toned, glossy skin.",
+      "coconut": "A coconut cracked cleanly in half, bright white flesh and fibrous brown husk both visible.",
+      "vanilla": "Four cured vanilla pods, dark, glossy and slightly oily, with one pale cream vanilla orchid flower.",
+      "iris": "A single purple bearded iris flower on a short stem, side view, delicate ruffled petals.",
+      "nutmeg": "A whole nutmeg wrapped in its bright red lace of mace, beside a halved nutmeg showing its marbled interior.",
+      "oud": "A small heap of dark oud wood chips with visible black resin veins.",
+      "precious-woods": "A small stack of polished exotic wood offcuts in mixed tones of ebony, rosewood and amber, rich grain visible.",
+      "saffron": "A small mound of deep crimson saffron threads with a few loose strands in front.",
+      "red-rose": "A single deep-red Damask rose fully open on a short stem, three-quarter view, velvety petals.",
+      "white-oud": "Pale blond oud wood shavings and slivers with faint light-brown resin, soft and airy, clearly lighter than dark oud.",
+      "agarwood": "A sculptural split section of raw agarwood branch with heavy dark resin marbling through pale wood.",
+      "musk": "A small heap of ambrette seeds, small, grey-brown and kidney-shaped, softly lit."
+    }
+  }
+}

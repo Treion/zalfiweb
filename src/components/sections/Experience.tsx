@@ -208,13 +208,12 @@ export function Experience({ fragrances, noteAvail }: Props) {
           className="static:hidden pointer-events-none absolute top-[43%] left-1/2 h-[34svh] -translate-x-1/2 -translate-y-1/2 md:top-[48%] md:h-[62svh]"
           style={{ aspectRatio: bottleAspect(hero.slug) }}
         >
-          <div
-            data-hero-fallback
-            data-reveal
-            data-stage-fallback={hero.slug}
-            className="absolute inset-0"
-          >
-            <BottleImage fragrance={hero} fit="trim" sizes="(min-width: 768px) 30svh, 32svh" />
+          {/* GSAP moves the outer wrapper; the inner element is the stage fallback, faded by CSS
+              once the stage has drawn this bottle (inline opacity from GSAP would override it) */}
+          <div data-hero-fallback data-reveal className="absolute inset-0">
+            <div data-stage-fallback={hero.slug} className="absolute inset-0">
+              <BottleImage fragrance={hero} fit="trim" sizes="(min-width: 768px) 30svh, 32svh" />
+            </div>
           </div>
         </StageAnchor>
 

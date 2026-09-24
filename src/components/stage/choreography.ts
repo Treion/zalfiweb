@@ -110,3 +110,8 @@ export function mastheadState(s: number, i: number, k: number) {
   const out = smooth(prog(s, ...chRange(i, EXP.ch.mastheadOut, k)));
   return { reveal, opacity: reveal > 0 ? 1 - out : 0, lift: (1 - reveal) * 0.12 + out * -0.08 };
 }
+
+/** 0..1 progress through chapter i (used for the scrubbed 3D turntable). */
+export function chapterProgress(s: number, i: number, k: number) {
+  return prog(s, ...chRange(i, [0, EXP.chapter], k));
+}

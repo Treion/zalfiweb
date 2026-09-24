@@ -10,6 +10,7 @@ import { useCart } from "@/components/cart/cart-store";
 import { BottleImage } from "@/components/media/BottleImage";
 import { NoteImage } from "@/components/media/NoteImage";
 import { EXP, chapterStart } from "@/components/stage/config";
+import { StageAnchor } from "@/components/stage/StageAnchor";
 import {
   NOTE_LAYERS,
   notesByLayer,
@@ -111,6 +112,7 @@ function MotionChapter({ fragrance: f, index, count, noteAvail, mounted }: Props
             {notesByLayer(f, layer).map((n, i) => (
               <FloatingNote
                 key={n.slug}
+                chapter={index}
                 note={n}
                 i={i}
                 layer={layer}
@@ -177,12 +179,14 @@ function MotionChapter({ fragrance: f, index, count, noteAvail, mounted }: Props
 }
 
 function FloatingNote({
+  chapter,
   note,
   i,
   layer,
   available,
   mounted,
 }: {
+  chapter: number;
   note: FragranceNote;
   i: number;
   layer: NoteLayer;
@@ -227,17 +231,29 @@ function FloatingNote({
                 transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
                 className="relative"
               >
-                {mounted ? (
-                  <NoteImage
-                    note={note}
-                    available={available}
-                    frameLabel={false}
-                    sizes="(min-width: 768px) 12vw, 25vw"
-                    className={clsx(!available && "text-world-ink")}
-                  />
-                ) : (
-                  <div className="aspect-square w-full" />
-                )}
+                {/* The stage draws the note's 3D model here when one exists; the photo or
+                    frame below is the fallback and fades once the model is on screen */}
+                <StageAnchor
+                  kind="note"
+                  index={chapter}
+                  slug={note.slug}
+                  data-far={d.far ? "true" : undefined}
+                  className="relative"
+                >
+                  <div data-model-fallback>
+                    {mounted ? (
+                      <NoteImage
+                        note={note}
+                        available={available}
+                        frameLabel={false}
+                        sizes="(min-width: 768px) 12vw, 25vw"
+                        className={clsx(!available && "text-world-ink")}
+                      />
+                    ) : (
+                      <div className="aspect-square w-full" />
+                    )}
+                  </div>
+                </StageAnchor>
               </motion.div>
               <figcaption className="mt-2 text-center md:mt-3">
                 <span className="eyebrow block text-[0.58rem] opacity-60">

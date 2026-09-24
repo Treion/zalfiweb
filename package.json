@@ -19,7 +19,8 @@
     "db:seed": "tsx src/db/seed.ts",
     "db:proxy": "tsx scripts/neon-local-proxy.ts",
     "db:studio": "drizzle-kit studio",
-    "notes:fetch": "tsx scripts/fetch-note-images.ts"
+    "notes:fetch": "tsx scripts/fetch-note-images.ts",
+    "models:ingest": "tsx scripts/ingest-models.ts"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
@@ -39,6 +40,9 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@gltf-transform/core": "^4.5.0",
+    "@gltf-transform/extensions": "^4.5.0",
+    "@gltf-transform/functions": "^4.5.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pg": "^8.23.1",
@@ -49,6 +53,7 @@
     "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "16.3.6",
+    "meshoptimizer": "^1.2.0",
     "pg": "^8.23.0",
     "potrace": "^2.1.8",
     "prettier": "^3.9.8",

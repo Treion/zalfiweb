@@ -31,7 +31,7 @@ export default function Stage({ fragrances }: { fragrances: StageFragrance[] }) 
         gl={{
           antialias: tier === "high",
           alpha: false,
-          depth: false,
+          depth: true,
           stencil: false,
           powerPreference: "high-performance",
         }}
@@ -58,7 +58,7 @@ function Scene({
   useEffect(() => {
     const d = new StageDirector(fragrances, tier);
     director.current = d;
-    d.attach(scene);
+    d.attach(scene, gl);
     void d.load(gl);
     return () => {
       d.detach(scene);

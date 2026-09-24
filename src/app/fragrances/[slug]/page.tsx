@@ -5,6 +5,7 @@ import { BottleImage, bottleAspect } from "@/components/media/BottleImage";
 import { NotesPyramid } from "@/components/product/NotesPyramid";
 import { ProductPurchase } from "@/components/product/ProductPurchase";
 import { StageAnchor } from "@/components/stage/StageAnchor";
+import { BOTTLE_MODELS } from "@/components/stage/model-manifest";
 import { getFragrance, getFragrances } from "@/db/queries";
 import { availability } from "@/lib/assets";
 import { NOTE_LAYERS, notesByLayer, worldVars } from "@/lib/fragrance";
@@ -76,6 +77,7 @@ export default async function FragrancePage({ params }: PageProps<"/fragrances/[
             <StageAnchor
               kind="product"
               slug={f.slug}
+              spin={f.slug in BOTTLE_MODELS}
               className="relative h-[52svh] md:h-[74svh]"
               style={{ aspectRatio: bottleAspect(f.slug) }}
             >
