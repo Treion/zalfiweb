@@ -104,19 +104,19 @@ export function instantiate(
     const base = [mesh.material].flat()[0] as THREE.MeshStandardMaterial;
     const mat = new THREE.MeshPhysicalMaterial({
       map: base.map ?? null,
-      color: base.color ?? new THREE.Color(1, 1, 1),
+      color: base.color?.clone() ?? new THREE.Color(1, 1, 1),
       normalMap: base.normalMap ?? null,
       roughnessMap: base.roughnessMap ?? null,
       metalnessMap: base.metalnessMap ?? null,
       roughness: base.roughness ?? 0.6,
       metalness: base.metalness ?? 0,
       emissiveMap: base.emissiveMap ?? null,
-      emissive: base.emissive ?? new THREE.Color(0, 0, 0),
+      emissive: base.emissive?.clone() ?? new THREE.Color(0, 0, 0),
       aoMap: base.aoMap ?? null,
       transparent: true,
-      envMapIntensity: opts.bottle ? 1.25 : 0.9,
-      clearcoat: opts.bottle ? 1 : 0,
-      clearcoatRoughness: 0.04,
+      envMapIntensity: opts.bottle ? 0.85 : 0.8,
+      clearcoat: opts.bottle ? 0.6 : 0,
+      clearcoatRoughness: 0.12,
     });
     const shoulder = opts.bottle ? 1 - opts.bottle.shoulder : 2;
     mat.onBeforeCompile = (shader) => {

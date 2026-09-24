@@ -62,7 +62,7 @@ export function Experience({ fragrances, noteAvail }: Props) {
         .fromTo(
           q("#zalfi-glint"),
           { attr: { x1: -700, x2: -200 } },
-          { attr: { x1: 1700, x2: 2200 }, duration: 1.8, ease: EASE.silk },
+          { attr: { x1: 1700, x2: 2200 }, duration: 2.8, ease: EASE.silk },
           "-=0.5",
         )
         .fromTo(
@@ -275,7 +275,7 @@ function Intro() {
               y2="220"
             >
               <stop offset="0" stopColor="#fff" stopOpacity="0" />
-              <stop offset="0.5" stopColor="#fff" stopOpacity="0.95" />
+              <stop offset="0.5" stopColor="#fff" stopOpacity="0.4" />
               <stop offset="1" stopColor="#fff" stopOpacity="0" />
             </linearGradient>
           </defs>

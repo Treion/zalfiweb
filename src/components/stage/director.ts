@@ -284,8 +284,8 @@ export class StageDirector {
   private scene: THREE.Scene | null = null;
   private library = new ModelLibrary();
   private notes = new Map<string, { inst: ModelInstance | null; seed: number }>();
-  private keyLight = new THREE.DirectionalLight(0xffffff, 2.4);
-  private rimLight = new THREE.DirectionalLight(0xffffff, 1.2);
+  private keyLight = new THREE.DirectionalLight(0xffffff, 1.7);
+  private rimLight = new THREE.DirectionalLight(0xffffff, 0.8);
 
   constructor(
     private fragrances: StageFragrance[],
@@ -451,8 +451,9 @@ export class StageDirector {
       camera.updateProjectionMatrix();
     }
 
-    this.pointer.x = damp(this.pointer.x, stageState.pointer.x, 4, dt);
-    this.pointer.y = damp(this.pointer.y, stageState.pointer.y, 4, dt);
+    // Heavily damped: light follows the pointer like a slow studio lamp, never a flicker
+    this.pointer.x = damp(this.pointer.x, stageState.pointer.x, 2.2, dt);
+    this.pointer.y = damp(this.pointer.y, stageState.pointer.y, 2.2, dt);
     const px = this.pointer.x;
     const py = this.pointer.y;
 
@@ -493,10 +494,10 @@ export class StageDirector {
     const bgLum = cur.bg.r * 0.2126 + cur.bg.g * 0.7152 + cur.bg.b * 0.0722;
     const darkWorld = 1 - Math.min(1, Math.max(0, (bgLum - 0.02) / 0.3));
 
-    this.shared.uLight.value.set(-0.5 + px * 0.75, 0.55 + py * 0.4);
-    this.keyLight.position.set(-0.5 + px * 0.75, 0.55 + py * 0.4, 0.85);
+    this.shared.uLight.value.set(-0.5 + px * 0.3, 0.55 + py * 0.15);
+    this.keyLight.position.set(-0.5 + px * 0.3, 0.55 + py * 0.15, 0.85);
     this.rimLight.color.copy(cur.accent).lerp(WHITE, 0.2);
-    this.rimLight.intensity = 0.8 + darkWorld * 2.2;
+    this.rimLight.intensity = 0.5 + darkWorld * 1.0;
     const wu = this.world.material.uniforms;
     wu.uAspect.value = vw / vh;
     wu.uPointer.value.set(px, py);
@@ -519,8 +520,7 @@ export class StageDirector {
           rotY: 0,
           scale: 1,
           opacity: 1,
-          // a slow light pass across the glass every 8 seconds
-          sweep: t % 8 < 2.2 ? ((t % 8) / 2.2) * 1.2 : 0,
+          sweep: 0,
           grounded: 1,
         };
         tiltY = px * 11 * DEG;
@@ -539,7 +539,7 @@ export class StageDirector {
           rotY: rig.lift * 8 * DEG,
           scale: 1 + rig.lift * 0.03,
           opacity: rise,
-          sweep: rig.lift > 0.02 && rig.lift < 0.98 ? rig.lift * 1.2 : 0,
+          sweep: 0,
           grounded: rise * (1 - rig.lift * 0.6),
         };
         tiltY = px * 5 * DEG;
@@ -594,7 +594,7 @@ export class StageDirector {
       bu.uOpacity.value = pose.opacity;
       bu.uSweep.value = pose.sweep;
       bu.uLift.value = rig.lift;
-      bu.uEnvShift.value = px * 0.9 + (pose.rotY + tiltY) * 3.2;
+      bu.uEnvShift.value = px * 0.25 + (pose.rotY + tiltY) * 1.0;
 
       const upright = Math.max(0, 1 - Math.abs(pose.rotZ) / (10 * DEG));
       const g = pose.grounded * upright;
@@ -607,7 +607,7 @@ export class StageDirector {
       if (!rig.model) rig.glow.scale.set(pw * 2.4, ph * 1.45, 1);
       const glowU = rig.glow.material.uniforms;
       glowU.uColor.value.copy(cur.accent).lerp(WHITE, 0.25);
-      glowU.uOpacity.value = pose.opacity * (0.035 + darkWorld * 0.16) * (1 + rig.lift * 0.5);
+      glowU.uOpacity.value = pose.opacity * (0.03 + darkWorld * 0.12) * (1 + rig.lift * 0.15);
 
       rig.shadow.position.set(cx, base + ph * 0.01, rig.model ? -ph * 0.35 : -2);
       rig.shadow.scale.set(pw * 1.35, ph * 0.1, 1);
@@ -615,8 +615,7 @@ export class StageDirector {
 
       rig.caustics.position.set(cx + pw * 0.42, base - ph * 0.035, rig.model ? -ph * 0.35 : -1);
       rig.caustics.scale.set(pw * 1.7, ph * 0.18, 1);
-      rig.caustics.material.uniforms.uOpacity.value =
-        pose.opacity * g * (0.12 + darkWorld * 0.3 + (pose.sweep > 0 ? 0.2 : 0));
+      rig.caustics.material.uniforms.uOpacity.value = pose.opacity * g * (0.07 + darkWorld * 0.13);
 
       if (g > floorAmt && !cols.get(i)?.onScreen) {
         floorAmt = g;

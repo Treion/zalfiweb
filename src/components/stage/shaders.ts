@@ -70,11 +70,11 @@ export const bottleFragment = /* glsl */ `
   }
   float boxes(vec3 R) {
     float sx = R.x * 5.0 + uEnvShift;
-    float key = smoothstep(0.2, 0.03, abs(sx - 0.42)) * smoothstep(-0.8, 0.0, R.y);
-    float keyEdge = smoothstep(0.05, 0.0, abs(abs(sx - 0.42) - 0.16)) * 0.35 * smoothstep(-0.8, 0.0, R.y);
-    float fill = smoothstep(0.1, 0.0, abs(sx + 0.72)) * smoothstep(-0.5, 0.3, R.y) * 0.45;
-    float ceiling = smoothstep(0.6, 0.92, R.y) * 0.3;
-    return key + keyEdge + fill + ceiling;
+    // Wide, soft-edged softboxes: reflections glide across the glass rather than flare
+    float key = smoothstep(0.34, 0.0, abs(sx - 0.42)) * smoothstep(-0.8, 0.0, R.y) * 0.55;
+    float fill = smoothstep(0.22, 0.0, abs(sx + 0.72)) * smoothstep(-0.5, 0.3, R.y) * 0.22;
+    float ceiling = smoothstep(0.6, 0.95, R.y) * 0.14;
+    return key + fill + ceiling;
   }
   vec3 studio(vec3 R) {
     return room(R) * 0.5 + mix(vec3(1.0), uAccent, 0.12) * boxes(R) * 1.4;
@@ -114,30 +114,30 @@ export const bottleFragment = /* glsl */ `
 
     // Smoked glass: crisp softbox reflections + room colour only at grazing angles + key highlight
     float fres = 0.04 + 0.96 * pow(1.0 - NdV, 5.0);
-    col += glass * mix(vec3(1.0), uAccent, 0.1) * boxes(R) * (0.1 + 0.5 * fres);
-    col += glass * room(R) * fres * 0.35;
-    col += glass * vec3(1.0) * min(ggx(NdH, 0.14), 80.0) * 0.006 * NdL;
+    col += glass * mix(vec3(1.0), uAccent, 0.1) * boxes(R) * (0.035 + 0.25 * fres);
+    col += glass * room(R) * fres * 0.18;
+    col += glass * vec3(1.0) * min(ggx(NdH, 0.2), 40.0) * 0.0025 * NdL;
 
     // Metal caps: keep the photo's identity, add tinted mirror reflections that move with the light
     vec3 tint = mix(uCapTint * 1.35, vec3(1.0), 0.15);
     vec3 metalRefl = studio(R) * tint;
-    col = mix(col, col * 0.62 + metalRefl * 0.5, metal * 0.55);
-    col += metal * tint * min(ggx(NdH, 0.2), 60.0) * 0.012 * NdL;
+    col = mix(col, col * 0.75 + metalRefl * 0.3, metal * 0.4);
+    col += metal * tint * min(ggx(NdH, 0.26), 30.0) * 0.006 * NdL;
 
     // Silver print catches the light
-    col += print * vec3(1.0) * min(ggx(NdH, 0.3), 20.0) * 0.02;
+    col += print * vec3(1.0) * min(ggx(NdH, 0.3), 20.0) * 0.01;
 
     // Palette rim light on the silhouette: separates black glass from dark worlds
     float rim = pow(1.0 - NdV, 3.0) * (glass + metal * 0.4);
-    col += rim * uAccent * 0.45;
+    col += rim * uAccent * 0.28;
 
     // Faint smoke glow inside thick glass
     col += glass * thick * uAccent * 0.008;
 
     // Light sweep: a soft diagonal band travelling across the glass
     float band = vMeshUv.x * 0.62 + (1.0 - vMeshUv.y) * 0.38;
-    float sweep = smoothstep(0.1, 0.0, abs(band - uSweep)) * step(0.001, uSweep) * step(uSweep, 1.2);
-    col += (glass + metal * 0.6) * sweep * vec3(0.14);
+    float sweep = smoothstep(0.24, 0.0, abs(band - uSweep)) * step(0.001, uSweep) * step(uSweep, 1.2);
+    col += (glass + metal * 0.5) * sweep * vec3(0.045);
 
     // Hover lift: a touch more exposure
     col *= 1.0 + uLift * 0.12;
@@ -187,10 +187,10 @@ export const worldFragment = /* glsl */ `
     vec2 src = vec2(0.18 + uPointer.x * 0.04, 1.15);
     vec2 d = (uv - src) * vec2(uAspect, 1.0);
     float ang = atan(d.y, d.x);
-    float rays = fbm(vec2(ang * 4.0, uTime * 0.03)) * fbm(vec2(ang * 9.0 + 3.1, -uTime * 0.018));
+    float rays = fbm(vec2(ang * 4.0, uTime * 0.006)) * fbm(vec2(ang * 9.0 + 3.1, -uTime * 0.004));
     rays = smoothstep(0.08, 0.5, rays) * smoothstep(1.8, 0.1, length(d));
     vec3 lightCol = mix(mix(uBg, vec3(1.0), 0.45), uAccent, 0.35 + dark * 0.3);
-    col = mix(col, lightCol, rays * (0.16 - dark * 0.06));
+    col = mix(col, lightCol, rays * (0.07 - dark * 0.02));
 
     // Smoke / haze drifting slowly
     vec2 sp = uv * vec2(uAspect * 1.6, 1.3);
@@ -263,7 +263,7 @@ export const causticsFragment = /* glsl */ `
     float c = 1.0;
     float inten = 0.005;
     for (int n = 0; n < 4; n++) {
-      float t = uTime * 0.35 * (1.0 - (3.5 / float(n + 1)));
+      float t = uTime * 0.12 * (1.0 - (3.5 / float(n + 1)));
       i = p + vec2(cos(t - i.x) + sin(t + i.y), sin(t - i.y) + cos(t + i.x));
       c += 1.0 / length(vec2(p.x / (sin(i.x + t) / inten), p.y / (cos(i.y + t) / inten)));
     }

@@ -71,10 +71,9 @@ export function bottlePose(s: number, i: number, k: number, vw: number, vh: numb
 
   const [rs] = riseRange;
   const riseEnd = riseRange[1];
-  const sweepA = prog(s, riseEnd - 12 * k, riseEnd + 55 * k);
-  const sweepB = prog(s, ...chRange(i, EXP.ch.cta, k));
-  const sweep =
-    sweepA > 0 && sweepA < 1 ? sweepA * 1.2 : sweepB > 0 && sweepB < 1 ? sweepB * 1.2 : 0;
+  // One slow, faint pass of light as the bottle lands, and nothing after that
+  const sweepA = prog(s, riseEnd - 12 * k, riseEnd + 90 * k);
+  const sweep = sweepA > 0 && sweepA < 1 ? sweepA * 1.2 : 0;
 
   return {
     dx: enterDx + exitDx,
