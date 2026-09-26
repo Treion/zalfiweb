@@ -75,6 +75,12 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
 
 - `Experience` is one sticky viewport holding the intro, hero and six `FragranceChapter`s over the stage. A single master GSAP timeline, where 1 unit = 1vh of scroll, is scrubbed by ScrollTrigger. Its segment timings live in `components/stage/config.ts` and are shared by the DOM timeline and `stage/choreography.ts`, so type and light never drift. Change timings there, and only there.
 - Each chapter renders two views of the same data: the motion layout, and a static spread shown by the `static:` variant (reduced motion, or no WebGL via `html.static-experience`).
+- **The landing arrival** (once on load, about 4.5s, then still):
+  - The logo's emblem (a bottle silhouette) assembles at the hero bottle's landing centre, and the ZALFI letters rise beneath it.
+  - The emblem grows and dissolves into the bottle: DOM `[data-hero-reveal]`, plus `stageState.intro` for the stage.
+  - Scroll then settles the bottle from `INTRO_POSE` into the hero (`hero_.settle`). The hero bottle never pops in.
+  - The static layout plays the same arrival in CSS (`.intro-static-*`, motion allowed only). Its spread bottles rise into view with a scroll-driven `view()` timeline.
+  - With reduced motion, the bottle is simply there.
 - `data-reveal` elements are hidden until their timeline runs, but only with JS and motion allowed (`html.js`, set before paint).
 - `ChapterIndex` (desktop) lists the six chapters. A jump never scrolls through the worlds in between:
   1. A `WorldVeil` in the destination's colour fades in.

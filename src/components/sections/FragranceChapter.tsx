@@ -308,7 +308,9 @@ function StaticSpread({ fragrance: f, index, count, noteAvail }: Props) {
           </div>
         </div>
         <div className="col-span-12 md:col-span-6 md:col-start-7">
-          <BottleImage fragrance={f} sizes="(min-width: 768px) 45vw, 90vw" />
+          <div data-static-bottle>
+            <BottleImage fragrance={f} sizes="(min-width: 768px) 45vw, 90vw" />
+          </div>
         </div>
         <div className="col-span-12 grid gap-10 md:grid-cols-3">
           {NOTE_LAYERS.map((layer) => (

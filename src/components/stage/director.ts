@@ -682,7 +682,7 @@ export class StageDirector {
       rig.spin = damp(rig.spin, rig.lift * 0.5, 4, f.dt);
     } else if (f.exp?.onScreen) {
       rect = f.exp;
-      pose = bottlePose(f.s, i, f.k, f.vw, f.vh);
+      pose = bottlePose(f.s, i, f.k, f.vw, f.vh, stageState.intro);
       rig.lift = damp(rig.lift, 0, 4, f.dt);
       // A scrubbed turntable for 3D bottles: each turns through ~40° across its chapter
       rig.spin = (chapterProgress(f.s, i, f.k) - 0.5) * 0.7;

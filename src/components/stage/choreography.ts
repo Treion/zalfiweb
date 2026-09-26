@@ -6,6 +6,7 @@
 import {
   CHAPTER_COUNT,
   EXP,
+  INTRO_POSE,
   chRange,
   easeInOutSine,
   easeOutCubic,
@@ -30,33 +31,57 @@ export type Pose = {
 const HIDDEN: Pose = { dx: 0, dy: 0, rotZ: 0, rotY: 0, scale: 1, opacity: 0, grounded: 0 };
 const DEG = Math.PI / 180;
 
-/** Pose of fragrance i's bottle in the home experience at scroll position s (vh units). */
-export function bottlePose(s: number, i: number, k: number, vw: number, vh: number): Pose {
-  const riseRange: [number, number] =
-    i === 0
-      ? [heroStart(k) + EXP.hero_.rise[0] * k, heroStart(k) + EXP.hero_.rise[1] * k]
-      : chRange(i, EXP.ch.enter, k);
+/**
+ * Pose of fragrance i's bottle in the home experience at scroll position s (vh units).
+ * `intro` (0..1) is the one-time load morph: the hero bottle arrives on the landing screen as the
+ * logo's emblem grows into it, then scroll settles it into the hero.
+ */
+export function bottlePose(
+  s: number,
+  i: number,
+  k: number,
+  vw: number,
+  vh: number,
+  intro = 1,
+): Pose {
   const exitRange = chRange(i, EXP.ch.exit, k);
-
   const xp = prog(s, ...exitRange);
-  const e = easeOutCubic(prog(s, ...riseRange));
   const x = easeInOutSine(xp);
-  if (e <= 0 || xp >= 1) return HIDDEN;
-
-  const inv = 1 - e;
-  // Enter: rises gently from just below, barely turning. The hero bottle rises straight up.
-  const enterDx = i === 0 ? 0 : inv * vw * 0.04;
-  const enterDy = -inv * vh * (i === 0 ? 0.55 : 0.4);
-  const enterRotZ = i === 0 ? 0 : inv * 2 * DEG;
-  const enterRotY = -inv * (i === 0 ? 6 : 8) * DEG;
   // Exit: lifts a little and dissolves before the next bottle settles. No swoop.
   const exitDx = -x * vw * 0.03;
   const exitDy = x * vh * 0.35;
   const exitRotZ = -x * 1.5 * DEG;
   const exitRotY = x * 6 * DEG;
-
   const chapterP = prog(s, ...chRange(i, [0, EXP.chapter], k));
   const breathe = 1 + Math.sin(chapterP * Math.PI) * 0.018;
+  const fadeOut = 1 - smooth(prog(xp, 0.35, 1));
+
+  if (i === 0) {
+    if (intro <= 0 || xp >= 1) return HIDDEN;
+    const h = heroStart(k);
+    const settle = easeInOutSine(prog(s, h + EXP.hero_.settle[0] * k, h + EXP.hero_.settle[1] * k));
+    return {
+      dx: exitDx,
+      dy: (1 - settle) * INTRO_POSE.lift * vh + exitDy,
+      rotZ: exitRotZ,
+      rotY: exitRotY,
+      scale: (INTRO_POSE.scale + (1 - INTRO_POSE.scale) * settle) * (0.94 + 0.06 * intro) * breathe,
+      opacity: intro * fadeOut,
+      // It floats above the wordmark on landing, and meets the floor as it settles
+      grounded: intro * settle * (1 - Math.min(1, xp * 3)),
+    };
+  }
+
+  const riseRange = chRange(i, EXP.ch.enter, k);
+  const e = easeOutCubic(prog(s, ...riseRange));
+  if (e <= 0 || xp >= 1) return HIDDEN;
+
+  const inv = 1 - e;
+  // Enter: rises gently from just below, barely turning
+  const enterDx = inv * vw * 0.04;
+  const enterDy = -inv * vh * 0.4;
+  const enterRotZ = inv * 2 * DEG;
+  const enterRotY = -inv * 8 * DEG;
 
   const [rs, riseEnd] = riseRange;
   return {
@@ -65,7 +90,7 @@ export function bottlePose(s: number, i: number, k: number, vw: number, vh: numb
     rotZ: enterRotZ + exitRotZ,
     rotY: enterRotY + exitRotY,
     scale: (0.94 + 0.06 * e) * breathe,
-    opacity: smooth(prog(s, rs, rs + (riseEnd - rs) * 0.55)) * (1 - smooth(prog(xp, 0.35, 1))),
+    opacity: smooth(prog(s, rs, rs + (riseEnd - rs) * 0.55)) * fadeOut,
     grounded: e * (1 - Math.min(1, xp * 3)),
   };
 }

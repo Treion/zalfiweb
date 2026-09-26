@@ -5,11 +5,12 @@ import { gsap, useGSAP, EASE, ScrollTrigger } from "@/components/motion/gsap";
 import { useLenis } from "@/components/motion/SmoothScroll";
 import { useReducedMotion } from "@/components/motion/use-reduced-motion";
 import { SplitWords } from "@/components/motion/SplitWords";
-import { LOGO_PARTS, LOGO_VIEWBOX } from "@/components/brand/logo-paths";
+import { LOGO_PARTS } from "@/components/brand/logo-paths";
 import { BottleImage, bottleAspect } from "@/components/media/BottleImage";
 import {
   CHAPTER_COUNT,
   EXP,
+  INTRO_POSE,
   MOBILE_SCALE,
   chapterAt,
   chapterStart,
@@ -22,6 +23,9 @@ import { canRunStage } from "@/components/stage/support";
 import type { Fragrance } from "@/lib/fragrance";
 import { ChapterIndex, WorldVeil } from "./ChapterIndex";
 import { FragranceChapter, buildChapterTimeline } from "./FragranceChapter";
+
+/** One `sizes` for both hero photos (stage fallback and static lockup), so they share a file */
+const HERO_SIZES = "(min-width: 768px) 30svh, 32svh";
 
 /** Where a jump lands in a chapter: name, tagline and top notes are set (vh units) */
 const JUMP_TO = 130;
@@ -68,18 +72,29 @@ export function Experience({ fragrances, noteAvail }: Props) {
       if (reduced || !canRunStage() || !root.current) return;
       const q = gsap.utils.selector(root);
 
-      // 1. Intro: the logo assembles on load (time-based, once)
-      const intro = gsap.timeline({ delay: 0.25, defaults: { ease: EASE.cinema } });
+      // 1. Intro, on load (time-based, once, then still): the emblem assembles where the bottle
+      // will stand, the ZALFI letters rise beneath it, and the emblem, itself a bottle silhouette,
+      // grows and dissolves into the real bottle.
+      const emblem = q("[data-intro-emblem]")[0] as HTMLElement;
+      const reveal = q("[data-hero-reveal]")[0] as HTMLElement;
+      const anchor = q('[data-stage-anchor="experience"]')[0] as HTMLElement;
+      // CSS already centres the emblem on the bottle's landing pose, so the morph only scales it
+      // up to the bottle's landing height (the anchor is never transformed, so this is exact)
+      const growTo = () =>
+        (anchor.getBoundingClientRect().height * INTRO_POSE.scale * 0.9) /
+        emblem.getBoundingClientRect().height;
+      const intro = gsap.timeline({ delay: 0.2, defaults: { ease: EASE.cinema } });
       intro
+        .set(emblem, { opacity: 1 })
         .fromTo(
-          q('[data-logo-part="cap"]'),
-          { y: -90, opacity: 0 },
-          { y: 0, opacity: 1, duration: 1.6 },
+          q('[data-intro-emblem] [data-logo-part="cap"]'),
+          { y: -60, opacity: 0 },
+          { y: 0, opacity: 1, duration: 1.4 },
         )
         .fromTo(
-          q('[data-logo-part="body"]'),
-          { scale: 0.9, opacity: 0, transformOrigin: "50% 50%" },
-          { scale: 1, opacity: 1, duration: 1.6 },
+          q('[data-intro-emblem] [data-logo-part="body"]'),
+          { scale: 0.92, opacity: 0, transformOrigin: "50% 50%" },
+          { scale: 1, opacity: 1, duration: 1.4 },
           "<0.12",
         )
         // The rise moves each letter's path; the scroll drift below moves its group. Kept on
@@ -89,14 +104,33 @@ export function Experience({ fragrances, noteAvail }: Props) {
           q("[data-letter-rise]"),
           { yPercent: 115, opacity: 1 },
           { yPercent: 0, duration: 1.5, stagger: 0.085 },
-          "<0.3",
+          0.9,
+        )
+        .addLabel("morph", 1.9)
+        .to(emblem, { scale: growTo, duration: 2.2, ease: EASE.silk }, "morph")
+        .to(emblem, { opacity: 0, duration: 1.3, ease: "power1.inOut" }, "morph+=0.35")
+        .fromTo(
+          reveal,
+          { opacity: 0, scale: 0.94 },
+          { opacity: 1, scale: 1, duration: 1.9, ease: EASE.silk },
+          "morph+=0.5",
+        )
+        .fromTo(
+          stageState,
+          { intro: 0 },
+          { intro: 1, duration: 1.9, ease: EASE.silk },
+          "morph+=0.5",
         )
         .fromTo(
           q("[data-intro-meta]"),
           { opacity: 0, y: 14 },
           { opacity: 1, y: 0, duration: 1.4, stagger: 0.12 },
-          "-=0.6",
+          "morph+=1.3",
         );
+      // Arriving further down the page (a reload, a link to #collection): no morph off-screen
+      const skip = requestAnimationFrame(() => {
+        if (window.scrollY > window.innerHeight * 0.5) intro.progress(1);
+      });
 
       // 2. Scroll: one master timeline per breakpoint
       const mm = gsap.matchMedia();
@@ -155,16 +189,16 @@ export function Experience({ fragrances, noteAvail }: Props) {
         if (navLogo)
           tl.fromTo(navLogo, { opacity: 0 }, { opacity: 1, duration: 30 * k }, iS + 50 * k);
 
-        // Hero: the first bottle rises into the light (the stage draws it; the DOM image is the
-        // fallback until then), and the headline sets
+        // Hero: the bottle, already standing on the landing screen, settles into the hero (the
+        // stage draws it; the DOM image is the fallback until then), and the headline sets
         const h = heroStart(k);
         const H = EXP.hero_;
         // (mirrors bottlePose in stage/choreography.ts, so the fallback and the render agree)
         tl.fromTo(
           q("[data-hero-fallback]"),
-          { y: () => window.innerHeight * 0.55, opacity: 0 },
-          { y: 0, opacity: 1, duration: (H.rise[1] - H.rise[0]) * k, ease: "power2.out" },
-          h + H.rise[0] * k,
+          { y: () => -window.innerHeight * INTRO_POSE.lift, scale: INTRO_POSE.scale },
+          { y: 0, scale: 1, duration: (H.settle[1] - H.settle[0]) * k, ease: EASE.glide },
+          h + H.settle[0] * k,
         );
         tl.to(
           q("[data-hero-fallback]"),
@@ -207,7 +241,10 @@ export function Experience({ fragrances, noteAvail }: Props) {
           master.current = null;
         };
       });
-      return () => mm.revert();
+      return () => {
+        cancelAnimationFrame(skip);
+        mm.revert();
+      };
     },
     { scope: root, dependencies: [reduced] },
   );
@@ -231,16 +268,19 @@ export function Experience({ fragrances, noteAvail }: Props) {
           className="static:hidden pointer-events-none absolute top-[43%] left-1/2 h-[34svh] -translate-x-1/2 -translate-y-1/2 md:top-[48%] md:h-[62svh]"
           style={{ aspectRatio: bottleAspect(hero.slug) }}
         >
-          {/* GSAP moves the outer wrapper; the inner element is the stage fallback, faded by CSS
-              once the stage has drawn this bottle (inline opacity from GSAP would override it) */}
-          <div data-hero-fallback data-reveal className="absolute inset-0">
-            <div data-stage-fallback={hero.slug} className="absolute inset-0">
-              <BottleImage fragrance={hero} fit="trim" sizes="(min-width: 768px) 30svh, 32svh" />
+          {/* Three wrappers, so no two tweens share a property: scroll moves the outer one (landing
+              pose → hero → exit), the load morph fades in the middle one, and the inner one is the
+              stage fallback, faded by CSS once the stage has drawn this bottle */}
+          <div data-hero-fallback className="absolute inset-0">
+            <div data-hero-reveal data-reveal className="absolute inset-0">
+              <div data-stage-fallback={hero.slug} className="absolute inset-0">
+                <BottleImage fragrance={hero} fit="trim" preload sizes={HERO_SIZES} />
+              </div>
             </div>
           </div>
         </StageAnchor>
 
-        <Intro />
+        <Intro hero={hero} />
         <HeroCopy />
 
         {fragrances.map((f, i) => (
@@ -261,10 +301,8 @@ export function Experience({ fragrances, noteAvail }: Props) {
   );
 }
 
-function Intro() {
-  const letters = LOGO_PARTS.filter((p) => !["cap", "body"].includes(p.id));
-  const emblem = LOGO_PARTS.filter((p) => ["cap", "body"].includes(p.id));
-  const wm = letters.reduce(
+const bounds = (parts: typeof LOGO_PARTS) =>
+  parts.reduce(
     (b, p) => [
       Math.min(b[0], p.box[0]),
       Math.min(b[1], p.box[1]),
@@ -273,29 +311,84 @@ function Intro() {
     ],
     [Infinity, Infinity, -Infinity, -Infinity],
   );
+
+/** The emblem (cap + body): the logo's own bottle silhouette */
+function Emblem({ className }: { className?: string }) {
+  const parts = LOGO_PARTS.filter((p) => ["cap", "body"].includes(p.id));
+  const b = bounds(parts);
   return (
-    <div className="px-gutter text-bone static:relative static:min-h-svh absolute inset-0 flex flex-col items-center justify-center">
-      <div data-intro className="w-[min(64vw,34rem)] md:w-[min(40vw,36rem)]">
-        <h1 className="sr-only">ZALFI, maison de parfum</h1>
+    <svg
+      viewBox={`${b[0]} ${b[1]} ${b[2] - b[0]} ${b[3] - b[1]}`}
+      fill="currentColor"
+      aria-hidden
+      className={className}
+    >
+      {parts.map((p) => (
+        <path key={p.id} d={p.d} data-logo-part={p.id} />
+      ))}
+    </svg>
+  );
+}
+
+const EMBLEM_ASPECT = (() => {
+  const b = bounds(LOGO_PARTS.filter((p) => ["cap", "body"].includes(p.id)));
+  return (b[2] - b[0]) / (b[3] - b[1]);
+})();
+
+/**
+ * The landing screen. The hero bottle stands at its landing pose (see INTRO_POSE) with the ZALFI
+ * wordmark beneath it. On load the emblem assembles exactly where the bottle stands, then grows
+ * and dissolves into it. The static layout gets the same arrival in CSS, around a DOM photo.
+ */
+function Intro({ hero }: { hero: Fragrance }) {
+  const letters = LOGO_PARTS.filter((p) => !["cap", "body"].includes(p.id));
+  const wm = bounds(letters);
+  const clip = [wm[0] - 40, wm[1] - 30, wm[2] - wm[0] + 80, wm[3] - wm[1] + 34];
+  return (
+    <div className="px-gutter text-bone static:relative static:flex static:min-h-svh static:flex-col static:items-center static:justify-center static:py-28 absolute inset-0">
+      <h1 className="sr-only">ZALFI, maison de parfum</h1>
+
+      {/* Stage layout: the emblem, at the bottle's landing centre */}
+      <div
+        data-intro-emblem
+        data-reveal
+        className="static:hidden pointer-events-none absolute top-[calc(43%-12svh)] left-1/2 h-[8svh] -translate-1/2 md:top-[calc(48%-12svh)] md:h-[11svh]"
+        style={{ aspectRatio: EMBLEM_ASPECT }}
+      >
+        <Emblem className="block h-full w-full overflow-visible" />
+      </div>
+
+      {/* Static layout: the same arrival, in CSS (globals.css, .intro-static-*) */}
+      <div
+        className="static:block relative hidden h-[34svh] md:h-[42svh]"
+        style={{ aspectRatio: bottleAspect(hero.slug) }}
+      >
+        <div className="intro-static-bottle absolute inset-0">
+          <BottleImage fragrance={hero} fit="trim" sizes={HERO_SIZES} />
+        </div>
+        <div
+          className="intro-static-emblem absolute top-1/2 left-1/2 h-[24%] -translate-1/2"
+          style={{ aspectRatio: EMBLEM_ASPECT }}
+        >
+          <Emblem className="block h-full w-full" />
+        </div>
+      </div>
+
+      <div
+        data-intro
+        className="static:relative static:inset-auto static:mt-12 static:translate-x-0 absolute top-[52%] left-1/2 w-[min(56vw,20rem)] -translate-x-1/2 md:top-[64%] md:w-[min(32vw,28rem)]"
+      >
         <svg
-          viewBox={LOGO_VIEWBOX}
+          viewBox={clip.join(" ")}
           fill="currentColor"
           aria-hidden
           className="block w-full overflow-visible"
         >
           <defs>
             <clipPath id="zalfi-wm-clip">
-              <rect
-                x={wm[0] - 40}
-                y={wm[1] - 30}
-                width={wm[2] - wm[0] + 80}
-                height={wm[3] - wm[1] + 34}
-              />
+              <rect x={clip[0]} y={clip[1]} width={clip[2]} height={clip[3]} />
             </clipPath>
           </defs>
-          {emblem.map((p) => (
-            <path key={p.id} d={p.d} data-logo-part={p.id} data-reveal />
-          ))}
           <g clipPath="url(#zalfi-wm-clip)">
             {letters.map((p) => (
               <g key={p.id} data-logo-letter>
@@ -304,7 +397,7 @@ function Intro() {
             ))}
           </g>
         </svg>
-        <p data-intro-meta data-reveal className="eyebrow text-bone-dim mt-10 text-center md:mt-12">
+        <p data-intro-meta data-reveal className="eyebrow text-bone-dim mt-8 text-center md:mt-10">
           Maison de parfum
         </p>
       </div>
@@ -315,7 +408,7 @@ function Intro() {
         <span data-intro-meta data-reveal className="eyebrow text-bone-dim text-[0.6rem]">
           Scroll
         </span>
-        <span className="bg-bone/15 block h-12 w-px overflow-hidden">
+        <span className="bg-bone/15 block h-10 w-px overflow-hidden">
           <span className="bg-bone block h-full w-full motion-safe:animate-[scroll-cue_3.6s_var(--ease-silk)_infinite]" />
         </span>
       </div>

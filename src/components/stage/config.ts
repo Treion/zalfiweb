@@ -29,11 +29,19 @@ export const EXP = {
   },
   hero_: {
     introOut: [0, 80],
-    rise: [10, 120],
+    /** The bottle, already on screen since the load morph, grows from its landing pose into the
+     *  hero (relative to the hero's start) */
+    settle: [-60, 60],
     headline: [60, 110],
     headlineOut: [135, 165],
   },
 } as const;
+
+/**
+ * The hero bottle's landing pose, before any scroll: a little smaller and raised, so the ZALFI
+ * wordmark sits beneath it. `lift` is in viewport heights. The DOM fallback mirrors it.
+ */
+export const INTRO_POSE = { scale: 0.72, lift: 0.12 } as const;
 
 export const CHAPTER_COUNT = 6;
 

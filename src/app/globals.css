@@ -237,6 +237,59 @@ html.stage-ready .chapter-name {
 }
 
 /*
+ * The static layout (no WebGL, or reduced motion) gets the same landing arrival in CSS: the
+ * emblem grows and dissolves into the bottle photo. Its chapter bottles rise gently into place as
+ * they scroll into view (scroll-driven, where supported). With reduced motion nothing moves.
+ */
+@keyframes emblem-into-bottle {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  25% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  60% {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 0;
+    transform: scale(3.8);
+  }
+}
+@keyframes bottle-arrive {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+@keyframes spread-rise {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+}
+.intro-static-emblem {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  html.static-experience .intro-static-emblem {
+    animation: emblem-into-bottle 3s var(--ease-silk) 0.4s both;
+  }
+  html.static-experience .intro-static-bottle {
+    animation: bottle-arrive 1.9s var(--ease-silk) 1.3s both;
+  }
+  @supports (animation-timeline: view()) {
+    html.static-experience [data-static-bottle] {
+      animation: spread-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 30%;
+    }
+  }
+}
+
+/*
  * Client-side page arrivals (app/template.tsx): the page fades in and its text blocks rise into
  * place while the stage carries the bottle across. Opacity on the page; transform only on text
  * blocks, never on stage anchors or fixed elements.

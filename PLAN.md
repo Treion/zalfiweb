@@ -180,6 +180,7 @@ Each milestone ends with lint, typecheck, `next build` and `next dev`, then Play
 | **M9** ✓ | Polish | SEO, OG images, sitemap, JSON-LD, Lighthouse, accessibility, 375px sweep |
 | **M10** ✓ | Calm & butter | Still light (no rays, caustics, sweeps, pointer tilt or idle spins), static grain, gentle vertical bottle handoffs, soft scrubbed easing, Lenis lerp, transform-only cursor, intro wordmark fix |
 | **M11** ✓ | Premium touches | The bottle travels between pages, chapter index with world-wash jumps, sticky purchase bar, scent profile (`profile` jsonb), Find your world (`/find`) |
+| **M12** ✓ | Landing arrival | On load, the logo's emblem grows and dissolves into the bottle above the ZALFI wordmark; scroll settles it into the hero. Static layout: the same arrival in CSS, and spread bottles rise into view |
 
 ---
 
@@ -192,6 +193,10 @@ Each milestone ends with lint, typecheck, `next build` and `next dev`, then Play
 ---
 
 ## Changelog
+
+- **M12 (2026-09-26):** the owner wanted the bottle to arrive smoothly on load. Before, it showed up only after scrolling. On browsers that get the static layout, it was an image at the right of Reva's spread.
+  - The landing screen now composes itself on every layout. The emblem assembles where the bottle will stand, then grows and dissolves into it.
+  - Scroll carries that same bottle into the hero.
 
 - **M11 (2026-09-24):** premium product-site touches, chosen to stay calm:
   - The stage carries the bottle from the collection (or a chapter, or the finder) into its product page and back, while the world colour washes across.
