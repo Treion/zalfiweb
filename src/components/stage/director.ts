@@ -304,6 +304,18 @@ const mixPlacement = (a: Placement, b: Placement, t: number): Placement => ({
 const withOpacity = (p: Placement, k: number): Placement =>
   k >= 0.999 ? p : { ...p, opacity: p.opacity * k };
 
+/**
+ * The fragrance name is set like a magazine masthead: just above the bottle, with only the foot of
+ * its letters behind the top of the cap, so it always reads. SCALE sizes it against the old
+ * behind-the-glass name; OVERLAP is how much of the letters' height the cap may cover.
+ */
+const MASTHEAD_SCALE = 0.72;
+const MASTHEAD_OVERLAP = 0.22;
+/** Bodoni Moda: letter height (cap to baseline) and where its centre sits below the canvas
+ *  centre, as fractions of the font size and canvas height (see Masthead.draw) */
+const GLYPH_HEIGHT = 0.66;
+const GLYPH_DROP = 0.083;
+
 /** The studio's key light: upper left, and it never moves */
 const KEY_LIGHT = new THREE.Vector2(-0.45, 0.6);
 
@@ -586,15 +598,16 @@ export class StageDirector {
         m.mesh.visible = false;
         return;
       }
-      const fontPx = Math.min(vw * (vw < 768 ? 0.27 : 0.2), exp.h * 0.55);
+      const depth = Math.max(80, exp.h * 0.6);
+      const f = dist / (dist + depth); // perspective: world → screen size at that depth
+      const fontPx = Math.min(vw * (vw < 768 ? 0.27 : 0.2), exp.h * 0.55) * MASTHEAD_SCALE;
       const w = Math.min(vw * 0.96, fontPx * m.ratio);
       const h = w / m.aspect;
+      const glyph = (w / m.ratio) * GLYPH_HEIGHT * f; // on screen
+      // letters' centre on screen: above the anchor's top (the cap), overlapping it a little
+      const centre = exp.cy + exp.h / 2 + glyph * (0.5 - MASTHEAD_OVERLAP);
       m.mesh.visible = true;
-      m.mesh.position.set(
-        exp.cx,
-        exp.cy + exp.h * 0.02 + ms.lift * exp.h,
-        -Math.max(80, exp.h * 0.6),
-      );
+      m.mesh.position.set(exp.cx, centre / f + GLYPH_DROP * h + ms.lift * exp.h * 0.5, -depth);
       m.mesh.scale.set(w, h, 1);
       m.uniforms.uReveal.value = ms.reveal;
       m.uniforms.uOpacity.value = ms.opacity * 0.92;

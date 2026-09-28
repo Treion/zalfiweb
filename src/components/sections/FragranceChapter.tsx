@@ -94,12 +94,12 @@ function MotionChapter({ fragrance: f, index, count, noteAvail, mounted }: Props
           and the visible fallback until the stage has painted */}
       <div
         data-a="text"
-        className="absolute top-[calc(43%-0.7svh)] left-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap md:top-[calc(48%-1.2svh)]"
+        className="absolute top-[calc(43%-18svh)] left-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap md:top-[calc(48%-33svh)]"
       >
         <h2
           id={`ch-${f.slug}`}
           data-a="name"
-          className="chapter-name font-display text-[27vw] leading-none md:text-[min(20vw,34svh)]"
+          className="chapter-name font-display text-[19vw] leading-none md:text-[min(14.4vw,24.5svh)]"
         >
           <SplitWords text={f.name} />
         </h2>
@@ -124,7 +124,7 @@ function MotionChapter({ fragrance: f, index, count, noteAvail, mounted }: Props
         ))}
       </div>
 
-      {/* Bottom left: tagline, story, pyramid */}
+      {/* Bottom left: tagline */}
       <div
         data-a="text"
         className="right-gutter left-gutter absolute bottom-[17svh] md:right-auto md:bottom-[8svh] md:w-[min(30vw,27rem)]"
@@ -134,13 +134,6 @@ function MotionChapter({ fragrance: f, index, count, noteAvail, mounted }: Props
           className="display-italic text-[clamp(1.45rem,2.3vw,2.5rem)] leading-[1.12]"
         >
           <SplitWords text={f.tagline} />
-        </p>
-        <p
-          data-a="story"
-          data-reveal
-          className="mt-5 hidden max-w-[24rem] text-sm leading-relaxed opacity-80 md:block"
-        >
-          {f.story}
         </p>
       </div>
 
@@ -293,7 +286,6 @@ function StaticSpread({ fragrance: f, index, count, noteAvail }: Props) {
             {f.name}
           </h2>
           <p className="display-italic mt-5 text-3xl leading-snug">{f.tagline}</p>
-          <p className="mt-6 max-w-md opacity-80">{f.story}</p>
           <div className="mt-10 flex flex-wrap items-center gap-5">
             <Link href={`/fragrances/${f.slug}`} className="eyebrow border-b border-current pb-1">
               Discover {f.name}
@@ -369,12 +361,6 @@ export function buildChapterTimeline(
     { yPercent: 110, opacity: 1 },
     { yPercent: 0, duration: 34 * k, stagger: 2.5 * k, ease: GSAP_EASE.soft },
     at(C.tagline[0]),
-  );
-  tl.fromTo(
-    q('[data-a="story"]'),
-    { opacity: 0, y: 14 },
-    { opacity: 0.8, y: 0, duration: 30 * k, ease: GSAP_EASE.soft },
-    at(C.tagline[0] + 25),
   );
 
   // Notes arrive in three layers. As each new layer arrives, the previous one recedes and drifts

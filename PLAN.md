@@ -181,6 +181,7 @@ Each milestone ends with lint, typecheck, `next build` and `next dev`, then Play
 | **M10** ✓ | Calm & butter | Still light (no rays, caustics, sweeps, pointer tilt or idle spins), static grain, gentle vertical bottle handoffs, soft scrubbed easing, Lenis lerp, transform-only cursor, intro wordmark fix |
 | **M11** ✓ | Premium touches | The bottle travels between pages, chapter index with world-wash jumps, sticky purchase bar, scent profile (`profile` jsonb), Find your world (`/find`) |
 | **M12** ✓ | Landing arrival | On load, the logo's emblem grows and dissolves into the bottle above the ZALFI wordmark; scroll settles it into the hero. Static layout: the same arrival in CSS, and spread bottles rise into view |
+| **M13** ✓ | Owner feedback | Readable chapter names, 50 ml only, CTA from the start, no chapter stories, Story bottle clear of text, footer with house pages, contact details and socials |
 
 ---
 
@@ -193,6 +194,15 @@ Each milestone ends with lint, typecheck, `next build` and `next dev`, then Play
 ---
 
 ## Changelog
+
+- **M13 (2026-09-28), owner feedback:**
+  - Chapter names now sit above the bottle, so they read.
+  - "Maison de parfum" is removed.
+  - One size only (50 ml), including a migration that deletes the 100 ml variants. Saved bags drop retired sizes.
+  - Discover and Add to bag show from the start of each chapter.
+  - The chapter stories are gone from the home page.
+  - The Story bottle moved clear of the text.
+  - The footer gained About, FAQ, Contact, Refund & return, Payment policy, Privacy and Terms. The pages are shells awaiting the owner's copy, plus Contact with the real details. It also has hairline icons for Facebook, Instagram, phone, email and the map.
 
 - **M12 (2026-09-26):** the owner wanted the bottle to arrive smoothly on load. Before, it showed up only after scrolling. On browsers that get the static layout, it was an image at the right of Reva's spread.
   - The landing screen now composes itself on every layout. The emblem assembles where the bottle will stand, then grows and dissolves into it.

@@ -30,7 +30,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "ZALFI | Maison de Parfum",
+    default: "ZALFI | Eau de Parfum",
     template: "%s | ZALFI",
   },
   description:
@@ -50,6 +50,9 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const fragrances = await getFragrances();
+  const catalogue = Object.fromEntries(
+    fragrances.flatMap((f) => f.variants.map((v) => [v.sku, v.priceCents] as const)),
+  );
   const stageFragrances = fragrances.map(({ slug, name, palette, capFinish }) => ({
     slug,
     name,
@@ -67,7 +70,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body>
         <SkipLink />
         <SmoothScroll>
-          <CartProvider>
+          <CartProvider catalogue={catalogue}>
             <Nav />
             {children}
             <Footer fragrances={fragrances} />

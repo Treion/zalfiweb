@@ -1,8 +1,32 @@
 import Link from "next/link";
+import clsx from "clsx";
 import { Logo } from "@/components/brand/Logo";
+import { ContactIcons } from "@/components/ui/ContactIcons";
+import { INFO_PAGES, type InfoPage } from "@/content/pages";
+import { CONTACT, MAPS_URL } from "@/lib/contact";
 import type { Fragrance } from "@/lib/fragrance";
 
-/** The footer: an index of the six worlds, and the wordmark set as large as the page allows. */
+const pages = (group: InfoPage["group"]) =>
+  INFO_PAGES.filter((p) => p.group === group).map((p) => ({ href: `/${p.slug}`, label: p.title }));
+
+const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
+  {
+    title: "The house",
+    links: [
+      ...pages("house"),
+      { href: "/#collection", label: "The collection" },
+      { href: "/find", label: "Find your world" },
+      { href: "/checkout", label: "Your bag" },
+    ],
+  },
+  { title: "Help", links: pages("help") },
+  { title: "Legal", links: pages("legal") },
+];
+
+/**
+ * The footer: the six worlds, the house's pages, how to reach us, and the wordmark set as large as
+ * the page allows.
+ */
 export function Footer({
   fragrances,
 }: {
@@ -11,7 +35,7 @@ export function Footer({
   return (
     <footer className="bg-noir px-gutter text-bone relative overflow-hidden pt-24 pb-8">
       <div className="grid grid-cols-12 gap-x-4 gap-y-12">
-        <nav aria-labelledby="footer-worlds" className="col-span-12 md:col-span-5">
+        <nav aria-labelledby="footer-worlds" className="col-span-12 lg:col-span-5">
           <h2 id="footer-worlds" className="eyebrow text-bone-dim">
             The six worlds
           </h2>
@@ -28,46 +52,51 @@ export function Footer({
             ))}
           </ul>
         </nav>
-        <nav aria-labelledby="footer-house" className="col-span-6 md:col-span-2 md:col-start-8">
-          <h2 id="footer-house" className="eyebrow text-bone-dim">
-            The house
-          </h2>
-          <ul className="mt-6 space-y-3 text-sm">
-            <li>
-              <Link href="/#story" className="hover:underline">
-                Our story
-              </Link>
-            </li>
-            <li>
-              <Link href="/#collection" className="hover:underline">
-                The collection
-              </Link>
-            </li>
-            <li>
-              <Link href="/find" className="hover:underline">
-                Find your world
-              </Link>
-            </li>
-            <li>
-              <Link href="/checkout" className="hover:underline">
-                Your bag
-              </Link>
-            </li>
-          </ul>
-        </nav>
-        <div className="text-bone-dim col-span-6 text-sm md:col-span-3 md:col-start-10">
-          <p className="eyebrow">Eau de parfum</p>
-          <p className="mt-6 leading-relaxed">
-            Six compositions in smoked glass. Worn close, remembered long.
-          </p>
-        </div>
+
+        {COLUMNS.map((col, i) => (
+          <nav
+            key={col.title}
+            aria-labelledby={`footer-${i}`}
+            className={clsx("col-span-6 sm:col-span-4 lg:col-span-2", i === 0 && "lg:col-start-7")}
+          >
+            <h2 id={`footer-${i}`} className="eyebrow text-bone-dim">
+              {col.title}
+            </h2>
+            <ul className="mt-6 space-y-3 text-sm">
+              {col.links.map((l) => (
+                <li key={l.href}>
+                  <Link href={l.href} className="underline-offset-4 hover:underline">
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        ))}
       </div>
 
-      <Logo variant="wordmark" className="text-bone mt-24 w-full md:mt-32" title="ZALFI" />
+      {/* How to reach us */}
+      <div className="border-bone/10 mt-16 grid grid-cols-12 items-end gap-x-4 gap-y-8 border-t pt-10">
+        <address className="text-bone-dim col-span-12 text-sm leading-relaxed not-italic sm:col-span-6 lg:col-span-5">
+          <a href={MAPS_URL} target="_blank" rel="noopener noreferrer" className="hover:text-bone">
+            {CONTACT.address.join(", ")}
+          </a>
+          <br />
+          <a href={`tel:${CONTACT.phone}`} className="hover:text-bone">
+            {CONTACT.phoneDisplay}
+          </a>
+          <span className="mx-2 opacity-50">·</span>
+          <a href={`mailto:${CONTACT.email}`} className="hover:text-bone">
+            {CONTACT.email}
+          </a>
+        </address>
+        <ContactIcons className="col-span-12 flex items-center gap-3 sm:col-span-6 sm:justify-end lg:col-span-7" />
+      </div>
 
-      <div className="border-bone/10 text-bone-dim mt-8 flex flex-col justify-between gap-2 border-t pt-6 text-xs sm:flex-row">
+      <Logo variant="wordmark" className="text-bone mt-20 w-full md:mt-28" title="ZALFI" />
+
+      <div className="border-bone/10 text-bone-dim mt-8 border-t pt-6 text-xs">
         <p>© {new Date().getFullYear()} ZALFI. All rights reserved.</p>
-        <p>Maison de parfum</p>
       </div>
     </footer>
   );

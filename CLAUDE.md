@@ -81,6 +81,8 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
   - Scroll then settles the bottle from `INTRO_POSE` into the hero (`hero_.settle`). The hero bottle never pops in.
   - The static layout plays the same arrival in CSS (`.intro-static-*`, motion allowed only). Its spread bottles rise into view with a scroll-driven `view()` timeline.
   - With reduced motion, the bottle is simply there.
+- **Chapter names** (the WebGL masthead) sit just above the bottle, like a magazine masthead, with only the foot of the letters behind the cap, so they always read (`MASTHEAD_*` in `stage/director.ts`). Keep floating notes clear of that band.
+- **Chapters stay simple:** eyebrow, name, tagline and notes, plus Discover / Add to bag from the start of the chapter (`ch.cta`). No story paragraph on the home page; the story lives on the product page.
 - `data-reveal` elements are hidden until their timeline runs, but only with JS and motion allowed (`html.js`, set before paint).
 - `ChapterIndex` (desktop) lists the six chapters. A jump never scrolls through the worlds in between:
   1. A `WorldVeil` in the destination's colour fades in.
@@ -112,6 +114,14 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
 - Lighthouse desktop 85+, CLS about 0 (reserve space with aspect ratios).
 - `generateMetadata` per page, OG images from bottle photos, `sitemap.ts`, `robots.ts`, JSON-LD Product.
 - Alt text on every image, logical heading order, visible focus rings, keyboard parity for every hover interaction, `SkipLink` first in the body.
+
+## Catalogue and house pages
+
+- **ZALFI sells one size: 50 ml.** The size chooser appears only if a fragrance ever has more than one variant. Migration `0002` retired the 100 ml rows.
+- **House pages** (`/about`, `/faq`, `/contact`, `/refunds`, `/payment-policy`, `/privacy`, `/terms`):
+  - They are one route, `app/(info)/[slug]`, fed by `src/content/pages.ts`.
+  - **The owner writes this copy. Never generate it.** Paste the owner's text into `sections`. An empty page shows a short "being written" note with the contact details.
+- **Contact details and socials** live in `src/lib/contact.ts`, used by the footer, `/contact` and `<ContactIcons />`. The icons are hairline marks drawn in-house.
 
 ## Code conventions
 

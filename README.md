@@ -23,6 +23,7 @@ Without `DATABASE_URL`, the site still builds and runs from the typed catalogue 
 | `/` | Intro, hero, six chapters, collection, story, newsletter |
 | `/fragrances/[slug]` | Product pages: live stock, scent profile, notes pyramid, sticky Add to bag |
 | `/find` | Find your world: three questions, and the answer lit on the stage |
+| `/about`, `/faq`, `/contact`, `/refunds`, `/payment-policy`, `/privacy`, `/terms` | House pages. Paste the copy into `src/content/pages.ts` |
 | `/checkout` | Placeholder, shaped for Stripe |
 | `/lab` | Design foundations and asset status. Hidden in production |
 | `/lab/stage?slug=oudor` | One relit bottle, to judge the lighting. Hidden in production |

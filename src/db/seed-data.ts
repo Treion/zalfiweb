@@ -67,18 +67,12 @@ const pyramid = (p: Pyramid): FragranceNote[] =>
     list.map(([slug, label], position) => ({ ...noteBySlug.get(slug)!, layer, label, position })),
   );
 
-const variants = (slug: string, p50: number, p100: number) => [
+/** ZALFI is sold in one size: 50 ml */
+const variants = (slug: string, p50: number) => [
   {
     sku: `ZLF-${slug.toUpperCase()}-50`,
     sizeMl: 50,
     priceCents: p50 * 100,
-    currency: "USD",
-    stock: 25,
-  },
-  {
-    sku: `ZLF-${slug.toUpperCase()}-100`,
-    sizeMl: 100,
-    priceCents: p100 * 100,
     currency: "USD",
     stock: 25,
   },
@@ -92,7 +86,7 @@ const fragrance = (
   palette: Palette,
   copy: { tagline: string; story: string; mood: string },
   notes: Pyramid,
-  prices: [number, number],
+  price: number,
   profile: ScentProfile,
 ): Fragrance => ({
   slug,
@@ -105,7 +99,7 @@ const fragrance = (
   sortOrder,
   profile,
   notes: pyramid(notes),
-  variants: variants(slug, ...prices),
+  variants: variants(slug, price),
 });
 
 const capLabel: Record<CapFinish, string> = {
@@ -144,7 +138,7 @@ export const FRAGRANCES: Fragrance[] = [
         ["tonka-bean", "Warm Tonka Bean"],
       ],
     },
-    [145, 210],
+    145,
     {
       family: "Aromatic fougère",
       longevity: 3,
@@ -179,7 +173,7 @@ export const FRAGRANCES: Fragrance[] = [
         ["oakmoss", "Earthy Oakmoss"],
       ],
     },
-    [145, 210],
+    145,
     {
       family: "Green aromatic",
       longevity: 2,
@@ -217,7 +211,7 @@ export const FRAGRANCES: Fragrance[] = [
         ["patchouli", "Patchouli"],
       ],
     },
-    [145, 210],
+    145,
     {
       family: "Floral woody",
       longevity: 3,
@@ -252,7 +246,7 @@ export const FRAGRANCES: Fragrance[] = [
         ["tonka-bean", "Tonka Bean"],
       ],
     },
-    [145, 210],
+    145,
     {
       family: "Ambery gourmand",
       longevity: 4,
@@ -288,7 +282,7 @@ export const FRAGRANCES: Fragrance[] = [
         ["sandalwood", "Sandalwood"],
       ],
     },
-    [165, 240],
+    165,
     {
       family: "Woody iris",
       longevity: 4,
@@ -323,7 +317,7 @@ export const FRAGRANCES: Fragrance[] = [
         ["musk", "Warm Musk"],
       ],
     },
-    [185, 265],
+    185,
     {
       family: "Oud rose amber",
       longevity: 5,

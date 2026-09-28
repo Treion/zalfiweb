@@ -12,12 +12,12 @@ export const NOTE_SLOTS: Record<"desktop" | "mobile", Record<NoteLayer, Slot[]>>
     top: [
       { x: -26, y: -23, size: 11, depth: 1 },
       { x: 24, y: -27, size: 9, depth: 0.6 },
-      { x: 12, y: -41, size: 6, depth: 0.25, far: true },
+      { x: 38, y: -35, size: 6, depth: 0.25, far: true },
     ],
     heart: [
       { x: 30, y: -3, size: 11.5, depth: 1 },
       { x: -33, y: -4, size: 9, depth: 0.6 },
-      { x: -15, y: -41, size: 6, depth: 0.25, far: true },
+      { x: -40, y: -17, size: 6, depth: 0.25, far: true },
     ],
     base: [
       { x: -25, y: 12, size: 10, depth: 1 },

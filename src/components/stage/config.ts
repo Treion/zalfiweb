@@ -22,7 +22,8 @@ export const EXP = {
     top: [75, 130],
     heart: [145, 200],
     base: [215, 270],
-    cta: [270, 305],
+    // Discover + Add to bag are there from the start of the chapter, until it leaves
+    cta: [25, 75],
     mastheadOut: [295, 340],
     textOut: [300, 345],
     exit: [300, 360],

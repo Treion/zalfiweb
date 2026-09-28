@@ -98,8 +98,8 @@ export function Story({ feature }: { feature: Fragrance }) {
             <SplitWords text="not perfumes." />
           </h2>
 
-          {/* The bottle sits behind the headline's last line: type over image */}
-          <div className="pointer-events-none absolute top-[18%] right-[4%] w-[34%] md:top-[4%] md:right-[22%] md:w-[36%]">
+          {/* The bottle stands to the right of the headline, clear of the text */}
+          <div className="pointer-events-none absolute top-0 right-0 w-[28%] md:w-[30%]">
             <div data-story-bottle>
               <BottleImage fragrance={feature} sizes="(min-width: 768px) 30vw, 34vw" />
             </div>

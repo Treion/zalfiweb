@@ -85,8 +85,18 @@ export function useCart() {
   return ctx;
 }
 
-/** The bag lives on this device (localStorage). Prices are re-validated by /api/checkout. */
-export function CartProvider({ children }: { children: ReactNode }) {
+/**
+ * The bag lives on this device (localStorage). Prices are re-validated by /api/checkout.
+ * `catalogue` (sku → current price) lets a saved bag drop sizes that are no longer sold and pick
+ * up price changes when it is restored.
+ */
+export function CartProvider({
+  children,
+  catalogue,
+}: {
+  children: ReactNode;
+  catalogue?: Record<string, number>;
+}) {
   const [state, dispatch] = useReducer(reducer, { lines: [], open: false, hydrated: false });
 
   useEffect(() => {
@@ -97,8 +107,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } catch {
       /* storage blocked or corrupt: start empty */
     }
-    dispatch({ type: "hydrate", lines: Array.isArray(lines) ? lines : [] });
-  }, []);
+    if (!Array.isArray(lines)) lines = [];
+    if (catalogue)
+      lines = lines
+        .filter((l) => l.sku in catalogue)
+        .map((l) => ({ ...l, priceCents: catalogue[l.sku] }));
+    dispatch({ type: "hydrate", lines });
+  }, [catalogue]);
 
   useEffect(() => {
     if (!state.hydrated) return;

@@ -66,6 +66,8 @@ export function ProductPurchase({ fragrance: f }: { fragrance: Fragrance }) {
   const left = live?.stock ?? v.stock;
   const price = live?.priceCents ?? v.priceCents;
   const soldOut = left <= 0;
+  // One size today (50 ml): no chooser, just the size. The chooser returns if sizes are added.
+  const choice = f.variants.length > 1;
 
   function addToBag() {
     add({
@@ -96,23 +98,25 @@ export function ProductPurchase({ fragrance: f }: { fragrance: Fragrance }) {
         >
           <div className="px-gutter flex items-center gap-4 py-3 md:gap-8 md:py-4">
             <p className="font-display text-2xl leading-none md:text-3xl">{f.name}</p>
-            <div role="group" aria-label="Size" className="hidden items-center gap-2 md:flex">
-              {f.variants.map((x) => (
-                <button
-                  key={x.sku}
-                  type="button"
-                  aria-pressed={x.sku === v.sku}
-                  onClick={() => setSku(x.sku)}
-                  className={clsx(
-                    "eyebrow border px-3 py-2 transition-colors",
-                    x.sku === v.sku ? "border-current" : "border-current/25",
-                  )}
-                >
-                  {x.sizeMl} ml
-                </button>
-              ))}
-            </div>
-            <span className="eyebrow opacity-70 md:hidden">{v.sizeMl} ml</span>
+            {choice && (
+              <div role="group" aria-label="Size" className="hidden items-center gap-2 md:flex">
+                {f.variants.map((x) => (
+                  <button
+                    key={x.sku}
+                    type="button"
+                    aria-pressed={x.sku === v.sku}
+                    onClick={() => setSku(x.sku)}
+                    className={clsx(
+                      "eyebrow border px-3 py-2 transition-colors",
+                      x.sku === v.sku ? "border-current" : "border-current/25",
+                    )}
+                  >
+                    {x.sizeMl} ml
+                  </button>
+                ))}
+              </div>
+            )}
+            <span className={clsx("eyebrow opacity-70", choice && "md:hidden")}>{v.sizeMl} ml</span>
             <span className="font-display ml-auto text-xl tabular-nums md:text-2xl">
               {formatPrice(price, v.currency)}
             </span>
@@ -133,40 +137,47 @@ export function ProductPurchase({ fragrance: f }: { fragrance: Fragrance }) {
 
   return (
     <div ref={block}>
-      <fieldset>
-        <legend className="eyebrow mb-4 opacity-70">Size</legend>
-        <div className="grid grid-cols-2 gap-3">
-          {f.variants.map((x) => {
-            const checked = x.sku === v.sku;
-            return (
-              <label
-                key={x.sku}
-                className="group relative flex cursor-pointer items-baseline justify-between border border-current/25 px-4 py-4 transition-colors has-[:checked]:border-current has-[:focus-visible]:outline has-[:focus-visible]:outline-1 has-[:focus-visible]:outline-offset-4"
-              >
-                <input
-                  type="radio"
-                  name={`${id}-size`}
-                  value={x.sku}
-                  checked={checked}
-                  onChange={() => setSku(x.sku)}
-                  className="sr-only"
-                />
-                <span className="font-display text-2xl">{x.sizeMl} ml</span>
-                <span className="text-sm tabular-nums opacity-80">
-                  {formatPrice(stock?.[x.sku]?.priceCents ?? x.priceCents, x.currency)}
-                </span>
-                {checked && (
-                  <motion.span
-                    layoutId={`${id}-sel`}
-                    className="absolute inset-x-0 -bottom-px h-0.5 bg-current"
-                    transition={{ duration: 0.5, ease: EASE }}
-                  />
-                )}
-              </label>
-            );
-          })}
+      {!choice ? (
+        <div className="flex items-baseline justify-between border-b border-current/25 pb-4">
+          <span className="eyebrow opacity-70">Size</span>
+          <span className="font-display text-2xl">{v.sizeMl} ml</span>
         </div>
-      </fieldset>
+      ) : (
+        <fieldset>
+          <legend className="eyebrow mb-4 opacity-70">Size</legend>
+          <div className="grid grid-cols-2 gap-3">
+            {f.variants.map((x) => {
+              const checked = x.sku === v.sku;
+              return (
+                <label
+                  key={x.sku}
+                  className="group relative flex cursor-pointer items-baseline justify-between border border-current/25 px-4 py-4 transition-colors has-[:checked]:border-current has-[:focus-visible]:outline has-[:focus-visible]:outline-1 has-[:focus-visible]:outline-offset-4"
+                >
+                  <input
+                    type="radio"
+                    name={`${id}-size`}
+                    value={x.sku}
+                    checked={checked}
+                    onChange={() => setSku(x.sku)}
+                    className="sr-only"
+                  />
+                  <span className="font-display text-2xl">{x.sizeMl} ml</span>
+                  <span className="text-sm tabular-nums opacity-80">
+                    {formatPrice(stock?.[x.sku]?.priceCents ?? x.priceCents, x.currency)}
+                  </span>
+                  {checked && (
+                    <motion.span
+                      layoutId={`${id}-sel`}
+                      className="absolute inset-x-0 -bottom-px h-0.5 bg-current"
+                      transition={{ duration: 0.5, ease: EASE }}
+                    />
+                  )}
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+      )}
 
       <div className="mt-8 flex items-baseline justify-between">
         <span className="font-display text-4xl tabular-nums">{formatPrice(price, v.currency)}</span>

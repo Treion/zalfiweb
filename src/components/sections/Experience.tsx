@@ -346,7 +346,7 @@ function Intro({ hero }: { hero: Fragrance }) {
   const clip = [wm[0] - 40, wm[1] - 30, wm[2] - wm[0] + 80, wm[3] - wm[1] + 34];
   return (
     <div className="px-gutter text-bone static:relative static:flex static:min-h-svh static:flex-col static:items-center static:justify-center static:py-28 absolute inset-0">
-      <h1 className="sr-only">ZALFI, maison de parfum</h1>
+      <h1 className="sr-only">ZALFI, eau de parfum</h1>
 
       {/* Stage layout: the emblem, at the bottle's landing centre */}
       <div
@@ -397,9 +397,6 @@ function Intro({ hero }: { hero: Fragrance }) {
             ))}
           </g>
         </svg>
-        <p data-intro-meta data-reveal className="eyebrow text-bone-dim mt-8 text-center md:mt-10">
-          Maison de parfum
-        </p>
       </div>
       <div
         data-intro-cue
@@ -434,7 +431,7 @@ function HeroCopy() {
             Six eaux de parfum, each composed as a place. Scroll, and step inside each one.
           </p>
           <p data-hero-meta data-reveal className="eyebrow text-bone mt-6">
-            Eau de parfum · 50 ml &amp; 100 ml
+            Eau de parfum · 50 ml
           </p>
         </div>
       </div>

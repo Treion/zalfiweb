@@ -126,7 +126,8 @@ function CollectionItem({ fragrance: f, index }: { fragrance: Fragrance; index: 
         </motion.dl>
         {from && (
           <p className="eyebrow text-bone-dim mt-4">
-            From {formatPrice(from.priceCents, from.currency)}
+            {f.variants.length > 1 ? "From " : `${from.sizeMl} ml · `}
+            {formatPrice(from.priceCents, from.currency)}
           </p>
         )}
       </div>

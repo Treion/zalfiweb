@@ -15,6 +15,13 @@
       "when": 1790281387919,
       "tag": "0001_nebulous_beyonder",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790619085379,
+      "tag": "0002_only_50ml",
+      "breakpoints": true
     }
   ]
 }
