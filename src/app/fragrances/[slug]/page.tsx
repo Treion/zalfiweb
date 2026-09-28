@@ -123,9 +123,6 @@ export default async function FragrancePage({ params }: PageProps<"/fragrances/[
           >
             {f.tagline}
           </p>
-          <p className="mt-6 max-w-md leading-relaxed opacity-80" {...enter(3)}>
-            {f.story}
-          </p>
           <p className="eyebrow mt-8 opacity-70" {...enter(3)}>
             Eau de parfum · {f.mood}
             {from ? ` · ${f.variants.length > 1 ? "from " : ""}${from.sizeMl} ml` : ""}

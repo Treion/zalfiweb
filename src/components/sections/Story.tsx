@@ -114,10 +114,6 @@ export function Story({ feature }: { feature: Fragrance }) {
             A scent can put you somewhere. A frozen field at dawn. A garden sliding into the sea. A
             room of smoke and gold.
           </p>
-          <p className="text-smoke leading-relaxed md:col-span-4 md:col-start-6">
-            We compose each fragrance as a place. Then we pour it into the same smoked-glass cube.
-            Only the cap tells you which door you are opening.
-          </p>
           <dl className="border-noir/15 grid grid-cols-3 gap-6 border-t pt-8 md:col-span-9">
             {[
               ["Six", "worlds, one house"],

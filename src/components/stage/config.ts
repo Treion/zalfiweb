@@ -6,8 +6,8 @@
 export const MOBILE_SCALE = 0.62;
 
 export const EXP = {
-  intro: 100,
-  hero: 170,
+  /** The opening: the six bottles lined up, then Reva steps forward into its world */
+  lineup: 110,
   chapter: 360,
   outro: 80,
   /** Offsets within a chapter, relative to its start (may be negative = overlaps the previous one) */
@@ -28,33 +28,28 @@ export const EXP = {
     textOut: [300, 345],
     exit: [300, 360],
   },
-  hero_: {
-    introOut: [0, 80],
-    /** The bottle, already on screen since the load morph, grows from its landing pose into the
-     *  hero (relative to the hero's start) */
-    settle: [-60, 60],
-    headline: [60, 110],
-    headlineOut: [135, 165],
+  /** The lineup's handoff to the first world (absolute, from the top of the page) */
+  lineup_: {
+    /** Headline, names, prices and the scroll cue fade away */
+    textOut: [6, 40],
+    /** The other five bottles dissolve (each a little after the last) */
+    fade: [10, 58],
+    /** Reva glides from its place in the line-up into its world */
+    handoff: [14, 100],
+    /** The line-up layer leaves (and stops taking clicks) */
+    layerOut: [54, 66],
   },
 } as const;
-
-/**
- * The hero bottle's landing pose, before any scroll: a little smaller and raised, so the ZALFI
- * wordmark sits beneath it. `lift` is in viewport heights. The DOM fallback mirrors it.
- */
-export const INTRO_POSE = { scale: 0.72, lift: 0.12 } as const;
 
 export const CHAPTER_COUNT = 6;
 
 export function expTotal(k = 1) {
-  return (EXP.intro + EXP.hero + CHAPTER_COUNT * EXP.chapter + EXP.outro) * k;
+  return (EXP.lineup + CHAPTER_COUNT * EXP.chapter + EXP.outro) * k;
 }
 
 export function chapterStart(i: number, k = 1) {
-  return (EXP.intro + EXP.hero + i * EXP.chapter) * k;
+  return (EXP.lineup + i * EXP.chapter) * k;
 }
-
-export const heroStart = (k = 1) => EXP.intro * k;
 
 /** 0..1 progress of s through [a, b] (absolute vh units) */
 export const prog = (s: number, a: number, b: number) =>

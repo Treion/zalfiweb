@@ -237,31 +237,15 @@ html.stage-ready .chapter-name {
 }
 
 /*
- * The static layout (no WebGL, or reduced motion) gets the same landing arrival in CSS: the
- * emblem grows and dissolves into the bottle photo. Its chapter bottles rise gently into place as
- * they scroll into view (scroll-driven, where supported). With reduced motion nothing moves.
+ * The opening line-up arrives on load: the six bottles rise into place one after another, in CSS
+ * from the first paint (no wait for JavaScript), then everything is still. In the static layout the
+ * chapter bottles rise gently as they scroll into view (scroll-driven, where supported). With
+ * reduced motion nothing moves.
  */
-@keyframes emblem-into-bottle {
+@keyframes lineup-in {
   from {
     opacity: 0;
-    transform: scale(0.92);
-  }
-  25% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  60% {
-    opacity: 0.35;
-  }
-  to {
-    opacity: 0;
-    transform: scale(3.8);
-  }
-}
-@keyframes bottle-arrive {
-  from {
-    opacity: 0;
-    transform: scale(0.94);
+    transform: translateY(16px);
   }
 }
 @keyframes spread-rise {
@@ -270,15 +254,10 @@ html.stage-ready .chapter-name {
     transform: translateY(28px);
   }
 }
-.intro-static-emblem {
-  opacity: 0;
-}
 @media (prefers-reduced-motion: no-preference) {
-  html.static-experience .intro-static-emblem {
-    animation: emblem-into-bottle 3s var(--ease-silk) 0.4s both;
-  }
-  html.static-experience .intro-static-bottle {
-    animation: bottle-arrive 1.9s var(--ease-silk) 1.3s both;
+  [data-lineup-in] {
+    animation: lineup-in 1.3s var(--ease-cinema) both;
+    animation-delay: calc(0.15s + var(--i, 0) * 0.08s);
   }
   @supports (animation-timeline: view()) {
     html.static-experience [data-static-bottle] {

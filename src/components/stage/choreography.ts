@@ -6,12 +6,10 @@
 import {
   CHAPTER_COUNT,
   EXP,
-  INTRO_POSE,
   chRange,
   easeInOutSine,
   easeOutCubic,
   expTotal,
-  heroStart,
   prog,
   smooth,
 } from "./config";
@@ -32,18 +30,10 @@ const HIDDEN: Pose = { dx: 0, dy: 0, rotZ: 0, rotY: 0, scale: 1, opacity: 0, gro
 const DEG = Math.PI / 180;
 
 /**
- * Pose of fragrance i's bottle in the home experience at scroll position s (vh units).
- * `intro` (0..1) is the one-time load morph: the hero bottle arrives on the landing screen as the
- * logo's emblem grows into it, then scroll settles it into the hero.
+ * Pose of fragrance i's bottle in its chapter of the home experience, at scroll position s (vh
+ * units). Reva (i = 0) has no entrance of its own: it glides in from the line-up (lineupState).
  */
-export function bottlePose(
-  s: number,
-  i: number,
-  k: number,
-  vw: number,
-  vh: number,
-  intro = 1,
-): Pose {
+export function bottlePose(s: number, i: number, k: number, vw: number, vh: number): Pose {
   const exitRange = chRange(i, EXP.ch.exit, k);
   const xp = prog(s, ...exitRange);
   const x = easeInOutSine(xp);
@@ -57,18 +47,15 @@ export function bottlePose(
   const fadeOut = 1 - smooth(prog(xp, 0.35, 1));
 
   if (i === 0) {
-    if (intro <= 0 || xp >= 1) return HIDDEN;
-    const h = heroStart(k);
-    const settle = easeInOutSine(prog(s, h + EXP.hero_.settle[0] * k, h + EXP.hero_.settle[1] * k));
+    if (xp >= 1) return HIDDEN;
     return {
       dx: exitDx,
-      dy: (1 - settle) * INTRO_POSE.lift * vh + exitDy,
+      dy: exitDy,
       rotZ: exitRotZ,
       rotY: exitRotY,
-      scale: (INTRO_POSE.scale + (1 - INTRO_POSE.scale) * settle) * (0.94 + 0.06 * intro) * breathe,
-      opacity: intro * fadeOut,
-      // It floats above the wordmark on landing, and meets the floor as it settles
-      grounded: intro * settle * (1 - Math.min(1, xp * 3)),
+      scale: breathe,
+      opacity: fadeOut,
+      grounded: 1 - Math.min(1, xp * 3),
     };
   }
 
@@ -92,6 +79,18 @@ export function bottlePose(
     scale: (0.94 + 0.06 * e) * breathe,
     opacity: smooth(prog(s, rs, rs + (riseEnd - rs) * 0.55)) * fadeOut,
     grounded: e * (1 - Math.min(1, xp * 3)),
+  };
+}
+
+/**
+ * The opening line-up at scroll position s: `handoff` (eased 0..1) carries Reva from its place in
+ * the line-up into its chapter; `fade` (0..1) dissolves each of the other five, one after another.
+ */
+export function lineupState(s: number, i: number, k: number) {
+  const L = EXP.lineup_;
+  return {
+    handoff: easeInOutSine(prog(s, L.handoff[0] * k, L.handoff[1] * k)),
+    fade: smooth(prog(s, (L.fade[0] + (i - 1) * 4) * k, L.fade[1] * k)),
   };
 }
 

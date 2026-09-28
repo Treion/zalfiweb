@@ -8,7 +8,7 @@ import { useCallback } from "react";
  * it. When the stage draws an anchor it sets data-ready="true" on it, which fades out the DOM
  * fallback inside ([data-model-fallback]).
  */
-export type AnchorKind = "experience" | "collection" | "collection-section" | "product" | "note";
+export type AnchorKind = "experience" | "lineup" | "product" | "note";
 
 export type Anchor = {
   kind: AnchorKind;

@@ -1,4 +1,3 @@
-import { Collection } from "@/components/sections/Collection";
 import { Experience } from "@/components/sections/Experience";
 import { Newsletter } from "@/components/sections/Newsletter";
 import { Story } from "@/components/sections/Story";
@@ -17,7 +16,6 @@ export default async function Home() {
   return (
     <main id="main">
       <Experience fragrances={fragrances} noteAvail={noteAvail} />
-      <Collection fragrances={fragrances} />
       <Story feature={fragrances.find((f) => f.slug === "bond") ?? fragrances[0]} />
       <Newsletter />
     </main>

@@ -73,16 +73,16 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
 
 ## Layout of the home experience
 
-- `Experience` is one sticky viewport holding the intro, hero and six `FragranceChapter`s over the stage. A single master GSAP timeline, where 1 unit = 1vh of scroll, is scrubbed by ScrollTrigger. Its segment timings live in `components/stage/config.ts` and are shared by the DOM timeline and `stage/choreography.ts`, so type and light never drift. Change timings there, and only there.
+- `Experience` (`id="collection"`) is one sticky viewport holding the opening `Lineup` and six `FragranceChapter`s over the stage. A single master GSAP timeline, where 1 unit = 1vh of scroll, is scrubbed by ScrollTrigger. Its segment timings live in `components/stage/config.ts` and are shared by the DOM timeline and `stage/choreography.ts`, so type and light never drift. Change timings there, and only there.
 - Each chapter renders two views of the same data: the motion layout, and a static spread shown by the `static:` variant (reduced motion, or no WebGL via `html.static-experience`).
-- **The landing arrival** (once on load, about 4.5s, then still):
-  - The logo's emblem (a bottle silhouette) assembles at the hero bottle's landing centre, and the ZALFI letters rise beneath it.
-  - The emblem grows and dissolves into the bottle: DOM `[data-hero-reveal]`, plus `stageState.intro` for the stage.
-  - Scroll then settles the bottle from `INTRO_POSE` into the hero (`hero_.settle`). The hero bottle never pops in.
-  - The static layout plays the same arrival in CSS (`.intro-static-*`, motion allowed only). Its spread bottles rise into view with a scroll-driven `view()` timeline.
-  - With reduced motion, the bottle is simply there.
+- **The site opens on the line-up:** all six bottles (`<StageAnchor kind="lineup">`), each with name, price and a one-tap Add. There is no logo intro and no hero.
+  - On load, the bottles rise into place one after another in CSS (`[data-lineup-in]`), then everything is still.
+  - Hovering a bottle lifts it and lets about 30% of its world's colour into the room (the director's palette).
+  - Scrolling (`EXP.lineup_`, `lineupState`): the words leave, the other five bottles dissolve, and Reva glides from its slot into its chapter. All of this is scrubbed.
+  - Inside the experience, a rig's source is always the experience anchor, so this never triggers a page-to-page glide.
+  - The static layout shows the same line-up as a normal section. Its spread bottles rise into view with a scroll-driven `view()` timeline. With reduced motion, nothing moves.
 - **Chapter names** (the WebGL masthead) sit just above the bottle, like a magazine masthead, with only the foot of the letters behind the cap, so they always read (`MASTHEAD_*` in `stage/director.ts`). Keep floating notes clear of that band.
-- **Chapters stay simple:** eyebrow, name, tagline and notes, plus Discover / Add to bag from the start of the chapter (`ch.cta`). No story paragraph on the home page; the story lives on the product page.
+- **Few words, straight to buying:** chapters show eyebrow, name, tagline and notes, plus Discover / Add to bag from the start of the chapter (`ch.cta`). No story paragraphs on the home page or the product page (`story` stays in the data for SEO).
 - `data-reveal` elements are hidden until their timeline runs, but only with JS and motion allowed (`html.js`, set before paint).
 - `ChapterIndex` (desktop) lists the six chapters. A jump never scrolls through the worlds in between:
   1. A `WorldVeil` in the destination's colour fades in.
@@ -93,10 +93,10 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
 ## WebGL stage rules
 
 - There is one persistent fixed `<Stage />` canvas with a negative z-index, behind page content. Opaque sections cover it; transparent ones reveal it. GSAP writes to a mutable `stageState` object, and `StageDirector` (a plain class, outside React) reads it every frame. **Do not drive per-frame values through React state.**
-- Placement comes from DOM anchors (`<StageAnchor kind="experience|collection|product">`). Layout stays in CSS, and the stage draws at each anchor's rect. DOM fallbacks inside anchors carry `data-stage-fallback={slug}` and crossfade out when that bottle is ready.
+- Placement comes from DOM anchors (`<StageAnchor kind="experience|lineup|product">`). Layout stays in CSS, and the stage draws at each anchor's rect. DOM fallbacks inside anchors carry `data-stage-fallback={slug}` and crossfade out when that bottle is ready.
 - Bottle anchors use each bottle's trimmed aspect ratio (`bottleAspect(slug)`), and DOM fallbacks use `<BottleImage fit="trim">`, so the fallback and the render line up pixel for pixel.
 - **Continuity across pages** (`StageDirector.continuity`). The canvas outlives every route, and continuity is tracked by anchor element, not key:
-  - A visible bottle whose anchor changes glides from where it stood to its new anchor (1.1s). This happens on collection → product, chapter → product, finder → product, and back.
+  - A visible bottle whose anchor changes glides from where it stood to its new anchor (1.1s). This happens on line-up → product, chapter → product, finder → product, and back.
   - A bottle whose anchor unmounts while visible dissolves in place.
   - A bottle appearing on a freshly mounted anchor fades in.
   - `app/template.tsx` fades client-navigated pages in, and `[data-enter]` text blocks rise with `--enter` order. Never put `[data-enter]` on a stage anchor or around a fixed element.
@@ -105,7 +105,7 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
   - The world background has one still key light from the upper left and a haze baked once into a texture (`bakeHaze`).
 - Load three.js after first paint (`next/dynamic`). The LCP element is the DOM `next/image` hero bottle, and the canvas crossfades in over it.
 - Quality tiers: high / low, chosen by device. Software renderers (SwiftShader, llvmpipe: no GPU, or GPU blocklisted) get the static layout, as with no WebGL or reduced motion (`stage/support.ts`). Headless test browsers are software renderers, so use `?stage=force` (per session, `?stage=off` to reset) when screenshotting the stage.
-- **3D models (Higgsfield):** GLBs listed in `stage/model-manifest.ts` (generated by `npm run models:ingest`; see `assets/models/README.md`) replace the relit photo for that bottle, or the frame/photo for that note. Missing models always fall back gracefully, so never ship placeholder or test meshes. Bottles turn with scroll in chapters, on hover in the collection, and by drag or arrow keys on product pages (`<StageAnchor spin>`). Notes are `note` anchors inside `FloatingNote`: the stage reads their rect and the inline GSAP opacities up the DOM (`domOpacity`), so the DOM choreography drives the 3D objects. DOM fallbacks inside anchors use `[data-model-fallback]` and fade when the stage sets `data-ready`. Never put `data-stage-fallback` on an element GSAP animates: inline opacity overrides the CSS fade.
+- **3D models (Higgsfield):** GLBs listed in `stage/model-manifest.ts` (generated by `npm run models:ingest`; see `assets/models/README.md`) replace the relit photo for that bottle, or the frame/photo for that note. Missing models always fall back gracefully, so never ship placeholder or test meshes. Bottles turn with scroll in chapters, on hover in the line-up, and by drag or arrow keys on product pages (`<StageAnchor spin>`). Notes are `note` anchors inside `FloatingNote`: the stage reads their rect and the inline GSAP opacities up the DOM (`domOpacity`), so the DOM choreography drives the 3D objects. DOM fallbacks inside anchors use `[data-model-fallback]` and fade when the stage sets `data-ready`. Never put `data-stage-fallback` on an element GSAP animates: inline opacity overrides the CSS fade.
 - The canvas is `aria-hidden`. Every visual element has a DOM equivalent with alt text.
 
 ## Performance, SEO, accessibility
@@ -140,7 +140,7 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
   1. Run `npm run check` (lint + typecheck + build).
   2. Run the dev server and take Playwright screenshots at 1440px and 375px, plus one with reduced motion.
   3. Calm check, with `?stage=force`, once frames have settled:
-     - With no input, two screenshots 1.5s apart must be pixel-identical on the hero, a chapter, the collection and a product page.
+     - With no input, two screenshots 1.5s apart must be pixel-identical on the line-up, a chapter and a product page.
      - Moving the pointer (without hovering anything) must not change the stage.
   4. Commit and push to the working branch.
   5. Summarise for review.

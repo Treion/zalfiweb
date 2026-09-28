@@ -7,9 +7,7 @@ export const stageState = {
   s: 0,
   /** Length multiplier for the experience (1 desktop, MOBILE_SCALE mobile) */
   k: 1,
-  /** 0..1 the one-time load morph that brings the hero bottle onto the landing screen */
-  intro: 0,
-  /** Collection slot index under the pointer / focus, or -1 */
+  /** Line-up slot index under the pointer / focus, or -1 */
   collectionHover: -1,
   /** Product page: rotation (radians) the visitor has dragged the 3D bottle to */
   spin: 0,

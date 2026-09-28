@@ -20,7 +20,7 @@ Without `DATABASE_URL`, the site still builds and runs from the typed catalogue 
 
 | Page | What it is |
 |---|---|
-| `/` | Intro, hero, six chapters, collection, story, newsletter |
+| `/` | The six-bottle line-up, six chapters, story, newsletter |
 | `/fragrances/[slug]` | Product pages: live stock, scent profile, notes pyramid, sticky Add to bag |
 | `/find` | Find your world: three questions, and the answer lit on the stage |
 | `/about`, `/faq`, `/contact`, `/refunds`, `/payment-policy`, `/privacy`, `/terms` | House pages. Paste the copy into `src/content/pages.ts` |

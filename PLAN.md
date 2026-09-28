@@ -182,6 +182,7 @@ Each milestone ends with lint, typecheck, `next build` and `next dev`, then Play
 | **M11** ✓ | Premium touches | The bottle travels between pages, chapter index with world-wash jumps, sticky purchase bar, scent profile (`profile` jsonb), Find your world (`/find`) |
 | **M12** ✓ | Landing arrival | On load, the logo's emblem grows and dissolves into the bottle above the ZALFI wordmark; scroll settles it into the hero. Static layout: the same arrival in CSS, and spread bottles rise into view |
 | **M13** ✓ | Owner feedback | Readable chapter names, 50 ml only, CTA from the start, no chapter stories, Story bottle clear of text, footer with house pages, contact details and socials |
+| **M14** ✓ | Opens on the line-up | No logo intro or hero: the site opens on all six bottles (quick Add, hover world preview); scroll hands Reva forward into the chapters. Less text |
 
 ---
 
@@ -194,6 +195,10 @@ Each milestone ends with lint, typecheck, `next build` and `next dev`, then Play
 ---
 
 ## Changelog
+
+- **M14 (2026-09-28):** the owner no longer wanted the emblem → bottle intro, and asked for the site to open on the six fragrances.
+  - The line-up is now the first scene, inside the experience's sticky viewport. Scrolling dissolves five of the bottles and carries Reva into its world, so there is no separate collection section.
+  - There is less copy: no Story second paragraph, and no product-page story.
 
 - **M13 (2026-09-28), owner feedback:**
   - Chapter names now sit above the bottle, so they read.

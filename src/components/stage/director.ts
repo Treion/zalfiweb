@@ -2,8 +2,15 @@ import * as THREE from "three";
 import type { Palette } from "@/lib/fragrance";
 import { anchors, type Anchor } from "./anchors";
 import { BOTTLE_META } from "./bottle-meta";
-import { bottlePose, chapterProgress, mastheadState, worldBlend, type Pose } from "./choreography";
-import { chapterAt, easeInOutCubic } from "./config";
+import {
+  bottlePose,
+  chapterProgress,
+  lineupState,
+  mastheadState,
+  worldBlend,
+  type Pose,
+} from "./choreography";
+import { EXP, chapterAt, easeInOutCubic } from "./config";
 import * as S from "./shaders";
 import { stageState } from "./stage-state";
 import { HOUSE_PALETTE, type StageFragrance } from "./worlds";
@@ -273,7 +280,8 @@ type Placement = {
 
 type Frame = {
   prod: (Rect & { slug?: string }) | null;
-  cols: Map<number, Rect>;
+  /** The opening line-up's slots, by fragrance index */
+  lineup: Map<number, Rect>;
   exp: Rect | null;
   s: number;
   k: number;
@@ -524,14 +532,12 @@ export class StageDirector {
     // Gather anchors
     let exp: Rect | null = null;
     let prod: (Rect & { slug?: string }) | null = null;
-    let colSection: Rect | null = null;
-    const cols = new Map<number, Rect>();
+    const lineup = new Map<number, Rect>();
     for (const a of anchors.values()) {
       const r = rectOf(a, vw, vh);
       if (a.kind === "experience") exp = r;
       else if (a.kind === "product") prod = { ...r, slug: a.slug };
-      else if (a.kind === "collection-section") colSection = r;
-      else if (a.kind === "collection") cols.set(a.index, r);
+      else if (a.kind === "lineup") lineup.set(a.index, r);
     }
 
     // World palette: a slow wash towards whichever world is on screen. Inside the home
@@ -544,13 +550,18 @@ export class StageDirector {
       const idx = this.fragrances.findIndex((f) => f.slug === prod!.slug);
       const p = P[idx + 1] ?? P[0];
       lerpPalette(this.target, p, p, 0);
-    } else if (colSection && colSection.top < vh * 0.6) {
-      lerpPalette(this.target, P[0], P[0], 0);
     } else if (exp) {
       const wb = worldBlend(s, k);
       lerpPalette(this.target, P[wb.from], P[wb.to], wb.t);
       lerpPalette(this.target, this.target, P[0], wb.house);
       rate = 14;
+      // In the line-up, hovering a bottle lets a little of its world into the room
+      const hover = stageState.collectionHover;
+      const open = 1 - clamp01(s / (EXP.lineup_.textOut[1] * k));
+      if (hover >= 0 && open > 0) {
+        lerpPalette(this.target, this.target, P[hover + 1], 0.3 * open);
+        rate = 3;
+      } else if (s < EXP.lineup_.textOut[0] * k) rate = 3;
     } else {
       lerpPalette(this.target, P[0], P[0], 0);
     }
@@ -564,19 +575,20 @@ export class StageDirector {
     const wu = this.world.material.uniforms;
     wu.uAspect.value = vw / vh;
 
-    const frame: Frame = { prod, cols, exp, s, k, vw, vh, dt };
+    const frame: Frame = { prod, lineup, exp, s, k, vw, vh, dt };
     const now = performance.now() / 1000;
     let floorY = this.floor.y;
     let floorAmt = 0;
     this.rigs.forEach((rig, i) => {
-      const p = this.continuity(rig, this.place(rig, i, frame), now, dt);
+      const hit = this.place(rig, i, frame);
+      const p = this.continuity(rig, hit, now, dt);
       const visible = !!p && p.opacity > 0.001 && rig.ready;
       rig.setVisible(visible);
       if (!visible || !p) return;
       const g = this.draw(rig, p, cur, darkWorld);
-      // The home experience and product pages stand their bottles on a floor; the collection
-      // has none, and a bottle dissolving off a page it has left doesn't bring its floor along
-      if (g > floorAmt && !cols.get(i)?.onScreen && !rig.leaving) {
+      // Chapters and product pages stand their bottles on a floor; the line-up has none, and a
+      // bottle dissolving off a page it has left doesn't bring its floor along
+      if (g > floorAmt && hit?.floor && !rig.leaving) {
         floorAmt = g;
         floorY = (p.rest + vh / 2) / vh;
       }
@@ -627,7 +639,7 @@ export class StageDirector {
    */
   private continuity(
     rig: BottleRig,
-    hit: { p: Placement; rect: Rect } | null,
+    hit: { p: Placement; rect: Rect; floor: boolean } | null,
     now: number,
     dt: number,
   ): Placement | null {
@@ -666,44 +678,69 @@ export class StageDirector {
     return null;
   }
 
-  /** Where rig i belongs this frame, from whichever anchor is showing it (or null). */
-  private place(rig: BottleRig, i: number, f: Frame): { p: Placement; rect: Rect } | null {
-    let rect: Rect;
-    let pose: Pose;
-    const col = f.cols.get(i);
+  /**
+   * Where rig i belongs this frame, from whichever anchor is showing it (or null). `floor` says
+   * whether it stands on the world's floor. Inside the home experience the source is always the
+   * experience anchor, so scrolling from the line-up into the chapters never reads as a move to a
+   * new page (see continuity).
+   */
+  private place(
+    rig: BottleRig,
+    i: number,
+    f: Frame,
+  ): { p: Placement; rect: Rect; floor: boolean } | null {
     if (f.prod && f.prod.slug === rig.slug) {
-      rect = f.prod;
-      pose = RESTING;
       rig.lift = damp(rig.lift, 0, 4, f.dt);
       // A 3D bottle turns only when the visitor drags it; left alone, it stays still
       rig.spin = damp(rig.spin, stageState.spin, 5, f.dt);
-    } else if (col?.onScreen) {
-      rect = col;
-      // Bottles settle gently into the line-up as it scrolls in
-      const e = clamp01((f.vh - rect.top) / (f.vh * 0.45));
-      const rise = e * e * (3 - 2 * e);
-      rig.lift = damp(rig.lift, stageState.collectionHover === i ? 1 : 0, 4, f.dt);
-      pose = {
+      return { p: this.fit(rig, f.prod, RESTING), rect: f.prod, floor: true };
+    }
+    if (!f.exp?.onScreen) return null;
+
+    const exp = f.exp;
+    const slot = f.lineup.get(i);
+    const L = lineupState(f.s, i, f.k);
+    // A scrubbed turntable for 3D bottles: each turns through ~40° across its chapter
+    const chapterSpin = (chapterProgress(f.s, i, f.k) - 0.5) * 0.7;
+
+    if (slot && (i === 0 ? L.handoff < 1 : L.fade < 1)) {
+      // The opening line-up: hover lifts a bottle a touch (only before the scroll begins)
+      const hovered = stageState.collectionHover === i && f.s < EXP.lineup_.textOut[0] * f.k;
+      rig.lift = damp(rig.lift, hovered ? 1 : 0, 4, f.dt);
+      rig.spin = damp(rig.spin, rig.lift * 0.5, 4, f.dt);
+      const line = this.fit(rig, slot, {
         dx: 0,
-        dy: -(1 - rise) * 56 + rig.lift * rect.h * 0.04,
+        dy: rig.lift * slot.h * 0.04,
         rotZ: 0,
         rotY: rig.lift * 4 * DEG,
         scale: 1 + rig.lift * 0.02,
-        opacity: rise,
-        grounded: rise * (1 - rig.lift * 0.6),
+        opacity: 1,
+        grounded: 1 - rig.lift * 0.6,
+      });
+      if (i === 0) {
+        // Reva steps forward: from its place in the line-up into its world
+        if (L.handoff <= 0) return { p: line, rect: exp, floor: false };
+        rig.spin = damp(rig.spin, chapterSpin, 4, f.dt);
+        const world = this.fit(rig, exp, bottlePose(f.s, i, f.k, f.vw, f.vh));
+        return { p: mixPlacement(line, world, L.handoff), rect: exp, floor: L.handoff > 0.5 };
+      }
+      // The others sink a little and dissolve; each returns in its own chapter
+      return {
+        p: { ...line, cy: line.cy - L.fade * 24, opacity: 1 - L.fade },
+        rect: exp,
+        floor: false,
       };
-      rig.spin = damp(rig.spin, rig.lift * 0.5, 4, f.dt);
-    } else if (f.exp?.onScreen) {
-      rect = f.exp;
-      pose = bottlePose(f.s, i, f.k, f.vw, f.vh, stageState.intro);
-      rig.lift = damp(rig.lift, 0, 4, f.dt);
-      // A scrubbed turntable for 3D bottles: each turns through ~40° across its chapter
-      rig.spin = (chapterProgress(f.s, i, f.k) - 0.5) * 0.7;
-    } else return null;
+    }
 
-    // Fit the photo inside the anchor (object-contain), never distorted
+    rig.lift = damp(rig.lift, 0, 4, f.dt);
+    rig.spin = chapterSpin;
+    return { p: this.fit(rig, exp, bottlePose(f.s, i, f.k, f.vw, f.vh)), rect: exp, floor: true };
+  }
+
+  /** Fits the photo inside an anchor (object-contain, never distorted) at a pose. */
+  private fit(rig: BottleRig, rect: Rect, pose: Pose): Placement {
     const fit = Math.min(rect.h, rect.w / rig.aspect);
-    const p: Placement = {
+    return {
       cx: rect.cx + pose.dx,
       cy: rect.cy + pose.dy,
       ph: fit * pose.scale,
@@ -713,7 +750,6 @@ export class StageDirector {
       grounded: pose.grounded,
       rest: rect.cy - fit / 2,
     };
-    return { p, rect };
   }
 
   /** Draws a rig at a placement. Returns how grounded it is, for the world floor. */
