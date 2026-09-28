@@ -5,12 +5,13 @@ import { BOTTLE_META } from "./bottle-meta";
 import {
   bottlePose,
   chapterProgress,
+  lineupOpen,
   lineupState,
   mastheadState,
   worldBlend,
   type Pose,
 } from "./choreography";
-import { EXP, chapterAt, easeInOutCubic } from "./config";
+import { EXP, ROOM_FOLLOW_S, chapterAt, easeInOutCubic, lineupStart } from "./config";
 import * as S from "./shaders";
 import { stageState } from "./stage-state";
 import { HOUSE_PALETTE, type StageFragrance } from "./worlds";
@@ -49,6 +50,32 @@ const lerpPalette = (out: LinPalette, a: LinPalette, b: LinPalette, t: number) =
 
 const damp = (a: number, b: number, lambda: number, dt: number) =>
   a + (b - a) * (1 - Math.exp(-lambda * dt));
+
+const PALETTE_KEYS = ["bg", "deep", "accent", "ink"] as const;
+const RGB = ["r", "g", "b"] as const;
+
+/**
+ * Carries the world colour towards its target with a critically damped follow (SmoothDamp): it
+ * sets off from rest, settles without overshoot, and keeps its speed when the target changes
+ * (another bottle hovered, a scroll), so a colour change never jumps, snaps or restarts.
+ */
+class PaletteFollow {
+  private v = new Float32Array(12);
+  step(cur: LinPalette, target: LinPalette, smoothTime: number, dt: number) {
+    const omega = 2 / smoothTime;
+    const x = omega * dt;
+    const e = 1 / (1 + x + 0.48 * x * x + 0.235 * x * x * x);
+    let j = 0;
+    for (const key of PALETTE_KEYS)
+      for (const ch of RGB) {
+        const change = cur[key][ch] - target[key][ch];
+        const temp = (this.v[j] + omega * change) * dt;
+        this.v[j] = (this.v[j] - omega * temp) * e;
+        cur[key][ch] = target[key][ch] + (change + temp) * e;
+        j++;
+      }
+  }
+}
 
 const unitPlane = new THREE.PlaneGeometry(1, 1);
 const WHITE = new THREE.Color(1, 1, 1);
@@ -327,8 +354,6 @@ const GLYPH_DROP = 0.083;
 /** The studio's key light: upper left, and it never moves */
 const KEY_LIGHT = new THREE.Vector2(-0.45, 0.6);
 
-const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
-
 /**
  * The imperative heart of the stage. Owns all three.js objects and turns (scroll, anchors, hover)
  * into a frame. Kept outside React so per-frame mutation never touches React state.
@@ -340,6 +365,7 @@ export class StageDirector {
   private palettes: LinPalette[];
   private current = toLinear(HOUSE_PALETTE);
   private target = toLinear(HOUSE_PALETTE);
+  private follow = new PaletteFollow();
   private shared: {
     uBg: THREE.IUniform<THREE.Color>;
     uDeep: THREE.IUniform<THREE.Color>;
@@ -545,7 +571,7 @@ export class StageDirector {
     const s = stageState.s;
     const k = stageState.k;
     const P = this.palettes;
-    let rate = 3;
+    let follow = 0.35; // seconds (smooth time)
     if (prod) {
       const idx = this.fragrances.findIndex((f) => f.slug === prod!.slug);
       const p = P[idx + 1] ?? P[0];
@@ -554,19 +580,18 @@ export class StageDirector {
       const wb = worldBlend(s, k);
       lerpPalette(this.target, P[wb.from], P[wb.to], wb.t);
       lerpPalette(this.target, this.target, P[0], wb.house);
-      rate = 14;
-      // In the line-up, hovering a bottle lets a little of its world into the room
+      follow = 0.07;
+      // In the line-up, hovering a bottle fills the room with its world. The DOM text takes the
+      // world's ink over the same time (see sections/room.ts), so everything stays legible.
       const hover = stageState.collectionHover;
-      const open = 1 - clamp01(s / (EXP.lineup_.textOut[1] * k));
-      if (hover >= 0 && open > 0) {
-        lerpPalette(this.target, this.target, P[hover + 1], 0.3 * open);
-        rate = 3;
-      } else if (s < EXP.lineup_.textOut[0] * k) rate = 3;
+      const open = lineupOpen(s, k);
+      if (hover >= 0 && open > 0) lerpPalette(this.target, this.target, P[hover + 1], open);
+      if (s < lineupStart(k) + EXP.lineup_.textOut[1] * k) follow = ROOM_FOLLOW_S;
     } else {
       lerpPalette(this.target, P[0], P[0], 0);
     }
     const cur = this.current;
-    lerpPalette(cur, cur, this.target, 1 - Math.exp(-rate * dt));
+    this.follow.step(cur, this.target, follow, dt);
     const bgLum = cur.bg.r * 0.2126 + cur.bg.g * 0.7152 + cur.bg.b * 0.0722;
     const darkWorld = 1 - Math.min(1, Math.max(0, (bgLum - 0.02) / 0.3));
 
@@ -704,9 +729,10 @@ export class StageDirector {
     const chapterSpin = (chapterProgress(f.s, i, f.k) - 0.5) * 0.7;
 
     if (slot && (i === 0 ? L.handoff < 1 : L.fade < 1)) {
-      // The opening line-up: hover lifts a bottle a touch (only before the scroll begins)
-      const hovered = stageState.collectionHover === i && f.s < EXP.lineup_.textOut[0] * f.k;
-      rig.lift = damp(rig.lift, hovered ? 1 : 0, 4, f.dt);
+      // The line-up: each bottle rises into its slot as the landing logo leaves (the DOM moves the
+      // slot, this fades the render in step), and hover lifts it a touch while the line-up is open
+      const open = lineupOpen(f.s, f.k);
+      rig.lift = damp(rig.lift, stageState.collectionHover === i ? open : 0, 4, f.dt);
       rig.spin = damp(rig.spin, rig.lift * 0.5, 4, f.dt);
       const line = this.fit(rig, slot, {
         dx: 0,
@@ -714,7 +740,7 @@ export class StageDirector {
         rotZ: 0,
         rotY: rig.lift * 4 * DEG,
         scale: 1 + rig.lift * 0.02,
-        opacity: 1,
+        opacity: L.arrive,
         grounded: 1 - rig.lift * 0.6,
       });
       if (i === 0) {
@@ -726,7 +752,7 @@ export class StageDirector {
       }
       // The others sink a little and dissolve; each returns in its own chapter
       return {
-        p: { ...line, cy: line.cy - L.fade * 24, opacity: 1 - L.fade },
+        p: { ...line, cy: line.cy - L.fade * 24, opacity: L.arrive * (1 - L.fade) },
         rect: exp,
         floor: false,
       };

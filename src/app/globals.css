@@ -237,15 +237,15 @@ html.stage-ready .chapter-name {
 }
 
 /*
- * The opening line-up arrives on load: the six bottles rise into place one after another, in CSS
- * from the first paint (no wait for JavaScript), then everything is still. In the static layout the
+ * The static layout (reduced motion, or no WebGL) opens on the same logo, then the line-up and the
+ * chapters as normal sections. With motion allowed the logo settles in on load, and the line-up and
  * chapter bottles rise gently as they scroll into view (scroll-driven, where supported). With
  * reduced motion nothing moves.
  */
-@keyframes lineup-in {
+@keyframes logo-arrive {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateY(14px);
   }
 }
 @keyframes spread-rise {
@@ -255,17 +255,37 @@ html.stage-ready .chapter-name {
   }
 }
 @media (prefers-reduced-motion: no-preference) {
-  [data-lineup-in] {
-    animation: lineup-in 1.3s var(--ease-cinema) both;
-    animation-delay: calc(0.15s + var(--i, 0) * 0.08s);
+  html.static-experience [data-intro] {
+    animation: logo-arrive 1.6s var(--ease-cinema) 0.2s both;
   }
   @supports (animation-timeline: view()) {
-    html.static-experience [data-static-bottle] {
+    html.static-experience [data-static-bottle],
+    html.static-experience [data-lineup-in] {
       animation: spread-rise linear both;
       animation-timeline: view();
       animation-range: entry 0% cover 30%;
     }
   }
+}
+
+/*
+ * The line-up's hover world (sections/room.ts). The stage washes the room towards the hovered
+ * world; the line-up's words and the nav take its ink over the same time (--room-to is the target,
+ * set on <html>; --room-ink transitions on each .room-ink element, so only those repaint). The
+ * curve mirrors the stage's critically damped colour follow: it sets off softly and settles long.
+ */
+@property --room-ink {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #efeae1;
+}
+.room-ink {
+  --room-ink: var(--room-to, var(--bone));
+  transition: --room-ink 1.2s cubic-bezier(0.3, 0, 0.15, 1);
+}
+html[data-room] [data-nav] {
+  mix-blend-mode: normal;
+  color: var(--room-ink);
 }
 
 /*

@@ -1,23 +1,36 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { Logo } from "@/components/brand/Logo";
 import { useCart } from "@/components/cart/cart-store";
 
 /**
  * Fixed editorial navigation. Uses mix-blend-difference so it stays legible over every
- * fragrance world.
+ * fragrance world; while a line-up hover fills the room with a world, it takes that world's ink
+ * instead (html[data-room], see sections/room.ts). On the home page the wordmark waits while the
+ * landing logo holds the screen, and the experience timeline fades it in (data-nav-logo).
  */
 export function Nav() {
   const { count, openBag } = useCart();
+  const home = usePathname() === "/";
   return (
-    <header className="pointer-events-none fixed inset-x-0 top-0 z-[70] text-white mix-blend-difference">
+    <header
+      data-nav
+      className="room-ink pointer-events-none fixed inset-x-0 top-0 z-[70] text-white mix-blend-difference"
+    >
       <nav
         aria-label="Primary"
         className="px-gutter flex items-center justify-between py-5 md:py-7"
       >
-        <Link href="/" aria-label="ZALFI, home" className="pointer-events-auto block">
+        <Link
+          href="/"
+          aria-label="ZALFI, home"
+          data-nav-logo
+          data-reveal={home ? "" : undefined}
+          className="pointer-events-auto block"
+        >
           <Logo variant="wordmark" title={null} className="h-4 w-auto md:h-5" />
         </Link>
         <ul className="pointer-events-auto flex items-center gap-6 md:gap-10">

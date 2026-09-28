@@ -183,6 +183,7 @@ Each milestone ends with lint, typecheck, `next build` and `next dev`, then Play
 | **M12** ✓ | Landing arrival | On load, the logo's emblem grows and dissolves into the bottle above the ZALFI wordmark; scroll settles it into the hero. Static layout: the same arrival in CSS, and spread bottles rise into view |
 | **M13** ✓ | Owner feedback | Readable chapter names, 50 ml only, CTA from the start, no chapter stories, Story bottle clear of text, footer with house pages, contact details and socials |
 | **M14** ✓ | Opens on the line-up | No logo intro or hero: the site opens on all six bottles (quick Add, hover world preview); scroll hands Reva forward into the chapters. Less text |
+| **M15** ✓ | Logo landing, seamless hover worlds | The emblem + wordmark landing is back (no morph): scroll lets it sink back as the bottles rise into the line-up. Hovering a bottle fills the room with its world on a critically damped curve, and the text and nav take its ink. No idle cursor ring |
 
 ---
 
@@ -195,6 +196,11 @@ Each milestone ends with lint, typecheck, `next build` and `next dev`, then Play
 ---
 
 ## Changelog
+
+- **M15 (2026-09-28), owner feedback:**
+  - The emblem + logo landing is back, without the emblem → bottle morph. Scrolling lets the logo sink back while the six bottles rise into the line-up. "Fragrances" links land on the complete line-up.
+  - The hover colour change was abrupt, and light worlds made the nav, logo and line-up text unreadable. Hovering now fills the room with the whole world on a soft, critically damped curve (no jumps, even between bottles), and the line-up text and nav take that world's ink at the same pace.
+  - The empty ring that trailed the pointer is gone: at rest the cursor is a small dot; the ring appears only over links.
 
 - **M14 (2026-09-28):** the owner no longer wanted the emblem → bottle intro, and asked for the site to open on the six fragrances.
   - The line-up is now the first scene, inside the experience's sticky viewport. Scrolling dissolves five of the bottles and carries Reva into its world, so there is no separate collection section.

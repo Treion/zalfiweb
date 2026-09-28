@@ -9,7 +9,9 @@ import {
   chRange,
   easeInOutSine,
   easeOutCubic,
+  easeOutQuad,
   expTotal,
+  lineupStart,
   prog,
   smooth,
 } from "./config";
@@ -83,15 +85,32 @@ export function bottlePose(s: number, i: number, k: number, vw: number, vh: numb
 }
 
 /**
- * The opening line-up at scroll position s: `handoff` (eased 0..1) carries Reva from its place in
- * the line-up into its chapter; `fade` (0..1) dissolves each of the other five, one after another.
+ * The line-up at scroll position s:
+ *  - `arrive` (0..1) is bottle i rising into its slot as the landing logo leaves. The DOM tween moves
+ *    the slot itself (the stage follows its rect); this is the matching opacity, with the same ease
+ *    (EASE.soft, power2.out).
+ *  - `handoff` (eased 0..1) carries Reva from its place in the line-up into its chapter.
+ *  - `fade` (0..1) dissolves each of the other five, one after another.
  */
 export function lineupState(s: number, i: number, k: number) {
   const L = EXP.lineup_;
+  const o = lineupStart(k);
+  const a0 = o + (L.arrive[0] + i * L.stagger) * k;
   return {
-    handoff: easeInOutSine(prog(s, L.handoff[0] * k, L.handoff[1] * k)),
-    fade: smooth(prog(s, (L.fade[0] + (i - 1) * 4) * k, L.fade[1] * k)),
+    arrive: easeOutQuad(prog(s, a0, a0 + (L.arrive[1] - L.arrive[0]) * k)),
+    handoff: easeInOutSine(prog(s, o + L.handoff[0] * k, o + L.handoff[1] * k)),
+    fade: smooth(prog(s, o + (L.fade[0] + (i - 1) * 4) * k, o + L.fade[1] * k)),
   };
+}
+
+/**
+ * How open the line-up is to hover (0..1): it opens as the last bottles land and closes as its
+ * words leave. Hover previews (the world colour, the lift) scale with it.
+ */
+export function lineupOpen(s: number, k: number) {
+  const o = lineupStart(k);
+  const L = EXP.lineup_;
+  return prog(s, o - 16 * k, o) * (1 - prog(s, o + L.textOut[0] * k, o + L.textOut[1] * k));
 }
 
 /**

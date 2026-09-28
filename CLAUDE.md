@@ -38,7 +38,7 @@ The build plan lives in `PLAN.md`, and the note photo list and prompts in `NOTES
   - Sizes: `text-mega`, `text-display`, `text-headline`.
   - `eyebrow` for small uppercase tracked labels.
 - Film grain overlay (`<Grain />`) stays on every page. It is still, like grain in a print: moving grain reads as flicker.
-- Custom cursor (`<Cursor />`). Mark interactive elements with `data-cursor="Discover"` to show a word in the cursor. It is disabled on touch devices and with reduced motion.
+- Custom cursor (`<Cursor />`): a small dot at rest, a ring over links. Mark interactive elements with `data-cursor="Discover"` to show a word in the cursor. It is disabled on touch devices and with reduced motion.
 - Hairlines (`border-current/20`) over boxes. Square corners. No rounded cards.
 - Copy: short, sensual, confident, like a niche perfume house. Sentences under 15 words. Sensory nouns over adjectives.
 
@@ -73,14 +73,17 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
 
 ## Layout of the home experience
 
-- `Experience` (`id="collection"`) is one sticky viewport holding the opening `Lineup` and six `FragranceChapter`s over the stage. A single master GSAP timeline, where 1 unit = 1vh of scroll, is scrubbed by ScrollTrigger. Its segment timings live in `components/stage/config.ts` and are shared by the DOM timeline and `stage/choreography.ts`, so type and light never drift. Change timings there, and only there.
+- `Experience` is one sticky viewport holding the `Landing` logo, the `Lineup` and six `FragranceChapter`s over the stage. A single master GSAP timeline, where 1 unit = 1vh of scroll, is scrubbed by ScrollTrigger. Its segment timings live in `components/stage/config.ts` and are shared by the DOM timeline and `stage/choreography.ts`, so type and light never drift. Change timings there, and only there.
 - Each chapter renders two views of the same data: the motion layout, and a static spread shown by the `static:` variant (reduced motion, or no WebGL via `html.static-experience`).
-- **The site opens on the line-up:** all six bottles (`<StageAnchor kind="lineup">`), each with name, price and a one-tap Add. There is no logo intro and no hero.
-  - On load, the bottles rise into place one after another in CSS (`[data-lineup-in]`), then everything is still.
-  - Hovering a bottle lifts it and lets about 30% of its world's colour into the room (the director's palette).
-  - Scrolling (`EXP.lineup_`, `lineupState`): the words leave, the other five bottles dissolve, and Reva glides from its slot into its chapter. All of this is scrubbed.
+- **The site lands on the logo:** the ZALFI emblem and wordmark alone in the dark (`Landing`). On load the emblem assembles and the letters rise (time-based, once), then everything is still. There is no emblem → bottle morph and no hero.
+  - Scrolling (`EXP.intro_`): the logo sinks back and fades, the nav wordmark (`data-nav-logo`) takes over, and the six bottles rise into the line-up one after another (`EXP.lineup_.arrive`). The DOM moves each slot; the stage follows its rect and fades the render in step (`lineupState().arrive`).
+  - `#collection` is a marker at the scroll offset where the line-up stands complete, so every "Fragrances" link lands past the logo.
+- **The line-up:** all six bottles (`<StageAnchor kind="lineup">`), each with name, price and a one-tap Add.
+  - Hovering a bottle lifts it and fills the room with its world (`sections/room.ts`). The line-up's words and the nav take that world's `ink` over the same time, so text always reads. The stage colour uses a critically damped follow (`PaletteFollow`, `ROOM_FOLLOW_S`), and the DOM transitions the registered `--room-ink` property on a matched curve. `html[data-room]` switches the nav from its blend mode to plain ink, and is cleared only once the room is back in the house dark.
+  - Hover only counts while the line-up is open (`lineupOpen`). Scrolling away closes the preview.
+  - Scrolling on (`EXP.lineup_`, `lineupState`): the words leave, the other five bottles dissolve, and Reva glides from its slot into its chapter. All of this is scrubbed.
   - Inside the experience, a rig's source is always the experience anchor, so this never triggers a page-to-page glide.
-  - The static layout shows the same line-up as a normal section. Its spread bottles rise into view with a scroll-driven `view()` timeline. With reduced motion, nothing moves.
+  - The static layout shows the logo as a first screen, then the same line-up as a normal section. Its bottles rise into view with a scroll-driven `view()` timeline. With reduced motion, nothing moves.
 - **Chapter names** (the WebGL masthead) sit just above the bottle, like a magazine masthead, with only the foot of the letters behind the cap, so they always read (`MASTHEAD_*` in `stage/director.ts`). Keep floating notes clear of that band.
 - **Few words, straight to buying:** chapters show eyebrow, name, tagline and notes, plus Discover / Add to bag from the start of the chapter (`ch.cta`). No story paragraphs on the home page or the product page (`story` stays in the data for SEO).
 - `data-reveal` elements are hidden until their timeline runs, but only with JS and motion allowed (`html.js`, set before paint).
@@ -140,7 +143,7 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
   1. Run `npm run check` (lint + typecheck + build).
   2. Run the dev server and take Playwright screenshots at 1440px and 375px, plus one with reduced motion.
   3. Calm check, with `?stage=force`, once frames have settled:
-     - With no input, two screenshots 1.5s apart must be pixel-identical on the line-up, a chapter and a product page.
+     - With no input, two screenshots 1.5s apart must be pixel-identical on the landing, the line-up, a chapter and a product page.
      - Moving the pointer (without hovering anything) must not change the stage.
   4. Commit and push to the working branch.
   5. Summarise for review.

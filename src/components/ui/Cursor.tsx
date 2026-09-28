@@ -8,14 +8,15 @@ type CursorState = { kind: "idle" | "link" | "label"; label?: string };
 
 const INTERACTIVE = "a, button, [role='button'], input, select, textarea, label, [data-cursor]";
 
-/** Ring diameter at rest, and how far it grows over links and labelled elements */
-const RING = 34;
-const RING_SCALE = { idle: 1, link: 56 / RING, label: 96 / RING } as const;
+/** Ring diameter over links (it only appears there), and how far it grows over labelled elements */
+const RING = 44;
+const RING_SCALE = { idle: 0.5, link: 1, label: 96 / RING } as const;
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 /**
- * A custom cursor: a precise dot plus a softly trailing ring. The ring grows over interactive
- * elements, and elements with data-cursor="Discover" show that word inside it. It uses
+ * A custom cursor: a precise dot. Over interactive elements a softly trailing ring opens around
+ * it, and elements with data-cursor="Discover" show that word inside it. At rest there is only the
+ * dot, nothing trailing. It uses
  * mix-blend-difference so it stays visible on every fragrance world. Only transform and opacity
  * ever animate. It only renders on fine pointers with motion allowed.
  */
@@ -84,7 +85,7 @@ export function Cursor() {
           initial={false}
           animate={{
             scale: RING_SCALE[state.kind] * (pressed ? 0.85 : 1),
-            opacity: visible ? 1 : 0,
+            opacity: visible && state.kind === "link" ? 1 : 0,
           }}
           transition={transition}
         />

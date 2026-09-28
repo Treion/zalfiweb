@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties, type FocusEvent } from "react";
 import { useCart } from "@/components/cart/cart-store";
+import { useLenis } from "@/components/motion/SmoothScroll";
 import { BottleImage, bottleAspect } from "@/components/media/BottleImage";
+import { lineupOpen } from "@/components/stage/choreography";
 import { StageAnchor } from "@/components/stage/StageAnchor";
 import { stageState } from "@/components/stage/stage-state";
 import type { Fragrance } from "@/lib/fragrance";
 import { formatPrice } from "@/lib/money";
+import { enterWorld, leaveWorld, resetRoom } from "./room";
 
 /** Editorial stagger (desktop), in svh: an asymmetric line-up rather than a row of cards */
 const OFFSETS = [0, 5, 1, 7, 2, 6];
@@ -16,22 +19,33 @@ const OFFSETS = [0, 5, 1, 7, 2, 6];
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 /**
- * The first thing the site shows: all six bottles, lined up. Each opens its product page or goes
- * straight into the bag. Hovering one lets a little of its world into the room (the stage washes
- * the background towards its colour). Scrolling hands Reva forward into the first world (see the
- * experience timeline), and the others dissolve until their own chapters.
+ * All six bottles, lined up: they rise into place as the landing logo leaves. Each opens its product
+ * page or goes straight into the bag. Hovering one fills the room with its world, and the words
+ * take that world's ink (see room.ts). Scrolling on hands Reva forward into the first world (see
+ * the experience timeline), and the others dissolve until their own chapters.
  */
 export function Lineup({ fragrances }: { fragrances: Fragrance[] }) {
+  const lenis = useLenis();
+  useEffect(() => resetRoom, []);
+
+  // Tabbing into the line-up from the landing brings it into view first
+  function onFocus(e: FocusEvent<HTMLDivElement>) {
+    if (lineupOpen(stageState.s, stageState.k) > 0.5 || !lenis) return;
+    const target = document.getElementById("collection");
+    if (target && e.target instanceof HTMLElement) lenis.scrollTo(target, { duration: 1.2 });
+  }
+
   return (
     <div
       data-lineup
-      className="px-gutter text-bone static:relative static:inset-auto static:pt-32 static:pb-24 absolute inset-0 flex flex-col pt-24 pb-5 md:pt-28 md:pb-7"
+      onFocus={onFocus}
+      className="room-ink px-gutter static:relative static:inset-auto static:pt-32 static:pb-24 absolute inset-0 flex flex-col pt-24 pb-5 text-(--room-ink) md:pt-28 md:pb-7"
     >
-      <header data-lineup-text className="flex items-end justify-between gap-6">
-        <h1 className="font-display text-[clamp(2.1rem,4.4vw,4.75rem)] leading-[0.95]">
+      <header data-lineup-text data-reveal className="flex items-end justify-between gap-6">
+        <h2 className="font-display text-[clamp(2.1rem,4.4vw,4.75rem)] leading-[0.95]">
           Six worlds. <br className="md:hidden" />
           <span className="display-italic">Choose yours.</span>
-        </h1>
+        </h2>
         <Link
           href="/find"
           data-cursor="Begin"
@@ -46,6 +60,7 @@ export function Lineup({ fragrances }: { fragrances: Fragrance[] }) {
           <li
             key={f.slug}
             data-lineup-item
+            data-reveal
             className="md:mt-(--off)"
             style={{ "--off": `${OFFSETS[i % OFFSETS.length]}svh` } as CSSProperties}
           >
@@ -56,11 +71,12 @@ export function Lineup({ fragrances }: { fragrances: Fragrance[] }) {
 
       <div
         data-lineup-text
+        data-reveal
         aria-hidden
         className="static:hidden mt-5 flex flex-col items-center gap-2 md:mt-7"
       >
-        <span className="eyebrow text-bone-dim text-[0.6rem]">Scroll</span>
-        <span className="bg-bone/30 block h-7 w-px" />
+        <span className="eyebrow text-[0.6rem] opacity-70">Scroll</span>
+        <span className="block h-7 w-px bg-current opacity-30" />
       </div>
     </div>
   );
@@ -70,19 +86,19 @@ function LineupItem({ fragrance: f, index }: { fragrance: Fragrance; index: numb
   const { add } = useCart();
   const [active, setActive] = useState(false);
   const on = () => {
-    stageState.collectionHover = index;
+    enterWorld(index, f.palette.ink);
     setActive(true);
   };
   const off = () => {
-    if (stageState.collectionHover === index) stageState.collectionHover = -1;
+    leaveWorld(index);
     setActive(false);
   };
   const v = f.variants[0];
 
   return (
-    // The load arrival (CSS, .lineup-in) lives on this inner wrapper; the scroll hand-off (GSAP)
-    // moves the <li>, so the two never fight over opacity
-    <div data-lineup-in style={{ "--i": index } as CSSProperties}>
+    // In the static layout this inner wrapper rises into view (CSS); in the motion layout the
+    // scroll timeline moves the <li>, so the two never fight over opacity
+    <div data-lineup-in>
       <Link
         href={`/fragrances/${f.slug}`}
         data-cursor="Discover"
@@ -104,17 +120,17 @@ function LineupItem({ fragrance: f, index }: { fragrance: Fragrance; index: numb
               animate={{ y: active ? -10 : 0 }}
               transition={{ duration: 0.8, ease: EASE }}
             >
-              <BottleImage fragrance={f} fit="trim" preload sizes="(min-width: 768px) 11vw, 20vw" />
+              <BottleImage fragrance={f} fit="trim" sizes="(min-width: 768px) 11vw, 20vw" />
             </motion.div>
           </div>
         </StageAnchor>
-        <h2 className="font-display mt-4 text-center text-[clamp(1.3rem,2.2vw,2.3rem)] leading-none md:mt-6">
+        <h3 className="font-display mt-4 text-center text-[clamp(1.3rem,2.2vw,2.3rem)] leading-none md:mt-6">
           {f.name}
-        </h2>
+        </h3>
       </Link>
       {v && (
         <div className="mt-2 flex items-baseline justify-center gap-3 md:mt-3">
-          <span className="text-bone-dim text-xs tabular-nums md:text-sm">
+          <span className="text-xs tabular-nums opacity-75 md:text-sm">
             {formatPrice(v.priceCents, v.currency)}
           </span>
           <button
