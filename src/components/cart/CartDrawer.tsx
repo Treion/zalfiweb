@@ -80,8 +80,6 @@ export function CartDrawer() {
     }
   }
 
-  const currency = cart.lines[0]?.currency ?? "USD";
-
   return (
     <AnimatePresence onExitComplete={() => setCheckout({ state: "idle" })}>
       {cart.open && (
@@ -201,9 +199,7 @@ export function CartDrawer() {
                           </button>
                         </div>
                       </div>
-                      <p className="text-sm tabular-nums">
-                        {formatPrice(l.priceCents * l.qty, l.currency)}
-                      </p>
+                      <p className="text-sm tabular-nums">{formatPrice(l.pricePoisha * l.qty)}</p>
                     </motion.li>
                   ))}
                 </ul>
@@ -215,7 +211,7 @@ export function CartDrawer() {
                 <div className="flex items-baseline justify-between">
                   <span className="eyebrow">Subtotal</span>
                   <span className="font-display text-3xl tabular-nums">
-                    {formatPrice(cart.subtotalCents, currency)}
+                    {formatPrice(cart.subtotalPoisha)}
                   </span>
                 </div>
                 <p className="text-smoke mt-2 text-xs">

@@ -4,3 +4,4 @@ public
 src/components/brand/logo-paths.ts
 src/components/stage/bottle-meta.ts
 *.md
+drizzle/meta

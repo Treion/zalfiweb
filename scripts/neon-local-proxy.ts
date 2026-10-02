@@ -1,16 +1,23 @@
 /**
- * Local stand-in for Neon's serverless HTTP endpoint, so development runs exactly the same driver
+ * Local stand-in for Neon's serverless endpoints, so development runs exactly the same driver
  * code as production (including Edge functions, which cannot open TCP sockets).
  *
+ * HTTP (the storefront's reads, `drizzle-orm/neon-http`):
  *   POST /sql  { query, params } | { queries: [{ query, params }] }
  *   headers:   Neon-Connection-String: postgresql://...
  *   response:  { fields: [{ name, dataTypeID }], rows: [[text, ...]], rowCount, command }
+ *   Values are returned as raw Postgres text; the Neon client parses them, as it does in production.
  *
- * Values are returned as raw Postgres text; the Neon client parses them, as it does in production.
+ * WebSocket (transactions, `drizzle-orm/neon-serverless` Pool; see src/server/db/pool.ts):
+ *   ws://127.0.0.1:4444/v2?address=host:port   a raw Postgres wire-protocol pipe, like Neon's own
+ *   WebSocket proxy, to the local server.
+ *
  * Run: npm run db:proxy   (dev only; never deploy this)
  */
 import http from "node:http";
+import net from "node:net";
 import pg from "pg";
+import { WebSocketServer } from "ws";
 
 const PORT = Number(process.env.NEON_LOCAL_PROXY_PORT ?? 4444);
 const pools = new Map<string, pg.Pool>();
@@ -90,6 +97,28 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+// WebSocket ⇄ TCP: each socket carries one Postgres connection, byte for byte
+const LOCAL = new Set(["localhost", "127.0.0.1", "db.localtest.me"]);
+const wss = new WebSocketServer({ server, path: "/v2" });
+wss.on("connection", (socket, req) => {
+  const address =
+    new URL(req.url ?? "", "http://x").searchParams.get("address") ?? "localhost:5432";
+  const [host, port] = address.split(":");
+  if (!LOCAL.has(host)) return socket.close(1008, "local databases only");
+  const tcp = net.connect(Number(port || 5432), "127.0.0.1");
+  socket.binaryType = "nodebuffer";
+  socket.on("message", (data) => tcp.write(data as Buffer));
+  tcp.on("data", (chunk) => socket.readyState === socket.OPEN && socket.send(chunk));
+  const close = () => {
+    tcp.destroy();
+    if (socket.readyState === socket.OPEN) socket.close();
+  };
+  socket.on("close", close);
+  socket.on("error", close);
+  tcp.on("close", close);
+  tcp.on("error", close);
+});
+
 server.listen(PORT, "127.0.0.1", () =>
-  console.log(`neon-local-proxy listening on http://127.0.0.1:${PORT}/sql`),
+  console.log(`neon-local-proxy listening on http://127.0.0.1:${PORT}/sql and ws://…/v2`),
 );

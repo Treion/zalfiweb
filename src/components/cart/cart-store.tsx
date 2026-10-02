@@ -15,8 +15,7 @@ export type CartLine = {
   slug: string;
   name: string;
   sizeMl: number;
-  priceCents: number;
-  currency: string;
+  pricePoisha: number;
   bottleImage: string;
   qty: number;
 };
@@ -33,7 +32,8 @@ type Action =
   | { type: "close" };
 
 const MAX_QTY = 10;
-const KEY = "zalfi.bag.v1";
+// v2: prices in poisha (BDT). A v1 bag held USD cents and is dropped.
+const KEY = "zalfi.bag.v2";
 
 function reducer(state: State, a: Action): State {
   switch (a.type) {
@@ -68,7 +68,7 @@ function reducer(state: State, a: Action): State {
 
 type CartApi = State & {
   count: number;
-  subtotalCents: number;
+  subtotalPoisha: number;
   add: (line: Omit<CartLine, "qty">, qty?: number) => void;
   setQty: (sku: string, qty: number) => void;
   remove: (sku: string) => void;
@@ -111,7 +111,7 @@ export function CartProvider({
     if (catalogue)
       lines = lines
         .filter((l) => l.sku in catalogue)
-        .map((l) => ({ ...l, priceCents: catalogue[l.sku] }));
+        .map((l) => ({ ...l, pricePoisha: catalogue[l.sku] }));
     dispatch({ type: "hydrate", lines });
   }, [catalogue]);
 
@@ -141,7 +141,7 @@ export function CartProvider({
     () => ({
       ...state,
       count: state.lines.reduce((n, l) => n + l.qty, 0),
-      subtotalCents: state.lines.reduce((n, l) => n + l.qty * l.priceCents, 0),
+      subtotalPoisha: state.lines.reduce((n, l) => n + l.qty * l.pricePoisha, 0),
       add,
       setQty,
       remove,

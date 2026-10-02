@@ -20,7 +20,7 @@ const Body = z.object({
 
 export type CheckoutResponse =
   | { status: "ready"; url: string }
-  | { status: "unavailable"; message: string; subtotalCents: number; currency: string }
+  | { status: "unavailable"; message: string; subtotalPoisha: number }
   | { status: "invalid"; message: string };
 
 export async function POST(req: Request) {
@@ -40,8 +40,7 @@ export async function POST(req: Request) {
     ? await db
         .select({
           sku: variants.sku,
-          priceCents: variants.priceCents,
-          currency: variants.currency,
+          pricePoisha: variants.pricePoisha,
           stock: variants.stock,
         })
         .from(variants)
@@ -70,8 +69,8 @@ export async function POST(req: Request) {
       );
     }
   }
-  const subtotalCents = parsed.data.items.reduce(
-    (s, i) => s + bySku.get(i.sku)!.priceCents * i.qty,
+  const subtotalPoisha = parsed.data.items.reduce(
+    (s, i) => s + bySku.get(i.sku)!.pricePoisha * i.qty,
     0,
   );
 
@@ -80,8 +79,7 @@ export async function POST(req: Request) {
     {
       status: "unavailable",
       message: "Checkout opens soon. Your bag is saved on this device.",
-      subtotalCents,
-      currency: priced[0]?.currency ?? "USD",
+      subtotalPoisha,
     } satisfies CheckoutResponse,
     { status: 200 },
   );

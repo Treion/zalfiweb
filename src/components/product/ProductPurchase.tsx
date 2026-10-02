@@ -8,7 +8,7 @@ import { useCart } from "@/components/cart/cart-store";
 import { worldVars, type Fragrance } from "@/lib/fragrance";
 import { formatPrice } from "@/lib/money";
 
-type Stock = Record<string, { stock: number; priceCents: number }>;
+type Stock = Record<string, { stock: number; pricePoisha: number }>;
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 const noop = () => () => undefined;
@@ -64,7 +64,7 @@ export function ProductPurchase({ fragrance: f }: { fragrance: Fragrance }) {
   if (!v) return null;
   const live = stock?.[v.sku];
   const left = live?.stock ?? v.stock;
-  const price = live?.priceCents ?? v.priceCents;
+  const price = live?.pricePoisha ?? v.pricePoisha;
   const soldOut = left <= 0;
   // One size today (50 ml): no chooser, just the size. The chooser returns if sizes are added.
   const choice = f.variants.length > 1;
@@ -75,8 +75,7 @@ export function ProductPurchase({ fragrance: f }: { fragrance: Fragrance }) {
       slug: f.slug,
       name: f.name,
       sizeMl: v.sizeMl,
-      priceCents: price,
-      currency: v.currency,
+      pricePoisha: price,
       bottleImage: f.bottleImage,
     });
     setAdded(true);
@@ -118,7 +117,7 @@ export function ProductPurchase({ fragrance: f }: { fragrance: Fragrance }) {
             )}
             <span className={clsx("eyebrow opacity-70", choice && "md:hidden")}>{v.sizeMl} ml</span>
             <span className="font-display ml-auto text-xl tabular-nums md:text-2xl">
-              {formatPrice(price, v.currency)}
+              {formatPrice(price)}
             </span>
             <button
               type="button"
@@ -163,7 +162,7 @@ export function ProductPurchase({ fragrance: f }: { fragrance: Fragrance }) {
                   />
                   <span className="font-display text-2xl">{x.sizeMl} ml</span>
                   <span className="text-sm tabular-nums opacity-80">
-                    {formatPrice(stock?.[x.sku]?.priceCents ?? x.priceCents, x.currency)}
+                    {formatPrice(stock?.[x.sku]?.pricePoisha ?? x.pricePoisha)}
                   </span>
                   {checked && (
                     <motion.span
@@ -180,7 +179,7 @@ export function ProductPurchase({ fragrance: f }: { fragrance: Fragrance }) {
       )}
 
       <div className="mt-8 flex items-baseline justify-between">
-        <span className="font-display text-4xl tabular-nums">{formatPrice(price, v.currency)}</span>
+        <span className="font-display text-4xl tabular-nums">{formatPrice(price)}</span>
         <span className="eyebrow opacity-70" aria-live="polite">
           {soldOut ? "Sold out" : left <= 5 ? `Only ${left} left` : "In stock"}
         </span>

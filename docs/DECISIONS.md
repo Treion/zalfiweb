@@ -29,3 +29,24 @@ Judgement calls made while building the backend and admin, newest last. Each one
 11. **Newsletter (open).** The existing form keeps collecting emails and never sends any, which respects "the e-receipt is the only email". The owner can export the list as CSV (audit-logged). Remove the section if the owner prefers.
 12. **Usage counts** (coupon uses, customer order counts, totals spent) are computed from orders, never stored as counters that can drift.
 13. **Idempotency.** Every provider callback (SSLCommerz IPN, courier webhooks) is recorded in `webhook_events` under a unique `(provider, event_id)`. A repeat is acknowledged and ignored.
+
+## Phase 2: Foundations
+
+14. **Migrations.** The taka switch is two steps so drizzle-kit never needs an interactive rename prompt: `0003` adds `price_poisha` and copies the placeholder prices (rounded to ৳50); `0004` drops `price_cents` and `currency` and creates every backend table. `0004` also opens the stock ledger with an `initial` row per size.
+15. **Order numbers** come from a Postgres sequence starting at 1001 (`ZLF-001001`), so the first real order doesn't read as order number one.
+16. **Auth tables** are Better Auth's own, renamed with an `admin_` prefix (`admin_users`, `admin_sessions`, …), so customers and admins can never be confused. Customers have no accounts.
+17. **No public sign-up.** The first owner comes from `npm run admin:create-owner`; everyone else from an invitation. Invitation tokens are 32 random bytes; only their SHA-256 hash is stored. A link works once, for 48 hours. Re-inviting the same email withdraws the older link.
+18. **Session timeout:** 4 hours of inactivity (a sliding expiry, extended at most every 15 minutes of use). Deactivating someone deletes their sessions at once, and the session hook refuses inactive users.
+19. **Rate limits** come from our own Postgres limiter (`rate_limits`, one atomic statement per hit), not Better Auth's in-memory one, which resets per server instance. Admin sign-in: 20 per IP and 8 per email per 15 minutes. Invitation accepts: 10 per IP per 15 minutes.
+20. **The last owner** can't be demoted or deactivated, and nobody can change their own role or deactivate themselves.
+21. **Permissions** live in one matrix (`src/server/auth/permissions.ts`). The owner's two toggles (`managersCanRefund`, default off; `managersSeeRevenue`, default on) are settings. Every page calls `requireAdmin(permission)`, every server action goes through `runAction(permission, schema, …)`, and every route handler checks `getAdmin()` and `can()`. `proxy.ts` only does the quick signed-out redirect and adds the headers.
+22. **Server actions for admin mutations** (Next's built-in origin check protects them from cross-site requests). Better Auth's own endpoints check the origin against `trustedOrigins`. Inputs are validated with strict Zod schemas, so unknown fields are rejected.
+23. **shadcn/ui** components are written into `src/components/admin/ui` by hand, matching the registry's "new-york" source. The shadcn registry (ui.shadcn.com) is blocked by this environment's network policy; npm is not, so the underlying libraries (Radix, cva, tailwind-merge, sonner, tw-animate-css) are normal dependencies. `components.json` is set up, so `npx shadcn add …` works wherever the registry is reachable.
+24. **TanStack Table v8** (stable). v9 has a different API and shadcn's patterns target v8.
+25. **List pages keep their state in the URL** (search, filters, sort, page), and the server renders that page. Column visibility is remembered per table in the browser. Below `md`, rows become stacked cards.
+26. **CSV exports** are route handlers that check the permission, prefix any cell starting with `= + - @` with an apostrophe (spreadsheet formula injection), add a UTF-8 BOM for Excel, and write an `export.*` audit row.
+27. **Settings** are one JSON row per section, each validated by its own Zod schema with a default for every field. A section never saved reads as its defaults; a stored field that no longer validates falls back to its default, and the rest is kept.
+28. **Email in development** goes to the console and to `.data/outbox` (git-ignored). Resend is used only when `RESEND_API_KEY` is set *and* Settings → Integrations selects it.
+29. **The demo seed** (`npm run db:seed:demo`) refuses `NODE_ENV`/`VERCEL_ENV=production` and any non-local database unless `--allow-remote` is passed. Its records are tagged (`demo-` idempotency keys, `@demo.zalfi.test` emails, `[demo]` coupons), so `--clear` removes exactly them and puts stock back to the ledger sum.
+30. **The admin icon** is `public/admin-icon.svg`, a copy of the storefront icon, because files inside a route group get hashed URLs.
+31. **Lighthouse** is measured on an idle machine. With the dev server compiling in parallel, total blocking time rose to 280 ms and performance read 88; on an idle machine the home page scores 100/100/100/100 (LCP 0.8s, CLS 0), as before.

@@ -1,5 +1,5 @@
 import "server-only";
-import { asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import type { Fragrance, NoteLayer } from "@/lib/fragrance";
 import { getDb } from "./client";
 import { fragranceNotes, fragrances, notes, variants } from "./schema";
@@ -38,7 +38,7 @@ export async function getFragrances(): Promise<Fragrance[]> {
       db
         .select()
         .from(variants)
-        .where(inArray(variants.fragranceId, ids))
+        .where(and(inArray(variants.fragranceId, ids), eq(variants.active, true)))
         .orderBy(asc(variants.sizeMl)),
     ]);
     return rows.map((f) => ({
@@ -67,11 +67,10 @@ export async function getFragrances(): Promise<Fragrance[]> {
         .sort((a, b) => a.position - b.position),
       variants: variantRows
         .filter((v) => v.fragranceId === f.id)
-        .map(({ sku, sizeMl, priceCents, currency, stock }) => ({
+        .map(({ sku, sizeMl, pricePoisha, stock }) => ({
           sku,
           sizeMl,
-          priceCents,
-          currency,
+          pricePoisha,
           stock,
         })),
     }));

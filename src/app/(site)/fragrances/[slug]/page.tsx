@@ -61,8 +61,8 @@ export default async function FragrancePage({ params }: PageProps<"/fragrances/[
     offers: f.variants.map((v) => ({
       "@type": "Offer",
       sku: v.sku,
-      price: (v.priceCents / 100).toFixed(2),
-      priceCurrency: v.currency,
+      price: (v.pricePoisha / 100).toFixed(2),
+      priceCurrency: "BDT",
       availability: v.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
       url: new URL(`/fragrances/${f.slug}`, site).toString(),
     })),

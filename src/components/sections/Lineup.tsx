@@ -131,7 +131,7 @@ function LineupItem({ fragrance: f, index }: { fragrance: Fragrance; index: numb
       {v && (
         <div className="mt-2 flex items-baseline justify-center gap-3 md:mt-3">
           <span className="text-xs tabular-nums opacity-75 md:text-sm">
-            {formatPrice(v.priceCents, v.currency)}
+            {formatPrice(v.pricePoisha)}
           </span>
           <button
             type="button"
@@ -143,8 +143,7 @@ function LineupItem({ fragrance: f, index }: { fragrance: Fragrance; index: numb
                 slug: f.slug,
                 name: f.name,
                 sizeMl: v.sizeMl,
-                priceCents: v.priceCents,
-                currency: v.currency,
+                pricePoisha: v.pricePoisha,
                 bottleImage: f.bottleImage,
               })
             }

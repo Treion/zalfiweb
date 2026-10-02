@@ -90,15 +90,26 @@ async function main() {
           ? q.onConflictDoUpdate({
               target: schema.variants.sku,
               set: {
-                priceCents: v.priceCents,
+                pricePoisha: v.pricePoisha,
                 stock: v.stock,
-                currency: v.currency,
                 sizeMl: v.sizeMl,
               },
             })
           : q.onConflictDoNothing());
       }
     }
+
+    // Keep the stock ledger true: any stock the seed set (new sizes, or a --reset) gets a ledger row,
+    // so variants.stock always equals the sum of its movements
+    await tx.execute(sql`
+      insert into stock_movements (variant_id, type, delta, reason)
+      select v.id,
+             (case when count(m.id) = 0 then 'initial' else 'manual_adjustment' end)::stock_movement_type,
+             v.stock - coalesce(sum(m.delta), 0),
+             ${reset ? "Seed reset" : "Opening stock"}
+      from variants v left join stock_movements m on m.variant_id = v.id
+      group by v.id
+      having v.stock - coalesce(sum(m.delta), 0) <> 0`);
   });
 
   const counts = await db.execute(

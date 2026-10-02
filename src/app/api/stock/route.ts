@@ -14,11 +14,11 @@ export async function GET(req: Request) {
   if (!skus.length) return Response.json({ stock: {} });
 
   const db = getDb();
-  let rows: { sku: string; stock: number; priceCents: number }[];
+  let rows: { sku: string; stock: number; pricePoisha: number }[];
   if (db) {
     try {
       rows = await db
-        .select({ sku: variants.sku, stock: variants.stock, priceCents: variants.priceCents })
+        .select({ sku: variants.sku, stock: variants.stock, pricePoisha: variants.pricePoisha })
         .from(variants)
         .where(inArray(variants.sku, skus));
     } catch (err) {
@@ -32,7 +32,7 @@ export async function GET(req: Request) {
   return Response.json(
     {
       stock: Object.fromEntries(
-        rows.map((r) => [r.sku, { stock: r.stock, priceCents: r.priceCents }]),
+        rows.map((r) => [r.sku, { stock: r.stock, pricePoisha: r.pricePoisha }]),
       ),
     },
     { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" } },

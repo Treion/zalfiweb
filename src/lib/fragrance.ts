@@ -56,8 +56,7 @@ export type FragranceNote = Note & {
 export type Variant = {
   sku: string;
   sizeMl: number;
-  priceCents: number;
-  currency: string;
+  pricePoisha: number;
   stock: number;
 };
 

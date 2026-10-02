@@ -2,7 +2,7 @@
  * The single typed source for ZALFI's catalogue.
  * - Seeds Postgres (src/db/seed.ts, M1).
  * - Serves as the read fallback when DATABASE_URL is absent, so builds never fail.
- * Prices are placeholders: edit them in the `variants` table once the DB is live.
+ * Prices are taka placeholders until the owner sets real ones in the admin (Products).
  */
 import type {
   CapFinish,
@@ -72,8 +72,7 @@ const variants = (slug: string, p50: number) => [
   {
     sku: `ZLF-${slug.toUpperCase()}-50`,
     sizeMl: 50,
-    priceCents: p50 * 100,
-    currency: "USD",
+    pricePoisha: p50 * 100,
     stock: 25,
   },
 ];
@@ -138,7 +137,7 @@ export const FRAGRANCES: Fragrance[] = [
         ["tonka-bean", "Warm Tonka Bean"],
       ],
     },
-    145,
+    4500,
     {
       family: "Aromatic fougère",
       longevity: 3,
@@ -173,7 +172,7 @@ export const FRAGRANCES: Fragrance[] = [
         ["oakmoss", "Earthy Oakmoss"],
       ],
     },
-    145,
+    4500,
     {
       family: "Green aromatic",
       longevity: 2,
@@ -211,7 +210,7 @@ export const FRAGRANCES: Fragrance[] = [
         ["patchouli", "Patchouli"],
       ],
     },
-    145,
+    4500,
     {
       family: "Floral woody",
       longevity: 3,
@@ -246,7 +245,7 @@ export const FRAGRANCES: Fragrance[] = [
         ["tonka-bean", "Tonka Bean"],
       ],
     },
-    145,
+    4500,
     {
       family: "Ambery gourmand",
       longevity: 4,
@@ -282,7 +281,7 @@ export const FRAGRANCES: Fragrance[] = [
         ["sandalwood", "Sandalwood"],
       ],
     },
-    165,
+    5100,
     {
       family: "Woody iris",
       longevity: 4,
@@ -317,7 +316,7 @@ export const FRAGRANCES: Fragrance[] = [
         ["musk", "Warm Musk"],
       ],
     },
-    185,
+    5750,
     {
       family: "Oud rose amber",
       longevity: 5,

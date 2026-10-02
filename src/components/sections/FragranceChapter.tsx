@@ -58,8 +58,7 @@ function useAddToBag(f: Fragrance) {
       slug: f.slug,
       name: f.name,
       sizeMl: v.sizeMl,
-      priceCents: v.priceCents,
-      currency: v.currency,
+      pricePoisha: v.pricePoisha,
       bottleImage: f.bottleImage,
     });
 }
@@ -145,7 +144,7 @@ function MotionChapter({ fragrance: f, index, count, noteAvail, mounted }: Props
         <div data-a="cta" data-reveal className="pointer-events-auto">
           {from && (
             <p className="eyebrow mb-4 hidden opacity-70 md:block">
-              {from.sizeMl} ml · {formatPrice(from.priceCents, from.currency)}
+              {from.sizeMl} ml · {formatPrice(from.pricePoisha)}
             </p>
           )}
           <div className="flex items-center gap-5 md:justify-end">
@@ -295,7 +294,7 @@ function StaticSpread({ fragrance: f, index, count, noteAvail }: Props) {
               onClick={addToBag}
               className="eyebrow bg-world-ink text-world-bg px-5 py-3.5"
             >
-              Add to bag{from ? ` · ${formatPrice(from.priceCents, from.currency)}` : ""}
+              Add to bag{from ? ` · ${formatPrice(from.pricePoisha)}` : ""}
             </button>
           </div>
         </div>

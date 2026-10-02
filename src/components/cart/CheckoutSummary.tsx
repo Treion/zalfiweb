@@ -6,7 +6,7 @@ import { formatPrice } from "@/lib/money";
 import { useCart } from "./cart-store";
 
 export function CheckoutSummary() {
-  const { lines, subtotalCents, hydrated } = useCart();
+  const { lines, subtotalPoisha, hydrated } = useCart();
   if (!hydrated) return <div className="min-h-64" aria-busy="true" />;
   if (!lines.length) {
     return (
@@ -35,15 +35,13 @@ export function CheckoutSummary() {
                 {l.sizeMl} ml × {l.qty}
               </p>
             </div>
-            <p className="tabular-nums">{formatPrice(l.priceCents * l.qty, l.currency)}</p>
+            <p className="tabular-nums">{formatPrice(l.pricePoisha * l.qty)}</p>
           </li>
         ))}
       </ul>
       <div className="border-noir/15 mt-6 flex items-baseline justify-between border-t pt-6">
         <span className="eyebrow">Subtotal</span>
-        <span className="font-display text-4xl tabular-nums">
-          {formatPrice(subtotalCents, lines[0]?.currency)}
-        </span>
+        <span className="font-display text-4xl tabular-nums">{formatPrice(subtotalPoisha)}</span>
       </div>
     </section>
   );

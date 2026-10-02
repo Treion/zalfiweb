@@ -1,0 +1,169 @@
+/*
+ * The admin's stylesheet: Tailwind v4 + shadcn/ui tokens, light and dark (next-themes sets .dark on
+ * <html>). Accents come from the ZALFI theme: bone, noir and a saffron gold. Separate from the
+ * storefront's globals.css, which never loads here (and vice versa).
+ */
+@import "tailwindcss" source(none);
+@import "tw-animate-css";
+@source "./";
+@source "../../components/admin";
+@source "../../components/brand";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.375rem;
+  --background: #faf8f5;
+  --foreground: #1a1816;
+  --card: #ffffff;
+  --card-foreground: #1a1816;
+  --popover: #ffffff;
+  --popover-foreground: #1a1816;
+  --primary: #1a1816;
+  --primary-foreground: #f6f3ee;
+  --secondary: #f1ede6;
+  --secondary-foreground: #1a1816;
+  --muted: #f1ede6;
+  --muted-foreground: #6b655e;
+  --accent: #f1ede6;
+  --accent-foreground: #1a1816;
+  --destructive: #b42318;
+  --destructive-foreground: #ffffff;
+  --border: #e5dfd6;
+  --input: #ddd6cb;
+  --ring: #a8834c;
+  --gold: #a8834c;
+  --sidebar: #f4f1ec;
+  --sidebar-foreground: #1a1816;
+  --sidebar-border: #e5dfd6;
+  --sidebar-accent: #e9e3da;
+  /* Charts: distinct in hue and lightness, readable on both themes */
+  --chart-1: #8a6a3a;
+  --chart-2: #3f7d6e;
+  --chart-3: #6b5aa6;
+  --chart-4: #b5603d;
+  --chart-5: #4f6f9a;
+  --chart-6: #8a8178;
+  /* Status tones (badges) */
+  --tone-neutral-bg: #eeeae4;
+  --tone-neutral-fg: #4b4640;
+  --tone-info-bg: #e3ecf7;
+  --tone-info-fg: #234a7a;
+  --tone-progress-bg: #efe7f8;
+  --tone-progress-fg: #55357f;
+  --tone-success-bg: #e2f1e8;
+  --tone-success-fg: #1f6040;
+  --tone-warning-bg: #fbf0d9;
+  --tone-warning-fg: #7a5208;
+  --tone-danger-bg: #fbe4e1;
+  --tone-danger-fg: #8f2016;
+}
+
+.dark {
+  --background: #0e0d0c;
+  --foreground: #efeae1;
+  --card: #161412;
+  --card-foreground: #efeae1;
+  --popover: #1a1816;
+  --popover-foreground: #efeae1;
+  --primary: #efeae1;
+  --primary-foreground: #121110;
+  --secondary: #23201d;
+  --secondary-foreground: #efeae1;
+  --muted: #1f1c19;
+  --muted-foreground: #a39b90;
+  --accent: #24211e;
+  --accent-foreground: #efeae1;
+  --destructive: #e5584a;
+  --destructive-foreground: #ffffff;
+  --border: #2b2724;
+  --input: #35302b;
+  --ring: #c9a46a;
+  --gold: #c9a46a;
+  --sidebar: #121110;
+  --sidebar-foreground: #efeae1;
+  --sidebar-border: #24211e;
+  --sidebar-accent: #201d1a;
+  --chart-1: #d2ae72;
+  --chart-2: #6fbfa9;
+  --chart-3: #a596e0;
+  --chart-4: #e38b66;
+  --chart-5: #86a8d6;
+  --chart-6: #b3aaa0;
+  --tone-neutral-bg: #26231f;
+  --tone-neutral-fg: #c9c1b6;
+  --tone-info-bg: #16263a;
+  --tone-info-fg: #9cc2ef;
+  --tone-progress-bg: #261c38;
+  --tone-progress-fg: #c7b2ef;
+  --tone-success-bg: #12291d;
+  --tone-success-fg: #8fd3ad;
+  --tone-warning-bg: #33260b;
+  --tone-warning-fg: #f0c66f;
+  --tone-danger-bg: #3a1512;
+  --tone-danger-fg: #f3a197;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-gold: var(--gold);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bodoni), "Bodoni 72", "Didot", serif;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "tnum" 0;
+  }
+  :focus-visible {
+    @apply outline-ring outline-2 outline-offset-2;
+  }
+}
+
+@layer components {
+  /* Small uppercase tracked labels, as on the storefront */
+  .eyebrow {
+    @apply text-muted-foreground text-[0.6875rem] font-medium tracking-[0.18em] uppercase;
+  }
+}

@@ -126,6 +126,19 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
   - **The owner writes this copy. Never generate it.** Paste the owner's text into `sections`. An empty page shows a short "being written" note with the contact details.
 - **Contact details and socials** live in `src/lib/contact.ts`, used by the footer, `/contact` and `<ContactIcons />`. The icons are hairline marks drawn in-house.
 
+## Backend and admin
+
+- The full spec is `ZALFI_BACKEND_SPEC.md`. The plan and progress are in `docs/BACKEND_PLAN.md`, judgement calls in `docs/DECISIONS.md`, and local setup in `docs/SETUP.md`. Work happens on `claude/zalfi-backend`, one phase at a time, stopping at each checkpoint.
+- **Money is integer poisha, BDT only** (`formatPrice` → `৳1,250`). Store UTC; show and group by Asia/Dhaka (`src/lib/time.ts`).
+- **Two root layouts:** `app/(site)` is the storefront (unchanged); `app/(admin)/admin` is the admin, with its own `admin.css`, shadcn/ui components (`src/components/admin/ui`), light and dark themes (`next-themes`), and no GSAP, Lenis or three.js.
+- **Writes that touch money or stock go through `withTx()`** (`src/server/db/pool.ts`, Neon's WebSocket Pool). Storefront reads stay on the HTTP driver. Every stock change is a `stock_movements` row; `npm run stock:check` proves stock equals the ledger.
+- **Admin access:**
+  - Permissions live in one matrix (`src/server/auth/permissions.ts`).
+  - Pages call `requireAdmin(permission)`. Mutations are server actions through `runAction(permission, strictZodSchema, input, fn)`. Route handlers check `getAdmin()` and `can()`.
+  - Important actions write `audit()` in the same transaction.
+- **Settings** are typed per section (`src/server/settings/schema.ts`), with defaults for every field. Secrets are environment variables only (`.env.example`).
+- **Every paid integration sits behind an adapter with a local dev or mock provider**, so the whole flow runs without keys.
+
 ## Code conventions
 
 - Folders:

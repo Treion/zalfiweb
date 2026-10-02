@@ -22,6 +22,20 @@
       "when": 1790619085379,
       "tag": "0002_only_50ml",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790960497896,
+      "tag": "0003_bdt_prices",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790960767916,
+      "tag": "0004_backend_foundations",
+      "breakpoints": true
     }
   ]
 }

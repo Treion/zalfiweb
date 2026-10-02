@@ -147,7 +147,7 @@ adapters (src/server/providers/*): Payment (mock | SSLCommerz) · Courier (mock 
 ## 5. Phases (from the spec, each ends at a checkpoint)
 
 1. **Discovery** (this document). ✅
-2. **Foundations:** migrations, settings, Better Auth and roles, invitations, `admin:create-owner`, the admin shell (sidebar, top bar, dark/light), audit log, demo seed.
+2. ✅ **Foundations:** migrations, settings, Better Auth and roles, invitations, `admin:create-owner`, the admin shell (sidebar, top bar, dark/light), audit log, demo seed.
 3. **Products & inventory:** fragrance and variant editing, images, stock ledger, reservations, low stock, storefront revalidation, `/api/stock`.
 4. **Checkout & orders:** checkout steps, OTP (dev SMS), server pricing, shipping fees, coupons, the state machine, order pages, e-receipt and invoice PDF (dev email).
 5. **Payments:** mock provider, SSLCommerz (sandbox-ready), IPN and validation, refunds, the payments page, the COD toggle.

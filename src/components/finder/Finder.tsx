@@ -195,14 +195,13 @@ function Result({
                   slug: f.slug,
                   name: f.name,
                   sizeMl: v.sizeMl,
-                  priceCents: v.priceCents,
-                  currency: v.currency,
+                  pricePoisha: v.pricePoisha,
                   bottleImage: f.bottleImage,
                 })
               }
               className="eyebrow bg-world-ink text-world-bg px-5 py-3.5 transition-opacity hover:opacity-85"
             >
-              Add to bag · {formatPrice(v.priceCents, v.currency)}
+              Add to bag · {formatPrice(v.pricePoisha)}
             </button>
           )}
         </div>

@@ -1,4 +1,7 @@
 @import "tailwindcss";
+/* The admin has its own stylesheet (app/(admin)/admin.css): keep its classes out of the storefront */
+@source not "../(admin)";
+@source not "../../components/admin";
 
 /*
  * ZALFI design tokens. See CLAUDE.md for the rules.

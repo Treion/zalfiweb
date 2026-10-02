@@ -51,7 +51,7 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const fragrances = await getFragrances();
   const catalogue = Object.fromEntries(
-    fragrances.flatMap((f) => f.variants.map((v) => [v.sku, v.priceCents] as const)),
+    fragrances.flatMap((f) => f.variants.map((v) => [v.sku, v.pricePoisha] as const)),
   );
   const stageFragrances = fragrances.map(({ slug, name, palette, capFinish }) => ({
     slug,
