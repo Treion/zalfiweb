@@ -148,6 +148,11 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
   - The order lifecycle is `orders/state.ts`. Move orders only with `transitionOrder()` (in a transaction), which writes the timeline event and the stock side effects.
   - The e-receipt (React Email) and the invoice PDF (React PDF) both render one `InvoiceData` (`invoice/data.ts`). Change them together.
   - The storefront checkout reuses the site's tokens and type; errors use `text-alert`.
+- **Payments** (`src/server/payments`): one `PaymentProvider` interface (`types.ts`), the test gateway (`mock.ts`, signed notices, off on the live site) and SSLCommerz (`sslcommerz.ts`).
+  - An order is paid **only** after the provider's validation API matches our transaction ID, amount and currency (`mismatch()`). The IPN and the customer's return both go through `settleNotice()`, which is idempotent.
+  - Failures change state only when the notice is signed. `reconcilePayments()` (cron) asks the provider about attempts still open.
+  - Refunds go through the provider (or are recorded by hand for cash on delivery) in `refunds.ts`. The order's payment status follows the completed refunds.
+  - Placing an order locks its sizes first (`priceBag(tx, items, true)`), so concurrent checkouts can't deadlock.
 
 ## Code conventions
 

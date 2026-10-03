@@ -40,6 +40,7 @@ type Confirm = { to: OrderStatus; restock: boolean | null };
 
 const DESTRUCTIVE: OrderStatus[] = ["cancelled", "returned", "delivery_failed"];
 const PRIMARY_LABEL: Partial<Record<OrderStatus, string>> = {
+  confirmed: "Confirm order",
   packed: "Mark packed",
   shipped: "Mark shipped",
   out_for_delivery: "Out for delivery",

@@ -63,7 +63,9 @@ Without BulkSMSBD keys, checkout codes are printed in the terminal and appended 
 
 ## Trying a checkout locally
 
-1. In the admin, open **Settings → Payments** and switch **Cash on delivery** on (it is off by default). Online payment connects in phase 5; until then an online order waits for payment and cancels itself after the unpaid-order time.
+1. Choose how to pay:
+   - **Pay online** works out of the box: it goes to the built-in **test gateway**, a page with "Pay successfully", "Fail the payment" and "Cancel" buttons. No money moves.
+   - **Cash on delivery** is off by default: switch it on in **Settings → Payments**.
 2. Add a bottle to the bag on the shop and press **Checkout**.
 3. Fill in your details and press **Send code**. Type the code shown under the field.
 4. Choose a district and area, then **Place order**. The receipt lands in `.data/outbox/`, and the order appears in **Admin → Orders**.
@@ -75,3 +77,12 @@ Without `BLOB_READ_WRITE_TOKEN`, photos uploaded in the admin (bottle photos, ga
 ## 7. Scheduled jobs
 
 `vercel.json` runs `/api/cron/release-reservations` every 10 minutes on Vercel, which releases stock held by unpaid orders once their time is up. It needs `CRON_SECRET`. Locally, availability already ignores expired holds, so nothing needs to run.
+
+## 8. Payments
+
+- **Test gateway** (the default): Settings → Payments → Payment gateway shows "Test gateway". Its buttons send the same signed notices SSLCommerz does, through the same code: the IPN first, then the customer's return. "Pay ৳1 more than asked" shows the amount check refusing a payment.
+- **SSLCommerz sandbox**: put the sandbox store ID and password in `.env` (`SSLCOMMERZ_STORE_ID`, `SSLCOMMERZ_STORE_PASSWORD`, `SSLCOMMERZ_IS_LIVE=false`), restart, then choose SSLCommerz in Settings → Payments.
+  - On `localhost`, SSLCommerz can send the customer back but can't reach the IPN, so the return page settles the payment.
+  - To test the IPN too, expose the site with a tunnel and set `NEXT_PUBLIC_SITE_URL` to the tunnel's URL.
+- **Refunds**: on an order's page, under Payment. A test-gateway refund completes at once. An SSLCommerz refund shows "Processing" until its status check (the Check button, or the cron) says refunded.
+- **Cron** (`vercel.json`): `/api/cron/payments` every 30 minutes asks the provider about payments still open, and about refunds still processing.

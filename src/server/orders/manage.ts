@@ -1,9 +1,14 @@
-import { and, asc, eq, lte, sql } from "drizzle-orm";
+import { and, asc, eq, lte, ne, sql } from "drizzle-orm";
 import { orderEvents, orderItems, orders } from "@/db/schema";
 import { audit, type Actor } from "@/server/audit";
 import { poolDb, withTx, type Executor, type Tx } from "@/server/db/pool";
 import { UserFacingError } from "@/server/errors";
-import { releaseReservations, restock } from "@/server/catalog/stock";
+import {
+  commitReservations,
+  releaseReservations,
+  restock,
+  sellStock,
+} from "@/server/catalog/stock";
 import { revalidateStorefront } from "@/server/catalog/products";
 import { addEvent, type EventActor } from "./events";
 import {
@@ -23,9 +28,12 @@ async function lockOrder(tx: Tx, id: number) {
   return o;
 }
 
-/** Statuses an admin may move an order to by hand (confirming happens through payment) */
-export const manualNext = (o: Pick<OrderRow, "status">): OrderStatus[] =>
-  TRANSITIONS[o.status].filter((s) => s !== "confirmed");
+/**
+ * Statuses an admin may move an order to by hand. Confirming happens through payment, except for
+ * a paid order still waiting (its bottles sold out while it was paid for, then were restocked).
+ */
+export const manualNext = (o: Pick<OrderRow, "status" | "paymentStatus">): OrderStatus[] =>
+  TRANSITIONS[o.status].filter((s) => s !== "confirmed" || o.paymentStatus === "paid");
 
 /** Whether moving to `to` can put bottles back on the shelf */
 export const offersRestock = (from: OrderStatus, to: OrderStatus) =>
@@ -106,6 +114,26 @@ export async function transitionOrder(
   return updated!;
 }
 
+/** Confirming by hand: only a paid order, and its bottles are sold from stock now */
+async function sellForPaidOrder(tx: Tx, id: number) {
+  const o = await lockOrder(tx, id);
+  if (o.paymentStatus !== "paid")
+    throw new UserFacingError("Orders are confirmed by their payment.");
+  if (o.status !== "pending_payment") return;
+  const label = `Order ${o.number}`;
+  if ((await commitReservations(tx, id, label)) > 0) return;
+  const lines = await tx
+    .select({ variantId: orderItems.variantId, qty: orderItems.qty })
+    .from(orderItems)
+    .where(eq(orderItems.orderId, id));
+  await sellStock(
+    tx,
+    id,
+    lines.flatMap((l) => (l.variantId ? [{ variantId: l.variantId, qty: l.qty }] : [])),
+    label,
+  );
+}
+
 /** An admin moves one or more orders. Returns how many moved; the rest are left as they were. */
 export async function moveOrders(
   ids: number[],
@@ -113,21 +141,21 @@ export async function moveOrders(
   admin: Actor,
   opts: { note?: string; restock?: boolean } = {},
 ) {
-  if (to === "confirmed") throw new UserFacingError("Orders are confirmed by their payment.");
   let moved = 0;
   const skipped: string[] = [];
   for (const id of ids) {
     try {
-      await withTx((tx) =>
-        transitionOrder(tx, id, to, { actor: `admin:${admin.id}`, admin, ...opts }),
-      );
+      await withTx(async (tx) => {
+        if (to === "confirmed") await sellForPaidOrder(tx, id);
+        await transitionOrder(tx, id, to, { actor: `admin:${admin.id}`, admin, ...opts });
+      });
       moved++;
     } catch (e) {
       if (ids.length === 1) throw e;
       skipped.push(e instanceof Error ? e.message : String(e));
     }
   }
-  if (to === "cancelled" || to === "returned") await revalidateStorefront();
+  if (to === "cancelled" || to === "returned" || to === "confirmed") await revalidateStorefront();
   return { moved, skipped };
 }
 
@@ -147,14 +175,20 @@ export async function expireUnpaidOrders(exec: Executor = poolDb()) {
   const due = await exec
     .select({ id: orders.id })
     .from(orders)
-    .where(and(eq(orders.status, "pending_payment"), lte(orders.expiresAt, sql`now()`)))
+    .where(
+      and(
+        eq(orders.status, "pending_payment"),
+        ne(orders.paymentStatus, "paid"),
+        lte(orders.expiresAt, sql`now()`),
+      ),
+    )
     .orderBy(asc(orders.id))
     .limit(200);
   let n = 0;
   for (const { id } of due) {
     await withTx(async (tx) => {
       const o = await lockOrder(tx, id);
-      if (o.status !== "pending_payment") return;
+      if (o.status !== "pending_payment" || o.paymentStatus === "paid") return;
       await transitionOrder(tx, id, "cancelled", {
         actor: "system",
         note: "Payment wasn't completed in time.",

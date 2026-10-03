@@ -1,10 +1,11 @@
-import { and, count, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, asc, count, eq, inArray, ne, sql } from "drizzle-orm";
 import type { z } from "zod";
 import { coupons, fragrances, orders, variants } from "@/db/schema";
 import type { PaymentMethod, Quote, quoteSchema } from "@/lib/checkout";
 import { poolDb, type Executor } from "@/server/db/pool";
 import { getSettings, type Settings } from "@/server/settings";
 import { availableOf, reservedBy } from "@/server/catalog/stock";
+import { currentGateway } from "@/server/payments/providers";
 import {
   evaluateCoupon,
   shippingZone,
@@ -31,10 +32,26 @@ export type BagLine = PricedLine & {
 };
 
 /** The bag's lines at today's prices. Sizes that are hidden, switched off or gone are listed apart. */
-export async function priceBag(exec: Executor, items: { sku: string; qty: number }[]) {
+/**
+ * `lock` (placing an order): the sizes' rows are locked first, in id order, before anything else
+ * in the transaction touches them. Inserting order lines takes a key-share lock on each size, and
+ * two checkouts that both did that before locking for the stock change would deadlock.
+ */
+export async function priceBag(
+  exec: Executor,
+  items: { sku: string; qty: number }[],
+  lock = false,
+) {
   const merged = new Map<string, number>();
   for (const i of items) merged.set(i.sku, (merged.get(i.sku) ?? 0) + i.qty);
   const skus = [...merged.keys()];
+  if (lock)
+    await exec
+      .select({ id: variants.id })
+      .from(variants)
+      .where(inArray(variants.sku, skus))
+      .orderBy(asc(variants.id))
+      .for("update");
   const rows = await exec
     .select({
       variantId: variants.id,
@@ -148,11 +165,17 @@ export const shippingRules = (s: Settings<"shipping">): ShippingRules => ({
   freeShippingThreshold: s.freeShippingThreshold,
 });
 
-export function enabledMethods(p: Settings<"payments">): PaymentMethod[] {
+/** What checkout offers: the methods switched on, and online payment only with a gateway ready */
+export function enabledMethods(p: Settings<"payments">, onlineReady = true): PaymentMethod[] {
   const m: PaymentMethod[] = [];
-  if (p.sslcommerzEnabled) m.push("sslcommerz");
+  if (p.sslcommerzEnabled && onlineReady) m.push("sslcommerz");
   if (p.codEnabled) m.push("cod");
   return m;
+}
+
+export async function checkoutMethods(exec: Executor = poolDb()) {
+  const [pay, gateway] = await Promise.all([getSettings("payments", exec), currentGateway(exec)]);
+  return { pay, methods: enabledMethods(pay, !!gateway.provider) };
 }
 
 /** The full quote for the checkout page */
@@ -161,10 +184,10 @@ export async function quoteBag(
   phone: string | null,
   exec: Executor = poolDb(),
 ): Promise<Quote> {
-  const [{ lines, unavailable }, ship, pay] = await Promise.all([
+  const [{ lines, unavailable }, ship, { methods }] = await Promise.all([
     priceBag(exec, input.items),
     getSettings("shipping", exec),
-    getSettings("payments", exec),
+    checkoutMethods(exec),
   ]);
   const rules = shippingRules(ship);
   const sellable = lines.filter((l) => l.available > 0);
@@ -200,6 +223,6 @@ export async function quoteBag(
     zone,
     coupon,
     freeShippingFrom: rules.freeShippingThreshold,
-    methods: enabledMethods(pay),
+    methods,
   };
 }

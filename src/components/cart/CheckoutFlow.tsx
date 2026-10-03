@@ -255,7 +255,9 @@ export function CheckoutFlow({
       } catch {
         /* ignore */
       }
-      router.push(r.data.next);
+      // Online payment leaves for the provider's page; everything else stays on the site
+      if (/^https?:\/\//.test(r.data.next)) window.location.assign(r.data.next);
+      else router.push(r.data.next);
       return;
     }
     setBusy(null);

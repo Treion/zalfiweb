@@ -8,7 +8,8 @@ import { isUniqueViolation } from "@/server/db/errors";
 import { UserFacingError } from "@/server/errors";
 import { getSettings } from "@/server/settings";
 import { reserveStock, sellStock } from "@/server/catalog/stock";
-import { applyCoupon, enabledMethods, priceBag, shippingRules } from "@/server/checkout/quote";
+import { applyCoupon, checkoutMethods, priceBag, shippingRules } from "@/server/checkout/quote";
+import { confirmationUrl, startPayment } from "@/server/payments/service";
 import { shippingZone, totals } from "@/server/checkout/pricing";
 import { revalidateStorefront } from "@/server/catalog/products";
 import { addEvent } from "./events";
@@ -29,8 +30,6 @@ export class TotalChanged extends UserFacingError {
   }
 }
 
-const confirmationUrl = (token: string) => `/checkout/thanks?o=${token}`;
-
 async function byIdempotencyKey(key: string): Promise<PlacedOrder | null> {
   const [o] = await poolDb()
     .select({ number: orders.number, accessToken: orders.accessToken, status: orders.status })
@@ -50,7 +49,8 @@ async function byIdempotencyKey(key: string): Promise<PlacedOrder | null> {
  * Places a guest order. Everything is recomputed here: prices, stock, the coupon, the shipping fee
  * and the total. In one transaction it saves the customer, the order and its lines, then either
  * sells the stock (cash on delivery: the order is confirmed) or reserves it until the unpaid-order
- * expiry (online payment). The same idempotency key always returns the same order.
+ * expiry (online payment), and for online payment opens the payment page. The same idempotency key
+ * always returns the same order.
  */
 export async function placeOrder(
   input: z.output<typeof placeOrderSchema>,
@@ -62,8 +62,8 @@ export async function placeOrder(
   if (verifiedPhone !== input.phone)
     throw new UserFacingError("Verify your phone number to place the order.");
 
-  const [ship, pay] = await Promise.all([getSettings("shipping"), getSettings("payments")]);
-  if (!enabledMethods(pay).includes(input.paymentMethod))
+  const [ship, { pay, methods }] = await Promise.all([getSettings("shipping"), checkoutMethods()]);
+  if (!methods.includes(input.paymentMethod))
     throw new UserFacingError(`${PAYMENT_LABELS[input.paymentMethod]} isn't available right now.`);
   const rules = shippingRules(ship);
   const cod = input.paymentMethod === "cod";
@@ -71,7 +71,7 @@ export async function placeOrder(
   let placed: PlacedOrder;
   try {
     placed = await withTx(async (tx) => {
-      const { lines, unavailable } = await priceBag(tx, input.items);
+      const { lines, unavailable } = await priceBag(tx, input.items, true);
       if (unavailable.length || lines.length !== new Set(input.items.map((i) => i.sku)).size)
         throw new UserFacingError("Something in your bag has just sold out. Check your bag.");
       const subtotal = lines.reduce((s, l) => s + l.lineTotal, 0);
@@ -186,9 +186,17 @@ export async function placeOrder(
         next: confirmationUrl(order!.accessToken),
         id: order!.id,
       };
-    }).then(({ id, ...p }) => {
-      if (cod) void sendReceipt(id).catch((e: Error) => console.error("[receipt]", e.message));
-      return p;
+    }).then(async ({ id, ...p }) => {
+      if (cod) {
+        void sendReceipt(id).catch((e: Error) => console.error("[receipt]", e.message));
+        return p;
+      }
+      // Online: straight to the payment page. If it can't open, the order's page offers "Pay now".
+      try {
+        return { ...p, next: await startPayment(id) };
+      } catch {
+        return p;
+      }
     });
   } catch (e) {
     // The same checkout submitted twice at once: the second insert hits the unique key

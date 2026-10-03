@@ -7,6 +7,7 @@ import { formatPhone } from "@/lib/phone";
 import { formatDateTime } from "@/lib/time";
 import { checkoutOpen } from "@/server/checkout/http";
 import { orderForCustomer } from "@/server/orders/public";
+import { PayNow } from "@/components/cart/PayNow";
 
 export const metadata: Metadata = {
   title: "Thank you",
@@ -15,14 +16,25 @@ export const metadata: Metadata = {
 
 /** The confirmation page, opened with the order's private access token (`?o=`) */
 export default async function ThanksPage({ searchParams }: PageProps<"/checkout/thanks">) {
-  const { o } = await searchParams;
+  const { o, payment } = await searchParams;
   if (!checkoutOpen() || typeof o !== "string") notFound();
   const found = await orderForCustomer(o);
   if (!found) notFound();
   const { order, items } = found;
-  const awaitingPayment = order.status === "pending_payment";
   const cancelled = order.status === "cancelled";
+  const paidWaiting = order.status === "pending_payment" && order.paymentStatus === "paid";
+  const awaitingPayment = order.status === "pending_payment" && !paidWaiting;
+  const expired = !!order.expiresAt && order.expiresAt <= new Date();
   const firstName = order.customerName.split(" ")[0];
+  const held = order.expiresAt ? formatDateTime(order.expiresAt) : null;
+  const waitingLine =
+    payment === "failed"
+      ? `The payment didn't go through, and nothing was charged. Your bottles are held until ${held}.`
+      : payment === "cancelled"
+        ? `You left the payment page. Your bottles are held until ${held}.`
+        : payment === "pending"
+          ? "We're checking your payment with the bank. Refresh this page in a minute."
+          : `Your bottles are held until ${held}. Complete the payment to confirm the order.`;
 
   return (
     <main id="main" className="bg-bone px-gutter text-noir min-h-svh pt-36 pb-24">
@@ -35,6 +47,12 @@ export default async function ThanksPage({ searchParams }: PageProps<"/checkout/
                 This order
                 <br />
                 <span className="display-italic">was cancelled.</span>
+              </>
+            ) : paidWaiting ? (
+              <>
+                Paid.
+                <br />
+                <span className="display-italic">One moment.</span>
               </>
             ) : awaitingPayment ? (
               <>
@@ -52,11 +70,18 @@ export default async function ThanksPage({ searchParams }: PageProps<"/checkout/
           </h1>
           <p className="text-smoke mt-8 max-w-sm leading-relaxed">
             {cancelled
-              ? "Nothing will be sent. If you paid, your refund is on its way."
-              : awaitingPayment
-                ? "We're holding your bottles while payment is completed. Online payment opens soon."
-                : `Your receipt is on its way to ${order.customerEmail}. The courier will call ${formatPhone(order.customerPhone)} before delivery.`}
+              ? "Nothing will be sent. If you paid, we'll contact you about your refund."
+              : paidWaiting
+                ? `Your payment came through. We're confirming your bottles, and will call ${formatPhone(order.customerPhone)}.`
+                : awaitingPayment
+                  ? expired
+                    ? "This order waited too long, so the bottles went back on the shelf. Place it again from your bag."
+                    : waitingLine
+                  : `Your receipt is on its way to ${order.customerEmail}. The courier will call ${formatPhone(order.customerPhone)} before delivery.`}
           </p>
+          {awaitingPayment && !expired && payment !== "pending" && (
+            <PayNow token={o} total={order.total} />
+          )}
           <Link
             href="/#collection"
             className="eyebrow border-noir mt-10 inline-block border-b pb-1"
@@ -118,9 +143,9 @@ export default async function ThanksPage({ searchParams }: PageProps<"/checkout/
               <p className="text-smoke">
                 {order.paymentMethod === "cod"
                   ? "Pay the courier on delivery"
-                  : order.paymentStatus === "paid"
-                    ? "Paid"
-                    : "Awaiting payment"}
+                  : ({ paid: "Paid", refunded: "Refunded", partially_refunded: "Partly refunded" }[
+                      order.paymentStatus as string
+                    ] ?? "Awaiting payment")}
               </p>
               <p className="eyebrow text-smoke mt-6">Placed</p>
               <p className="mt-3">{formatDateTime(order.createdAt)}</p>

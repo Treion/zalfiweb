@@ -559,22 +559,8 @@ async function main() {
           })
           .returning({ id: S.payments.id });
         paymentId = p!.id;
-      } else if (paid) {
-        const [p] = await tx
-          .insert(S.payments)
-          .values({
-            orderId: order!.id,
-            provider: "cod",
-            tranId: `COD${order!.id}`,
-            amount: total,
-            status: "paid",
-            methodReported: "Cash",
-            createdAt: ts.deliveredAt!,
-            updatedAt: ts.deliveredAt!,
-          })
-          .returning({ id: S.payments.id });
-        paymentId = p!.id;
       }
+      // Cash on delivery has no payment record: delivery marks the order paid (as the shop does)
 
       // Refunds and returns
       if (paymentStatus === "refunded" || paymentStatus === "partially_refunded") {

@@ -28,7 +28,7 @@ import { Textarea } from "@/components/admin/ui/textarea";
 import { DHAKA_AREAS, DHAKA_CITY_THANAS } from "@/lib/bd-geo";
 import { poishaToTaka, takaToPoisha } from "@/lib/money";
 import { SETTINGS_SCHEMAS, type Settings, type SettingsKey } from "@/server/settings/schema";
-import { saveSettingsAction } from "./actions";
+import { saveSettingsAction, setPaymentGatewayAction } from "./actions";
 
 type All = { [K in SettingsKey]: Settings<K> };
 
@@ -516,14 +516,79 @@ function PermissionsForm({ v }: { v: Settings<"permissions"> }) {
   );
 }
 
+export type GatewayInfo = {
+  selected: "mock" | "sslcommerz";
+  note: string;
+  /** Whether SSLCommerz keys are set, and which mode they are for */
+  sslcommerz: "sandbox" | "live" | null;
+  mockAllowed: boolean;
+  canChange: boolean;
+};
+
+/** Which gateway takes online payments. Only the owner changes it; keys stay in the environment. */
+function GatewayCard({ g }: { g: GatewayInfo }) {
+  const [selected, setSelected] = useState(g.selected);
+  const [note, setNote] = useState(g.note);
+  const [pending, start] = useTransition();
+  return (
+    <Card className="mt-6">
+      <CardHeader>
+        <CardTitle>Payment gateway</CardTitle>
+        <CardDescription>Where &ldquo;Pay online&rdquo; takes the customer.</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-5 md:grid-cols-2">
+        <Field label="Gateway" htmlFor="gateway">
+          <Select
+            value={selected}
+            disabled={!g.canChange || pending}
+            onValueChange={(v) => {
+              const next = v as GatewayInfo["selected"];
+              setSelected(next);
+              start(async () => {
+                const r = await setPaymentGatewayAction({ payments: next });
+                if (!r.ok) {
+                  setSelected(g.selected);
+                  return void toast.error(r.error);
+                }
+                setNote(r.data);
+                toast.success("Saved");
+              });
+            }}
+          >
+            <SelectTrigger id="gateway" className="w-full">
+              <SelectValue>{selected === "mock" ? "Test gateway" : "SSLCommerz"}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="mock">Test gateway</SelectItem>
+              <SelectItem value="sslcommerz">SSLCommerz</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
+        <div className="flex flex-col gap-2 text-sm">
+          <p>{note}</p>
+          <p className="text-muted-foreground text-xs">
+            {g.sslcommerz
+              ? `SSLCommerz keys are set (${g.sslcommerz}).`
+              : "SSLCommerz keys aren't set yet (SSLCOMMERZ_STORE_ID and SSLCOMMERZ_STORE_PASSWORD)."}
+            {!g.mockAllowed && " The test gateway is off on the live site."}
+            {!g.canChange && " Only the owner can change this."}
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function SettingsTabs({
   settings,
   canEdit,
   isOwner,
+  gateway,
 }: {
   settings: All;
   canEdit: boolean;
   isOwner: boolean;
+  gateway: GatewayInfo;
 }) {
   return (
     <Tabs defaultValue="store">
@@ -546,6 +611,7 @@ export function SettingsTabs({
       </TabsContent>
       <TabsContent value="payments">
         <PaymentsForm v={settings.payments} canEdit={canEdit} />
+        <GatewayCard g={gateway} />
       </TabsContent>
       <TabsContent value="inventory">
         <InventoryForm v={settings.inventory} canEdit={canEdit} />

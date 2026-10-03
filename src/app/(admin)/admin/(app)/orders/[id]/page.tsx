@@ -10,7 +10,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/admin/ui/card";
-import { PAYMENT_LABELS } from "@/lib/checkout";
 import { formatPrice } from "@/lib/money";
 import { formatPhone } from "@/lib/phone";
 import { formatDateTime, formatRelative } from "@/lib/time";
@@ -19,10 +18,20 @@ import { getOrderAdmin } from "@/server/orders/admin-query";
 import { manualNext, offersRestock } from "@/server/orders/manage";
 import { STATUS_LABELS, type OrderStatus } from "@/server/orders/state";
 import { CopyButton, NoteForm, OrderActions } from "./OrderControls";
+import { PaymentPanel } from "./PaymentPanel";
+import { orderPayments } from "@/server/payments/admin-query";
 
 export async function generateMetadata({ params }: PageProps<"/admin/orders/[id]">) {
   return { title: `Order ${(await params).id}` };
 }
+
+const EVENT_LABELS: Record<string, string> = {
+  note: "Note",
+  payment: "Payment",
+  refund: "Refund",
+  attention: "Needs attention",
+  receipt: "Receipt",
+};
 
 const ZONE = { inside_dhaka: "Inside Dhaka", outside_dhaka: "Outside Dhaka" } as const;
 
@@ -41,6 +50,12 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
   const detail = await getOrderAdmin(id);
   if (!detail) notFound();
   const { order: o, items, events, customer } = detail;
+  const money = await orderPayments(o);
+  // The newest "needs attention" note, while the order is still open
+  const attention =
+    o.status !== "cancelled" || o.paymentStatus === "paid"
+      ? events.find((e) => e.type === "attention")
+      : undefined;
   const next = manualNext(o);
   const address = `${o.addressStreet}, ${o.addressArea}, ${o.addressDistrict}`;
   const canManage = admin.can("orders.manage");
@@ -73,7 +88,13 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
           />
         }
       />
-      {o.status === "pending_payment" && o.expiresAt && (
+      {attention && (
+        <p className="mb-6 rounded-lg border border-[var(--tone-warning-bg)] bg-[var(--tone-warning-bg)]/40 px-4 py-3 text-sm">
+          <span className="font-medium">Needs attention: </span>
+          {attention.message}
+        </p>
+      )}
+      {o.status === "pending_payment" && o.paymentStatus !== "paid" && o.expiresAt && (
         <p className="mb-6 rounded-lg border border-[var(--tone-warning-bg)] bg-[var(--tone-warning-bg)]/40 px-4 py-3 text-sm">
           Waiting for payment. The bottles are held until {formatDateTime(o.expiresAt)}, then the
           order cancels itself.
@@ -148,14 +169,18 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
                       className={`absolute top-1.5 -left-[25px] size-2.5 rounded-full border-2 border-[var(--card)] ${e.type === "note" ? "bg-[var(--tone-info-fg)]" : e.toStatus ? "bg-foreground" : "bg-muted-foreground"}`}
                     />
                     <p className="text-sm">
-                      {e.type === "note" ? (
-                        <span className="font-medium">Note</span>
-                      ) : e.toStatus ? (
+                      {e.toStatus ? (
                         <span className="font-medium">
                           {STATUS_LABELS[e.toStatus as OrderStatus] ?? e.toStatus}
                         </span>
+                      ) : EVENT_LABELS[e.type] ? (
+                        <span
+                          className={`font-medium ${e.type === "attention" ? "text-[var(--tone-warning-fg)]" : ""}`}
+                        >
+                          {EVENT_LABELS[e.type]}
+                        </span>
                       ) : null}
-                      {(e.type === "note" || e.toStatus) && e.message ? " · " : ""}
+                      {(e.toStatus || EVENT_LABELS[e.type]) && e.message ? " · " : ""}
                       <span
                         className={
                           e.type === "note" ? "whitespace-pre-wrap" : "text-muted-foreground"
@@ -225,27 +250,13 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Payment</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-1.5 text-sm">
-              <Line label="Method" value={PAYMENT_LABELS[o.paymentMethod]} />
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Status</span>
-                <PaymentBadge status={o.paymentStatus} cod={o.paymentMethod === "cod"} />
-              </div>
-              <Line
-                label={o.paymentMethod === "cod" ? "To collect" : "Amount"}
-                value={formatPrice(o.total)}
-              />
-              <p className="text-muted-foreground mt-2 text-xs">
-                {o.paymentMethod === "cod"
-                  ? "Marked paid when the order is delivered."
-                  : "Transactions and refunds appear here once online payment is connected."}
-              </p>
-            </CardContent>
-          </Card>
+          <PaymentPanel
+            order={o}
+            data={money}
+            canRefund={admin.can("refunds.issue")}
+            canManage={canManage}
+            canSeeRaw={admin.can("payments.raw")}
+          />
 
           <Card>
             <CardHeader>
