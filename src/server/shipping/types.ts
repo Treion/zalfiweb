@@ -1,0 +1,81 @@
+import type { OrderStatus } from "@/server/orders/state";
+
+/**
+ * Couriers, behind one interface. Three implement it:
+ *  - mock: a test courier for development and previews. The admin plays the courier: it sends
+ *    status updates by hand, through the same webhook code the real couriers use.
+ *  - pathao: Pathao Courier's merchant API (sandbox or live).
+ *  - steadfast: Steadfast Courier's API.
+ * Each courier's own statuses map to ZALFI's order states in one file per courier (status-*.ts).
+ */
+
+export type CourierName = "mock" | "pathao" | "steadfast";
+
+/** The status of a parcel taken back from the admin before pickup (not a courier's own word) */
+export const CANCELLED_HERE = "cancelled_by_zalfi";
+
+export const COURIER_LABELS: Record<CourierName, string> = {
+  mock: "Test courier",
+  pathao: "Pathao",
+  steadfast: "Steadfast",
+};
+
+/** What a courier needs to collect a parcel and deliver it */
+export type ShipmentInput = {
+  /** Our reference: the order number (a suffix when the order is sent again) */
+  reference: string;
+  recipient: { name: string; phone: string; address: string; district: string; area: string };
+  /** Poisha. Zero for an order already paid online. */
+  codAmount: number;
+  items: { name: string; qty: number }[];
+  /** Pathao only: the city and zone chosen (or matched) for the address */
+  pathao?: { cityId: number; zoneId: number; areaId?: number | null };
+  note?: string;
+};
+
+export type CreatedShipment = {
+  consignmentId: string;
+  trackingCode: string;
+  /** The courier's own status for the new parcel */
+  status: string;
+  /** Poisha, when the courier quotes it */
+  deliveryFee: number | null;
+  raw: unknown;
+};
+
+/** A courier's status, in ZALFI's terms (see status-*.ts) */
+export type MappedStatus = {
+  /** Plain words for the admin and the timeline */
+  label: string;
+  /** The order state this status means, or null when it changes nothing */
+  order: OrderStatus | null;
+  /** The parcel's journey is over (delivered, returned or cancelled): stop polling */
+  final: boolean;
+  /** Something the team should look at */
+  attention?: string;
+  /** A failed delivery attempt */
+  failedAttempt?: boolean;
+};
+
+/** A webhook, read: whose parcel, and what the courier says happened */
+export type CourierEvent = {
+  consignmentId: string;
+  status: string | null;
+  message: string | null;
+  /** For de-duplication */
+  eventId: string;
+};
+
+export interface CourierProvider {
+  readonly name: CourierName;
+  readonly mode: "test" | "sandbox" | "live";
+  createShipment(input: ShipmentInput): Promise<CreatedShipment>;
+  /** The courier's current status for a parcel, or null when it can't say */
+  getStatus(consignmentId: string, trackingCode: string | null): Promise<string | null>;
+  cancelShipment(consignmentId: string): Promise<{ ok: boolean; message: string }>;
+  /** Checks a webhook's authenticity and reads it. Null when it isn't authentic or isn't ours. */
+  handleWebhook(headers: Headers, body: unknown): CourierEvent | null;
+  /** A public tracking page for the customer, or null */
+  getTrackingUrl(trackingCode: string, phone: string): string | null;
+  map(status: string): MappedStatus;
+}

@@ -1,4 +1,5 @@
 import { env } from "@/lib/env";
+import { testProvidersAllowed } from "@/server/test-mode";
 import { poolDb, type Executor } from "@/server/db/pool";
 import { getSettings } from "@/server/settings";
 import { mockProvider } from "./mock";
@@ -10,12 +11,8 @@ import type { PaymentProvider, ProviderName } from "./types";
  * used only when its keys are in the environment too. The test gateway never runs on the live site.
  */
 
-/** The test gateway is for development and previews only */
-export function mockAllowed() {
-  if (env("VERCEL_ENV") === "production") return false;
-  if (process.env.NODE_ENV === "production" && env("ALLOW_MOCK_PAYMENTS") !== "true") return false;
-  return true;
-}
+/** The test gateway is for development and previews only (see test-mode.ts) */
+export const mockAllowed = testProvidersAllowed;
 
 export function sslConfig(): SslConfig | null {
   const storeId = env("SSLCOMMERZ_STORE_ID");

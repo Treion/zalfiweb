@@ -3,11 +3,19 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
 import { useTransition } from "react";
-import { PackageCheckIcon } from "lucide-react";
+import { ChevronDownIcon, PackageCheckIcon, PrinterIcon, TruckIcon } from "lucide-react";
 import { toast } from "sonner";
 import { DataTable, type ColumnMeta } from "@/components/admin/data-table/DataTable";
 import { PaymentBadge, StatusBadge } from "@/components/admin/orders/badges";
 import { Button } from "@/components/admin/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/admin/ui/dropdown-menu";
 import { formatPrice } from "@/lib/money";
 import { formatPhone } from "@/lib/phone";
 import { formatDateTime } from "@/lib/time";
@@ -18,7 +26,9 @@ import {
   PAYMENT_STATUS_LABELS,
   STATUS_LABELS,
 } from "@/server/orders/state";
+import type { CourierOption } from "@/server/shipping/couriers";
 import { moveOrdersAction } from "./actions";
+import { sendManyAction } from "../shipping/actions";
 
 const meta = (m: ColumnMeta) => m;
 
@@ -112,13 +122,23 @@ export function OrdersTable({
   total,
   page,
   pageSize,
+  couriers,
+  defaultCourier,
+  canShip,
 }: {
   rows: OrderListRow[];
   total: number;
   page: number;
   pageSize: number;
+  /** The couriers an admin can send with, the default first */
+  couriers: CourierOption[];
+  defaultCourier: string;
+  canShip: boolean;
 }) {
   const [pending, start] = useTransition();
+  const sendWith = [...couriers].sort(
+    (a, b) => Number(b.name === defaultCourier) - Number(a.name === defaultCourier),
+  );
   return (
     <DataTable
       id="orders"
@@ -173,26 +193,90 @@ export function OrdersTable({
       ]}
       bulkActions={(selected, clear) => {
         const packable = selected.filter((o) => o.status === "confirmed");
+        const sendable = selected.filter(
+          (o) => (o.status === "confirmed" || o.status === "packed") && !o.courier,
+        );
+        const labelled = selected.filter((o) => o.courier && o.trackingCode);
+        const count = (n: number, all: number) => (n !== all ? ` (${n})` : "");
         return (
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={pending || !packable.length}
-            onClick={() =>
-              start(async () => {
-                const r = await moveOrdersAction({ ids: packable.map((o) => o.id), to: "packed" });
-                if (!r.ok) return void toast.error(r.error);
-                toast.success(
-                  `${r.data.moved} ${r.data.moved === 1 ? "order" : "orders"} marked packed` +
-                    (r.data.skipped.length ? `, ${r.data.skipped.length} skipped` : ""),
-                );
-                clear();
-              })
-            }
-          >
-            <PackageCheckIcon /> Mark packed
-            {packable.length !== selected.length && ` (${packable.length})`}
-          </Button>
+          <>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={pending || !packable.length}
+              onClick={() =>
+                start(async () => {
+                  const r = await moveOrdersAction({
+                    ids: packable.map((o) => o.id),
+                    to: "packed",
+                  });
+                  if (!r.ok) return void toast.error(r.error);
+                  toast.success(
+                    `${r.data.moved} ${r.data.moved === 1 ? "order" : "orders"} marked packed` +
+                      (r.data.skipped.length ? `, ${r.data.skipped.length} skipped` : ""),
+                  );
+                  clear();
+                })
+              }
+            >
+              <PackageCheckIcon /> Mark packed
+              {count(packable.length, selected.length)}
+            </Button>
+            {canShip && sendWith.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" disabled={pending || !sendable.length}>
+                    <TruckIcon /> Send to courier
+                    {count(sendable.length, selected.length)} <ChevronDownIcon />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-52">
+                  <DropdownMenuLabel>Send with</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {sendWith.map((c) => (
+                    <DropdownMenuItem
+                      key={c.name}
+                      onSelect={() =>
+                        start(async () => {
+                          const r = await sendManyAction({
+                            ids: sendable.map((o) => o.id),
+                            courier: c.name,
+                          });
+                          if (!r.ok) return void toast.error(r.error);
+                          const { sent, skipped } = r.data;
+                          if (sent)
+                            toast.success(
+                              `${sent} ${sent === 1 ? "parcel" : "parcels"} sent with ${c.label}`,
+                            );
+                          for (const reason of skipped.slice(0, 3)) toast.error(reason);
+                          if (skipped.length > 3)
+                            toast.error(`${skipped.length - 3} more weren't sent.`);
+                          clear();
+                        })
+                      }
+                    >
+                      {c.label}
+                      {c.mode !== "live" ? ` (${c.mode})` : ""}
+                      {c.name === defaultCourier ? (
+                        <span className="text-muted-foreground ml-auto text-xs">Default</span>
+                      ) : null}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            {labelled.length > 0 && (
+              <Button size="sm" variant="outline" asChild>
+                <a
+                  href={`/api/admin/shipping/labels?ids=${labelled.map((o) => o.id).join(",")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <PrinterIcon /> Print labels{count(labelled.length, selected.length)}
+                </a>
+              </Button>
+            )}
+          </>
         );
       }}
     />

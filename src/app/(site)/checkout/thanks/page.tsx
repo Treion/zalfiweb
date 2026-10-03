@@ -8,6 +8,7 @@ import { formatDateTime } from "@/lib/time";
 import { checkoutOpen } from "@/server/checkout/http";
 import { orderForCustomer } from "@/server/orders/public";
 import { PayNow } from "@/components/cart/PayNow";
+import { orderTracking } from "@/server/shipping/tracking-query";
 
 export const metadata: Metadata = {
   title: "Thank you",
@@ -21,6 +22,7 @@ export default async function ThanksPage({ searchParams }: PageProps<"/checkout/
   const found = await orderForCustomer(o);
   if (!found) notFound();
   const { order, items } = found;
+  const tracking = await orderTracking(order.id);
   const cancelled = order.status === "cancelled";
   const paidWaiting = order.status === "pending_payment" && order.paymentStatus === "paid";
   const awaitingPayment = order.status === "pending_payment" && !paidWaiting;
@@ -79,6 +81,16 @@ export default async function ThanksPage({ searchParams }: PageProps<"/checkout/
                     : waitingLine
                   : `Your receipt is on its way to ${order.customerEmail}. The courier will call ${formatPhone(order.customerPhone)} before delivery.`}
           </p>
+          {tracking?.url && !cancelled && (
+            <a
+              href={tracking.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="eyebrow bg-noir text-bone mt-10 inline-block px-8 py-5"
+            >
+              Track your parcel
+            </a>
+          )}
           {awaitingPayment && !expired && payment !== "pending" && (
             <PayNow token={o} total={order.total} />
           )}

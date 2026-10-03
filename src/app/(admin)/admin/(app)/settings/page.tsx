@@ -2,6 +2,7 @@ import { PageHeader } from "@/components/admin/shell/PageHeader";
 import { requireAdmin } from "@/server/auth/session";
 import { getAllSettings } from "@/server/settings";
 import { mockAllowed, resolveGateway, sslConfig } from "@/server/payments/providers";
+import { courierStatuses } from "@/server/shipping/couriers";
 import { SettingsTabs } from "./SettingsTabs";
 
 export const metadata = { title: "Settings" };
@@ -33,6 +34,7 @@ export default async function SettingsPage() {
         canEdit={canEdit}
         isOwner={admin.can("team.manage")}
         gateway={gateway}
+        couriers={courierStatuses()}
       />
     </>
   );

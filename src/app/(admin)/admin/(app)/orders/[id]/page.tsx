@@ -20,6 +20,10 @@ import { STATUS_LABELS, type OrderStatus } from "@/server/orders/state";
 import { CopyButton, NoteForm, OrderActions } from "./OrderControls";
 import { PaymentPanel } from "./PaymentPanel";
 import { orderPayments } from "@/server/payments/admin-query";
+import { getSettings } from "@/server/settings";
+import { availableCouriers } from "@/server/shipping/couriers";
+import { orderShipments } from "@/server/shipping/service";
+import { ShipmentPanel } from "./ShipmentPanel";
 
 export async function generateMetadata({ params }: PageProps<"/admin/orders/[id]">) {
   return { title: `Order ${(await params).id}` };
@@ -50,13 +54,25 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
   const detail = await getOrderAdmin(id);
   if (!detail) notFound();
   const { order: o, items, events, customer } = detail;
-  const money = await orderPayments(o);
-  // The newest "needs attention" note, while the order is still open
+  const [money, parcels, shipping] = await Promise.all([
+    orderPayments(o),
+    orderShipments(o.id),
+    getSettings("shipping"),
+  ]);
+  const couriers = availableCouriers();
+  // The newest "needs attention" note, until an admin acts on it (moves the order or refunds it,
+  // events being newest first) or the order is closed
+  const flagged = events.findIndex((e) => e.type === "attention");
+  const handled = events.findIndex(
+    (e) => e.actor.startsWith("admin:") && (!!e.toStatus || e.type === "refund"),
+  );
+  const open = o.status !== "returned" && (o.status !== "cancelled" || o.paymentStatus === "paid");
   const attention =
-    o.status !== "cancelled" || o.paymentStatus === "paid"
-      ? events.find((e) => e.type === "attention")
-      : undefined;
-  const next = manualNext(o);
+    open && flagged >= 0 && (handled < 0 || handled > flagged) ? events[flagged] : undefined;
+  // A parcel the courier has already brought back can't be re-attempted: only marked returned
+  const back =
+    o.status === "delivery_failed" && parcels.length > 0 && !parcels.some((p) => p.active);
+  const next = manualNext(o).filter((st) => !(back && st === "shipped"));
   const address = `${o.addressStreet}, ${o.addressArea}, ${o.addressDistrict}`;
   const canManage = admin.can("orders.manage");
 
@@ -85,6 +101,7 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
             restockable={next.filter((s) => offersRestock(o.status, s))}
             canManage={canManage}
             email={o.customerEmail}
+            status={o.status}
           />
         }
       />
@@ -258,28 +275,14 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
             canSeeRaw={admin.can("payments.raw")}
           />
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Shipment</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-1.5 text-sm">
-              {o.courier || o.trackingCode ? (
-                <>
-                  <Line label="Courier" value={o.courier ?? "—"} />
-                  <Line label="Tracking" value={o.trackingCode ?? "—"} />
-                </>
-              ) : (
-                <p className="text-muted-foreground">
-                  Not with a courier yet. Sending to Pathao or Steadfast arrives with shipping.
-                </p>
-              )}
-              {o.receiptSentAt && (
-                <p className="text-muted-foreground mt-2 border-t pt-2 text-xs">
-                  E-receipt sent {formatRelative(o.receiptSentAt)}.
-                </p>
-              )}
-            </CardContent>
-          </Card>
+          <ShipmentPanel
+            order={o}
+            shipments={parcels}
+            couriers={couriers}
+            defaultCourier={shipping.defaultCourier}
+            canManage={admin.can("shipping.manage")}
+            receiptSentAt={o.receiptSentAt}
+          />
         </div>
       </div>
     </>

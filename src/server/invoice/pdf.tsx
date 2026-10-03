@@ -20,7 +20,7 @@ import type { InvoiceData } from "./data";
  */
 const fonts = path.join(process.cwd(), "assets/fonts");
 let registered = false;
-function registerFonts() {
+export function registerFonts() {
   if (registered) return;
   Font.register({
     family: "Hanken",
@@ -48,11 +48,11 @@ function registerFonts() {
   registered = true;
 }
 
-const INK = "#1A1816";
-const SMOKE = "#6B655E";
-const LINE = "#E4DFD7";
-const TEXT = ["Hanken", "NotoBengali"];
-const DISPLAY = ["Bodoni", "NotoBengali"];
+export const INK = "#1A1816";
+export const SMOKE = "#6B655E";
+export const LINE = "#E4DFD7";
+export const TEXT = ["Hanken", "NotoBengali"];
+export const DISPLAY = ["Bodoni", "NotoBengali"];
 
 const s = StyleSheet.create({
   page: { padding: 48, fontFamily: TEXT, fontSize: 10, color: INK, lineHeight: 1.5 },
@@ -74,7 +74,7 @@ const s = StyleSheet.create({
   small: { fontSize: 8, color: SMOKE, lineHeight: 1.5 },
 });
 
-function Logo({ width }: { width: number }) {
+export function Logo({ width }: { width: number }) {
   const [, , w, h] = LOGO_VIEWBOX.split(" ").map(Number);
   return (
     <Svg viewBox={LOGO_VIEWBOX} style={{ width, height: (width * h!) / w! }}>

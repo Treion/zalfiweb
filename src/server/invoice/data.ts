@@ -9,6 +9,7 @@ import { poolDb, type Executor } from "@/server/db/pool";
 import { getSettings } from "@/server/settings";
 import { includedVat } from "@/server/checkout/pricing";
 import { PAYMENT_STATUS_LABELS } from "@/server/orders/state";
+import { orderTracking } from "@/server/shipping/tracking-query";
 
 /**
  * Everything a receipt or invoice shows, already worded and formatted. The e-receipt email and the
@@ -99,8 +100,7 @@ export async function loadInvoice(orderId: number, exec: Executor = poolDb()) {
           ? "Pay on delivery"
           : PAYMENT_STATUS_LABELS[o.paymentStatus],
     },
-    // Couriers add their tracking link in phase 6
-    trackingUrl: null,
+    trackingUrl: (await orderTracking(o.id, exec))?.url ?? null,
     footerNote: inv.footerNote,
   };
   return { order: o, data };

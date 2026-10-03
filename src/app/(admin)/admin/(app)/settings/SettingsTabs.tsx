@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Controller, useForm, type FieldValues, type UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
+import { Badge } from "@/components/admin/ui/badge";
 import { Button } from "@/components/admin/ui/button";
 import {
   Card,
@@ -28,6 +29,7 @@ import { Textarea } from "@/components/admin/ui/textarea";
 import { DHAKA_AREAS, DHAKA_CITY_THANAS } from "@/lib/bd-geo";
 import { poishaToTaka, takaToPoisha } from "@/lib/money";
 import { SETTINGS_SCHEMAS, type Settings, type SettingsKey } from "@/server/settings/schema";
+import type { CourierStatus } from "@/server/shipping/couriers";
 import { saveSettingsAction, setPaymentGatewayAction } from "./actions";
 
 type All = { [K in SettingsKey]: Settings<K> };
@@ -269,7 +271,15 @@ type ShippingForm = {
   insideDhakaAreas: string[];
 };
 
-function ShippingSection({ v, canEdit }: { v: Settings<"shipping">; canEdit: boolean }) {
+function ShippingSection({
+  v,
+  canEdit,
+  couriers,
+}: {
+  v: Settings<"shipping">;
+  canEdit: boolean;
+  couriers: CourierStatus[];
+}) {
   const s = useSection<"shipping", ShippingForm>(
     "shipping",
     (x) => ({
@@ -293,6 +303,7 @@ function ShippingSection({ v, canEdit }: { v: Settings<"shipping">; canEdit: boo
     v,
   );
   const areas = s.form.watch("insideDhakaAreas");
+  const chosen = couriers.find((c) => c.name === s.form.watch("defaultCourier"));
   return (
     <SectionCard
       title="Shipping"
@@ -330,7 +341,11 @@ function ShippingSection({ v, canEdit }: { v: Settings<"shipping">; canEdit: boo
       <Field
         label="Default courier"
         htmlFor="ship-courier"
-        hint="Pathao and Steadfast work once their keys are added (Go-live guide)."
+        hint={
+          chosen && !chosen.mode
+            ? `${chosen.label} can't take parcels yet: ${chosen.note}`
+            : "Each order can still be sent with another courier."
+        }
       >
         <Controller
           control={s.form.control}
@@ -341,9 +356,12 @@ function ShippingSection({ v, canEdit }: { v: Settings<"shipping">; canEdit: boo
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="mock">Test courier (no real deliveries)</SelectItem>
-                <SelectItem value="pathao">Pathao</SelectItem>
-                <SelectItem value="steadfast">Steadfast</SelectItem>
+                {couriers.map((c) => (
+                  <SelectItem key={c.name} value={c.name}>
+                    {c.name === "mock" ? "Test courier (no real deliveries)" : c.label}
+                    {c.mode ? "" : " (not set up)"}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           )}
@@ -525,6 +543,49 @@ export type GatewayInfo = {
   canChange: boolean;
 };
 
+/** Each courier's keys and webhook, as the server sees them. Keys live in the environment only. */
+function CouriersCard({ couriers }: { couriers: CourierStatus[] }) {
+  return (
+    <Card className="mt-6">
+      <CardHeader>
+        <CardTitle>Couriers</CardTitle>
+        <CardDescription>
+          Keys are set in the environment (Go-live guide). Updates arrive by webhook, and every
+          parcel is checked every 30 minutes too.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col divide-y text-sm">
+        {couriers.map((c) => (
+          <div key={c.name} className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-medium">{c.label}</span>
+              <Badge variant={c.mode === "live" ? "success" : c.mode ? "info" : "neutral"}>
+                {c.mode === "live"
+                  ? "Live"
+                  : c.mode === "sandbox"
+                    ? "Sandbox"
+                    : c.mode === "test"
+                      ? "Test"
+                      : "Not set up"}
+              </Badge>
+            </div>
+            <p className="text-muted-foreground text-xs">{c.note}</p>
+            {c.webhookPath && c.mode && (
+              <p className="text-muted-foreground text-xs">
+                {"Webhook: "}
+                <code className="font-mono">{c.webhookPath}</code>
+                {c.webhookReady
+                  ? " (secret set)"
+                  : ` (set ${c.name === "pathao" ? "PATHAO_WEBHOOK_SECRET" : "STEADFAST_WEBHOOK_TOKEN"} to accept updates)`}
+              </p>
+            )}
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
 /** Which gateway takes online payments. Only the owner changes it; keys stay in the environment. */
 function GatewayCard({ g }: { g: GatewayInfo }) {
   const [selected, setSelected] = useState(g.selected);
@@ -584,11 +645,13 @@ export function SettingsTabs({
   canEdit,
   isOwner,
   gateway,
+  couriers,
 }: {
   settings: All;
   canEdit: boolean;
   isOwner: boolean;
   gateway: GatewayInfo;
+  couriers: CourierStatus[];
 }) {
   return (
     <Tabs defaultValue="store">
@@ -607,7 +670,8 @@ export function SettingsTabs({
         <InvoiceForm v={settings.invoice} canEdit={canEdit} />
       </TabsContent>
       <TabsContent value="shipping">
-        <ShippingSection v={settings.shipping} canEdit={canEdit} />
+        <ShippingSection v={settings.shipping} canEdit={canEdit} couriers={couriers} />
+        <CouriersCard couriers={couriers} />
       </TabsContent>
       <TabsContent value="payments">
         <PaymentsForm v={settings.payments} canEdit={canEdit} />

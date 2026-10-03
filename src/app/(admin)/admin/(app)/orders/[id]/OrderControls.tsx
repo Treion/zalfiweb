@@ -31,9 +31,22 @@ import {
   DropdownMenuTrigger,
 } from "@/components/admin/ui/dropdown-menu";
 import { Label } from "@/components/admin/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/admin/ui/select";
 import { Textarea } from "@/components/admin/ui/textarea";
 import { STATUS_LABELS, type OrderStatus } from "@/server/orders/state";
+import {
+  RETURN_CONDITION_LABELS,
+  RETURN_CONDITIONS,
+  type ReturnCondition,
+} from "@/server/shipping/returns-meta";
 import { addNoteAction, moveOrdersAction, resendReceiptAction } from "../actions";
+import { returnOrderAction } from "../../shipping/actions";
 
 /** What a move asks for before it happens: destructive ones confirm, restocking ones offer it */
 type Confirm = { to: OrderStatus; restock: boolean | null };
@@ -54,9 +67,11 @@ export function OrderActions({
   restockable,
   canManage,
   email,
+  status,
 }: {
   id: number;
   number: string;
+  status: OrderStatus;
   /** Statuses this order may move to by hand */
   next: OrderStatus[];
   /** Statuses whose move can put the bottles back */
@@ -68,6 +83,7 @@ export function OrderActions({
   const [pending, start] = useTransition();
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const [note, setNote] = useState("");
+  const [condition, setCondition] = useState<ReturnCondition>("unopened");
 
   const primary = next.find((s) => !DESTRUCTIVE.includes(s) && s !== "return_requested");
   const others = next.filter((s) => s !== primary);
@@ -77,6 +93,18 @@ export function OrderActions({
       const r = await moveOrdersAction({ ids: [id], to, ...opts });
       if (!r.ok) return void toast.error(r.error);
       toast.success(`${number}: ${STATUS_LABELS[to].toLowerCase()}`);
+      setConfirm(null);
+      setNote("");
+      router.refresh();
+    });
+  }
+
+  // A return is recorded with why it came back and the state it came back in
+  function recordReturn(restock: boolean) {
+    start(async () => {
+      const r = await returnOrderAction({ id, reason: note.trim(), condition, restock });
+      if (!r.ok) return void toast.error(r.error);
+      toast.success(`${number}: returned`);
       setConfirm(null);
       setNote("");
       router.refresh();
@@ -139,7 +167,9 @@ export function OrderActions({
       {canManage && primary && (
         <Button size="sm" disabled={pending} onClick={() => ask(primary)}>
           {primary === "packed" ? <PackageCheckIcon /> : <CheckIcon />}
-          {PRIMARY_LABEL[primary] ?? STATUS_LABELS[primary]}
+          {status === "delivery_failed" && primary === "shipped"
+            ? "Try delivery again"
+            : (PRIMARY_LABEL[primary] ?? STATUS_LABELS[primary])}
         </Button>
       )}
 
@@ -162,23 +192,49 @@ export function OrderActions({
                 </DialogDescription>
               </DialogHeader>
               <div className="flex flex-col gap-4">
-                {confirm.restock !== null && (
-                  <label className="flex items-start gap-3 text-sm">
-                    <Checkbox
-                      checked={confirm.restock}
-                      onCheckedChange={(v) => setConfirm({ ...confirm, restock: !!v })}
-                      className="mt-0.5"
-                    />
-                    <span>
-                      Put the bottles back in stock
-                      <span className="text-muted-foreground block text-xs">
-                        Untick if they are damaged or lost.
-                      </span>
-                    </span>
-                  </label>
+                {confirm.to === "returned" && (
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="return-condition">How it came back</Label>
+                    <Select
+                      value={condition}
+                      onValueChange={(v) => {
+                        setCondition(v as ReturnCondition);
+                        if (v === "missing") setConfirm({ ...confirm, restock: false });
+                      }}
+                    >
+                      <SelectTrigger id="return-condition" className="w-full">
+                        <SelectValue>{RETURN_CONDITION_LABELS[condition]}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {RETURN_CONDITIONS.map((c) => (
+                          <SelectItem key={c} value={c}>
+                            {RETURN_CONDITION_LABELS[c]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 )}
+                {confirm.restock !== null &&
+                  !(confirm.to === "returned" && condition === "missing") && (
+                    <label className="flex items-start gap-3 text-sm">
+                      <Checkbox
+                        checked={confirm.restock}
+                        onCheckedChange={(v) => setConfirm({ ...confirm, restock: !!v })}
+                        className="mt-0.5"
+                      />
+                      <span>
+                        Put the bottles back in stock
+                        <span className="text-muted-foreground block text-xs">
+                          Untick if they are damaged or lost.
+                        </span>
+                      </span>
+                    </label>
+                  )}
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="move-note">Reason (on the timeline)</Label>
+                  <Label htmlFor="move-note">
+                    {confirm.to === "returned" ? "Why it came back" : "Reason (on the timeline)"}
+                  </Label>
                   <Textarea
                     id="move-note"
                     rows={2}
@@ -194,12 +250,14 @@ export function OrderActions({
                 </Button>
                 <Button
                   variant={confirm.to === "cancelled" ? "destructive" : "default"}
-                  disabled={pending}
+                  disabled={pending || (confirm.to === "returned" && note.trim().length < 3)}
                   onClick={() =>
-                    move(confirm.to, {
-                      note: note.trim() || undefined,
-                      restock: confirm.restock ?? undefined,
-                    })
+                    confirm.to === "returned"
+                      ? recordReturn(!!confirm.restock && condition !== "missing")
+                      : move(confirm.to, {
+                          note: note.trim() || undefined,
+                          restock: confirm.restock ?? undefined,
+                        })
                   }
                 >
                   {confirm.to === "cancelled" ? "Cancel order" : STATUS_LABELS[confirm.to]}

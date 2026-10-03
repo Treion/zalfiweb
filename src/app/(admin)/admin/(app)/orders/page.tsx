@@ -10,6 +10,8 @@ import {
   ORDER_VIEWS,
   listOrdersAdmin,
 } from "@/server/orders/admin-query";
+import { getSettings } from "@/server/settings";
+import { availableCouriers } from "@/server/shipping/couriers";
 import { OrdersTable } from "./OrdersTable";
 
 export const metadata = { title: "Orders" };
@@ -23,7 +25,7 @@ const VIEWS: { key: string; label: string }[] = [
 ];
 
 export default async function OrdersPage({ searchParams }: PageProps<"/admin/orders">) {
-  await requireAdmin("orders.view");
+  const admin = await requireAdmin("orders.view");
   const sp = await searchParams;
   const p = readListParams(sp, {
     filterKeys: ORDER_FILTER_KEYS,
@@ -31,7 +33,10 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
     defaultSort: "created",
   });
   const view = p.filters.view && p.filters.view in ORDER_VIEWS ? p.filters.view : "";
-  const { rows, total } = await listOrdersAdmin(p);
+  const [{ rows, total }, shipping] = await Promise.all([
+    listOrdersAdmin(p),
+    getSettings("shipping"),
+  ]);
   const anyOrders = total > 0 || !!p.q || Object.keys(p.filters).length > 0;
 
   return (
@@ -56,7 +61,15 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
         ))}
       </nav>
       {anyOrders ? (
-        <OrdersTable rows={rows} total={total} page={p.page} pageSize={p.pageSize} />
+        <OrdersTable
+          rows={rows}
+          total={total}
+          page={p.page}
+          pageSize={p.pageSize}
+          couriers={availableCouriers()}
+          defaultCourier={shipping.defaultCourier}
+          canShip={admin.can("shipping.manage")}
+        />
       ) : (
         <EmptyState icon={ReceiptTextIcon} title="No orders yet">
           Orders placed on the shop appear here the moment they come in.

@@ -19,7 +19,32 @@ import { eq, inArray, like, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import { DHAKA_CITY_THANAS, DISTRICTS } from "@/lib/bd-geo";
+import { mapStatus } from "@/server/shipping/status";
 import * as schema from "./schema";
+
+const DEMO_COURIER_STATUS = {
+  pathao: {
+    transit: "in_transit",
+    out: "assigned_for_delivery",
+    delivered: "delivered",
+    failed: "delivery_failed",
+    returned: "returned",
+  },
+  steadfast: {
+    transit: "pending",
+    out: "pending",
+    delivered: "delivered",
+    failed: "cancelled_approval_pending",
+    returned: "cancelled",
+  },
+  mock: {
+    transit: "in_transit",
+    out: "out_for_delivery",
+    delivered: "delivered",
+    failed: "delivery_failed",
+    returned: "returned",
+  },
+} as const;
 
 const S = schema;
 const DAY = 86_400_000;
@@ -578,14 +603,18 @@ async function main() {
       // Shipments
       if (ts.shippedAt && order!.courier) {
         const code = `${order!.courier === "pathao" ? "DP" : order!.courier === "steadfast" ? "SF" : "MK"}${randomBytes(4).toString("hex").toUpperCase()}`;
-        const shipStatus =
-          status === "delivered" || status === "returned" || status === "return_requested"
+        // Each courier's own word for where the parcel is (see src/server/shipping/status-*.ts)
+        const stage =
+          status === "delivered" || status === "return_requested"
             ? "delivered"
-            : status === "delivery_failed"
-              ? "failed"
-              : status === "out_for_delivery"
-                ? "out_for_delivery"
-                : "in_transit";
+            : status === "returned"
+              ? "returned"
+              : status === "delivery_failed"
+                ? "failed"
+                : status === "out_for_delivery"
+                  ? "out"
+                  : "transit";
+        const shipStatus = DEMO_COURIER_STATUS[order!.courier][stage];
         await tx.insert(S.shipments).values({
           orderId: order!.id,
           courier: order!.courier,
@@ -594,9 +623,15 @@ async function main() {
           status: shipStatus,
           codAmount: method === "cod" ? total : 0,
           attempts: status === "delivery_failed" ? int(1, 3) : ts.deliveredAt ? 1 : 0,
-          active: !["delivered", "failed"].includes(shipStatus),
+          active: !mapStatus(order!.courier, shipStatus).final,
           createdAt: ts.shippedAt,
           updatedAt: ts.deliveredAt ?? ts.deliveryFailedAt ?? ts.outForDeliveryAt ?? ts.shippedAt,
+          lastCheckedAt:
+            ts.returnedAt ??
+            ts.deliveredAt ??
+            ts.deliveryFailedAt ??
+            ts.outForDeliveryAt ??
+            ts.shippedAt,
         });
         await tx.update(S.orders).set({ trackingCode: code }).where(eq(S.orders.id, order!.id));
       }

@@ -76,7 +76,13 @@ Without `BLOB_READ_WRITE_TOKEN`, photos uploaded in the admin (bottle photos, ga
 
 ## 7. Scheduled jobs
 
-`vercel.json` runs `/api/cron/release-reservations` every 10 minutes on Vercel, which releases stock held by unpaid orders once their time is up. It needs `CRON_SECRET`. Locally, availability already ignores expired holds, so nothing needs to run.
+`vercel.json` runs three jobs on Vercel, each protected by `CRON_SECRET`:
+
+- `/api/cron/release-reservations`, every 10 minutes: releases stock held by unpaid orders once their time is up.
+- `/api/cron/payments`, every 30 minutes: asks the gateway about payments still open, and refunds still processing.
+- `/api/cron/shipping`, every 30 minutes: asks each courier about its parcels still under way.
+
+Locally, nothing needs to run: availability already ignores expired holds, and the test gateway and test courier answer at once.
 
 ## 8. Payments
 
@@ -86,3 +92,13 @@ Without `BLOB_READ_WRITE_TOKEN`, photos uploaded in the admin (bottle photos, ga
   - To test the IPN too, expose the site with a tunnel and set `NEXT_PUBLIC_SITE_URL` to the tunnel's URL.
 - **Refunds**: on an order's page, under Payment. A test-gateway refund completes at once. An SSLCommerz refund shows "Processing" until its status check (the Check button, or the cron) says refunded.
 - **Cron** (`vercel.json`): `/api/cron/payments` every 30 minutes asks the provider about payments still open, and about refunds still processing.
+
+## 9. Shipping
+
+- **Test courier** (the default): open a confirmed order and press **Send to courier**. It takes the parcel at once. Then use **Courier update** to play the courier: picked up, on the way, out for delivery, delivered, delivery failed, on its way back, returned. Each update goes through the same webhook code as Pathao's and Steadfast's.
+- **Several at once**: tick orders in Admin → Orders, then **Send to courier** or **Print labels**.
+- **Labels**: the **Label** button on an order, or in bulk. Each is a 4 × 6 inch page with a QR code of the tracking code.
+- **Failed deliveries and returns**: Admin → Shipping lists both, with the cash each courier has collected and still has to collect. A failed parcel can be tried again while the courier has it. A parcel that came back is marked **Returned** from the order's **More** menu, with why, its condition, and whether the bottles go back in stock.
+- **Pathao sandbox**: put the sandbox keys in `.env` (`PATHAO_CLIENT_ID`, `PATHAO_CLIENT_SECRET`, `PATHAO_USERNAME`, `PATHAO_PASSWORD`, `PATHAO_STORE_ID`, `PATHAO_IS_LIVE=false`), restart, and send an order with Pathao. Its city and zone are matched from the address; if they aren't, choose them in the send dialog.
+- **Steadfast**: `STEADFAST_API_KEY` and `STEADFAST_SECRET_KEY`. Ask Steadfast whether your keys are for testing. If not, its parcels are real: cancel a test one in its panel before pickup.
+- **Webhooks** need a public URL (a tunnel locally); see `.env.example` for each courier's callback URL and secret. Without them, the 30-minute check (or **Check** on the order) keeps parcels up to date.

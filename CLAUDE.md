@@ -153,6 +153,10 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
   - Failures change state only when the notice is signed. `reconcilePayments()` (cron) asks the provider about attempts still open.
   - Refunds go through the provider (or are recorded by hand for cash on delivery) in `refunds.ts`. The order's payment status follows the completed refunds.
   - Placing an order locks its sizes first (`priceBag(tx, items, true)`), so concurrent checkouts can't deadlock.
+- **Shipping** (`src/server/shipping`): one `CourierProvider` interface (`types.ts`), the test courier (`mock.ts`, signed webhooks, off on the live site), Pathao (`pathao.ts`) and Steadfast (`steadfast.ts`).
+  - Each courier's statuses map to order states in its own `status-*.ts`. `applyCourierStatus()` moves the order along the state machine (`pathTo()`) and ignores repeats and stale updates. Webhooks, the cron poll and the test courier all go through it.
+  - `sendToCourier()` sends the cash to collect (`codAmountFor()`: unpaid COD only). Returns go through `recordReturn()` (reason, condition, restock).
+  - The label PDF is `label.tsx` (React PDF, the invoice's fonts and logo).
 
 ## Code conventions
 

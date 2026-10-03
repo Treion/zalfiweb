@@ -151,7 +151,7 @@ adapters (src/server/providers/*): Payment (mock | SSLCommerz) · Courier (mock 
 3. ✅ **Products & inventory:** fragrance and variant editing, images, stock ledger, reservations, low stock, storefront revalidation, `/api/stock`.
 4. ✅ **Checkout & orders:** checkout steps, OTP (dev SMS), server pricing, shipping fees, coupons, the state machine, order pages, e-receipt and invoice PDF (dev email).
 5. ✅ **Payments:** mock provider, SSLCommerz (sandbox-ready), IPN and validation, refunds, the payments page, the COD toggle.
-6. **Shipping:** mock courier, Pathao and Steadfast, labels, bulk actions, webhooks, cron polling, failed deliveries and returns.
+6. ✅ **Shipping:** mock courier, Pathao and Steadfast, labels, bulk actions, webhooks, cron polling, failed deliveries and returns.
 7. **Dashboard & reports:** overview charts, needs-attention list, customers, reports and CSV, global search.
 8. **Hardening & docs:** the security pass, the full test suite, integration status with test buttons, `SETUP`, `GO_LIVE`, `DECISIONS` and `ADMIN_GUIDE`.
 

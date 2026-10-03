@@ -1,4 +1,4 @@
-import { eq, inArray, sql } from "drizzle-orm";
+import { asc, eq, inArray, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   adminUsers,
@@ -244,7 +244,13 @@ describe("checkout", () => {
     await expect(
       withTx((tx) => transitionOrder(tx, id, "packed", { actor: "system" })),
     ).rejects.toThrow();
-    const types = (await poolDb().select().from(orderEvents).where(eq(orderEvents.orderId, id)))
+    const types = (
+      await poolDb()
+        .select()
+        .from(orderEvents)
+        .where(eq(orderEvents.orderId, id))
+        .orderBy(asc(orderEvents.id))
+    )
       .map((e) => e.toStatus)
       .filter(Boolean);
     expect(types).toEqual(["confirmed", "packed", "cancelled"]);
