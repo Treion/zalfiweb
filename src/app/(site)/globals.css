@@ -36,6 +36,8 @@
   --color-world-deep: var(--world-deep);
   --color-world-accent: var(--world-accent);
   --color-world-ink: var(--world-ink);
+  /* Form errors on bone (6.1:1) */
+  --color-alert: #9a3324;
 
   --font-display: var(--font-bodoni), "Bodoni 72", "Didot", serif;
   --font-sans: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;

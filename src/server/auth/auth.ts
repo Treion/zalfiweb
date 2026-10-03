@@ -1,3 +1,4 @@
+import { appSecret } from "@/server/secret";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
@@ -30,14 +31,6 @@ export const AUTH_BASE_PATH = "/api/admin/auth";
 
 const SIGN_IN_LIMIT = { perIp: 20, perEmail: 8, windowSeconds: 15 * 60 };
 
-function secret() {
-  const s = env("BETTER_AUTH_SECRET");
-  if (s) return s;
-  if (process.env.NODE_ENV === "production" && process.env.NEXT_PHASE !== "phase-production-build")
-    throw new Error("BETTER_AUTH_SECRET must be set in production");
-  return "dev-only-secret-change-me-dev-only-secret-change-me";
-}
-
 function create() {
   const baseURL = env("BETTER_AUTH_URL") ?? siteUrl();
   const dev = process.env.NODE_ENV !== "production";
@@ -46,7 +39,7 @@ function create() {
     appName: "ZALFI Admin",
     baseURL,
     basePath: AUTH_BASE_PATH,
-    secret: secret(),
+    secret: appSecret(),
     // In development the admin may be opened as localhost or 127.0.0.1, on any port
     trustedOrigins: dev ? [baseURL, "http://localhost:*", "http://127.0.0.1:*"] : [baseURL],
     database: drizzleAdapter(db, {

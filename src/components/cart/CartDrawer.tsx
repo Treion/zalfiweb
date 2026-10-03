@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useLenis } from "@/components/motion/SmoothScroll";
@@ -16,6 +17,7 @@ export function CartDrawer({ worldCount = 6 }: { worldCount?: number }) {
   const cart = useCart();
   const { open, closeBag } = cart;
   const lenis = useLenis();
+  const router = useRouter();
   const panel = useRef<HTMLDivElement>(null);
   const restoreFocus = useRef<HTMLElement | null>(null);
   const [checkout, setCheckout] = useState<
@@ -72,7 +74,8 @@ export function CartDrawer({ worldCount = 6 }: { worldCount?: number }) {
       });
       const data = (await res.json()) as CheckoutResponse;
       if (data.status === "ready") {
-        window.location.href = data.url;
+        closeBag();
+        router.push(data.url);
         return;
       }
       setCheckout({ state: "message", text: data.message });

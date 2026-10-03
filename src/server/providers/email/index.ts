@@ -17,6 +17,7 @@ export type EmailMessage = {
   text: string;
   /** For logs and the dev outbox, e.g. "receipt" or "invitation" */
   tag: string;
+  attachments?: { filename: string; content: Buffer }[];
 };
 
 export type EmailResult = { ok: true; id: string } | { ok: false; error: string };
@@ -39,6 +40,8 @@ export const devEmail: EmailProvider = {
         path.join(OUTBOX_DIR, `${id}.json`),
         JSON.stringify({ to: msg.to, subject: msg.subject, tag: msg.tag, text: msg.text }, null, 2),
       );
+      for (const a of msg.attachments ?? [])
+        await writeFile(path.join(OUTBOX_DIR, `${id}-${a.filename}`), a.content);
     } catch {
       /* read-only filesystem (a preview deployment): the console copy is enough */
     }
@@ -60,6 +63,10 @@ export function resendEmail(apiKey: string, from: string): EmailProvider {
           subject: msg.subject,
           html: msg.html,
           text: msg.text,
+          attachments: msg.attachments?.map((a) => ({
+            filename: a.filename,
+            content: a.content.toString("base64"),
+          })),
         }),
       }).catch((e: Error) => e);
       if (res instanceof Error) return { ok: false, error: res.message };

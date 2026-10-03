@@ -1,0 +1,142 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { PAYMENT_LABELS } from "@/lib/checkout";
+import { formatPrice } from "@/lib/money";
+import { formatPhone } from "@/lib/phone";
+import { formatDateTime } from "@/lib/time";
+import { checkoutOpen } from "@/server/checkout/http";
+import { orderForCustomer } from "@/server/orders/public";
+
+export const metadata: Metadata = {
+  title: "Thank you",
+  robots: { index: false, follow: false },
+};
+
+/** The confirmation page, opened with the order's private access token (`?o=`) */
+export default async function ThanksPage({ searchParams }: PageProps<"/checkout/thanks">) {
+  const { o } = await searchParams;
+  if (!checkoutOpen() || typeof o !== "string") notFound();
+  const found = await orderForCustomer(o);
+  if (!found) notFound();
+  const { order, items } = found;
+  const awaitingPayment = order.status === "pending_payment";
+  const cancelled = order.status === "cancelled";
+  const firstName = order.customerName.split(" ")[0];
+
+  return (
+    <main id="main" className="bg-bone px-gutter text-noir min-h-svh pt-36 pb-24">
+      <div className="grid grid-cols-12 gap-x-4 gap-y-12">
+        <div className="col-span-12 md:col-span-5">
+          <p className="eyebrow text-smoke">Order {order.number}</p>
+          <h1 className="font-display mt-6 text-[clamp(3rem,7vw,7rem)] leading-[0.9]">
+            {cancelled ? (
+              <>
+                This order
+                <br />
+                <span className="display-italic">was cancelled.</span>
+              </>
+            ) : awaitingPayment ? (
+              <>
+                Almost
+                <br />
+                <span className="display-italic">yours.</span>
+              </>
+            ) : (
+              <>
+                {`Thank you, ${firstName}.`}
+                <br />
+                <span className="display-italic">It&rsquo;s on its way.</span>
+              </>
+            )}
+          </h1>
+          <p className="text-smoke mt-8 max-w-sm leading-relaxed">
+            {cancelled
+              ? "Nothing will be sent. If you paid, your refund is on its way."
+              : awaitingPayment
+                ? "We're holding your bottles while payment is completed. Online payment opens soon."
+                : `Your receipt is on its way to ${order.customerEmail}. The courier will call ${formatPhone(order.customerPhone)} before delivery.`}
+          </p>
+          <Link
+            href="/#collection"
+            className="eyebrow border-noir mt-10 inline-block border-b pb-1"
+          >
+            Back to the collection
+          </Link>
+        </div>
+
+        <section
+          aria-labelledby="order-title"
+          className="border-noir/15 col-span-12 border-t pt-8 md:col-span-6 md:col-start-7"
+        >
+          <h2 id="order-title" className="eyebrow text-smoke">
+            Your order
+          </h2>
+          <ul className="divide-noir/10 mt-6 divide-y">
+            {items.map((i, n) => (
+              <li key={n} className="flex items-baseline justify-between gap-6 py-5">
+                <div>
+                  <p className="font-display text-2xl leading-none">{i.name}</p>
+                  <p className="text-smoke mt-1 text-sm">
+                    {i.sizeMl} ml × {i.qty}
+                  </p>
+                </div>
+                <p className="tabular-nums">{formatPrice(i.lineTotal)}</p>
+              </li>
+            ))}
+          </ul>
+          <dl className="border-noir/15 mt-2 space-y-2 border-t pt-6 text-sm">
+            <Row label="Subtotal" value={formatPrice(order.subtotal)} />
+            {order.discount > 0 && (
+              <Row
+                label={order.couponCode ? `Discount, ${order.couponCode}` : "Discount"}
+                value={formatPrice(-order.discount)}
+              />
+            )}
+            <Row
+              label={
+                order.zone === "inside_dhaka" ? "Shipping, inside Dhaka" : "Shipping, outside Dhaka"
+              }
+              value={order.shippingFee ? formatPrice(order.shippingFee) : "Free"}
+            />
+          </dl>
+          <div className="border-noir/15 mt-6 flex items-baseline justify-between border-t pt-6">
+            <span className="eyebrow">Total</span>
+            <span className="font-display text-4xl tabular-nums">{formatPrice(order.total)}</span>
+          </div>
+
+          <div className="border-noir/15 mt-10 grid grid-cols-2 gap-6 border-t pt-8 text-sm leading-relaxed">
+            <div>
+              <p className="eyebrow text-smoke">Delivering to</p>
+              <p className="mt-3">{order.customerName}</p>
+              <p>{order.addressStreet}</p>
+              <p>{`${order.addressArea}, ${order.addressDistrict}`}</p>
+            </div>
+            <div>
+              <p className="eyebrow text-smoke">Payment</p>
+              <p className="mt-3">{PAYMENT_LABELS[order.paymentMethod]}</p>
+              <p className="text-smoke">
+                {order.paymentMethod === "cod"
+                  ? "Pay the courier on delivery"
+                  : order.paymentStatus === "paid"
+                    ? "Paid"
+                    : "Awaiting payment"}
+              </p>
+              <p className="eyebrow text-smoke mt-6">Placed</p>
+              <p className="mt-3">{formatDateTime(order.createdAt)}</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between">
+      <dt className="text-smoke">{label}</dt>
+      <dd className="tabular-nums">{value}</dd>
+    </div>
+  );
+}

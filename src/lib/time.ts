@@ -48,3 +48,13 @@ export function formatRelative(d: Date | string | number, now: Date = new Date()
   if (days < 7) return `${days} days ago`;
   return formatDate(d);
 }
+
+/** A Date as a `datetime-local` value in Dhaka time: "2026-10-05T18:30" */
+export function toDhakaInput(d: Date | string | null) {
+  if (!d) return "";
+  return new Date(toDate(d).getTime() + 6 * 3600_000).toISOString().slice(0, 16);
+}
+
+/** A `datetime-local` value typed in Dhaka time, as an ISO instant: "2026-10-05T18:30:00+06:00" */
+export const fromDhakaInput = (v: string) =>
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v) ? `${v}:00+06:00` : null;

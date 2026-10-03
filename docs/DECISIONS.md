@@ -73,3 +73,27 @@ Judgement calls made while building the backend and admin, newest last. Each one
 46. **`/api/stock`** now returns available stock (after holds) for published, active sizes only.
 47. **Low stock** uses each size's own threshold, or the default in Settings → Inventory. The sidebar shows the count of published sizes that are low or out.
 48. **Every catalogue or stock change revalidates the whole storefront** (`revalidatePath("/", "layout")`). The catalogue is small, and a stale price is worse than a re-render.
+
+## Phase 4: Checkout & orders
+
+49. **Checkout runs on Node,** not the Edge: it needs transactions (the WebSocket pool), `node:crypto` for codes, and the PDF renderer. The storefront's read-only routes stay edge-portable.
+50. **Phone codes.** Six digits, valid 5 minutes, 5 tries, a new one after 60 seconds. Sends are limited to 5 per phone and 20 per IP an hour; checks to 30 per IP per 15 minutes. Only an HMAC of the code (keyed by `BETTER_AUTH_SECRET`) is stored. A verified phone stays verified in that browser for 24 hours: an httpOnly cookie holds a random token, and the database only its hash. With the dev SMS provider and outside production, the checkout shows the code on screen.
+51. **BulkSMSBD** is the SMS gateway implemented first (`src/server/providers/sms`). Another gateway is one more object with a `send`.
+52. **The total the customer saw is part of the order.** If prices, stock, the coupon or the fee changed in between, nothing is placed: the checkout shows the new total and asks again.
+53. **Cash on delivery** orders are confirmed when placed: the bottles are sold from stock and the e-receipt goes out at once. They become paid when they are delivered. **Online** orders wait as "Awaiting payment" with their bottles held; phase 5 connects the payment, and the receipt goes out when payment is confirmed. Unpaid orders cancel themselves after the unpaid-order time (the cron job, every 10 minutes).
+54. **Coupons.**
+    - A coupon is a percentage (with an optional cap) or a fixed amount, not both. It can also give free shipping.
+    - Discounts round down to whole taka, so cash payments never need poisha.
+    - A coupon limited to some fragrances discounts only those bottles. The minimum order counts the whole bag.
+    - Uses are counted from orders that weren't cancelled. "First order" means no earlier such order from that phone.
+    - The coupon's row is locked while an order is placed, so its last use can't go to two orders at once (tested).
+    - A used coupon can't be deleted, only switched off.
+55. **Free shipping from a threshold** compares what is paid for the bottles, after the discount.
+56. **Prices include VAT.** With VAT on in Settings → Invoice, the receipt shows the VAT the total already contains.
+57. **The state machine** adds two steps to the spec. "Shipped" can go straight to "delivered", because some couriers skip "out for delivery". A return request can be declined, which takes the order back to "delivered". Admins can make every move by hand except "confirmed", which only payment makes. Cancelling or returning offers to put the bottles back, ticked by default. Cancelling a paid order reminds the admin to refund it (refunds arrive in phase 5). The full returns record (items, condition) arrives with shipping in phase 6.
+58. **One invoice, two renderers.** `InvoiceData` is rendered as the e-receipt email (React Email) and the A4 PDF (React PDF), in the same order. The PDF is attached to the receipt, and admins can download it. The PDF uses Hanken Grotesk, with Noto Sans Bengali for ৳ and for addresses typed in Bangla. React PDF doesn't join Bengali conjunct letters perfectly. The email shows them correctly.
+59. **The email logo** is a PNG made from the traced logo by `npm run assets:logo` (`public/brand/zalfi-logo-ink.png`), because mail apps don't show SVG reliably.
+60. **Customers** are created or updated by phone at each order (the latest name and email win). Their addresses are kept, without duplicates.
+61. **The confirmation page** opens with a private access token in its link (24 random bytes). It is not indexed and shows only that order.
+62. **The checkout keeps a draft** of the details on the device, so a reload loses nothing. The bag and the draft are cleared once the order is placed.
+63. **Orders admin.** The list has quick views (to pack, to ship, on the way, needs attention). Notes are timeline events. The sidebar counts the orders waiting to be packed. The phone search accepts any format (`01712-345678`, `+8801712345678`).

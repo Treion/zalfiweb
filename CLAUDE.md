@@ -10,7 +10,7 @@ The build plan lives in `PLAN.md`, and the note photo list and prompts in `NOTES
 
 - Next.js 16 App Router, React Server Components, TypeScript strict. **Next 16 differs from older versions.** Read `node_modules/next/dist/docs/` before using an API you are unsure of (for example, `next/image` uses `preload`, not the deprecated `priority`, and `images.qualities` must allowlist every quality used).
 - Tailwind CSS v4. Tokens are in `src/app/globals.css` (`@theme`).
-- Route handlers for `/api/*`, written to be edge-portable (Web APIs + Neon's fetch driver only). Next 16 deprecates `runtime = "edge"`, so it is not exported; add it back per route to pin a handler to the Edge.
+- Route handlers for `/api/*`, written to be edge-portable (Web APIs + Neon's fetch driver only). Next 16 deprecates `runtime = "edge"`, so it is not exported; add it back per route to pin a handler to the Edge. Exceptions run on Node: checkout (`/api/checkout/*`: transactions, `node:crypto`), admin, cron and invoice PDFs.
 - PostgreSQL + Drizzle ORM. The Neon HTTP driver is used everywhere. In dev, `npm run db:proxy` serves Neon's HTTP protocol against local Postgres 16. `src/db/seed-data.ts` is the typed catalogue source and the fallback when `DATABASE_URL` is missing. The seed never overwrites owner edits unless `--reset` is passed.
 - GSAP + ScrollTrigger for scroll-scrubbed sequences. **Import from `@/components/motion/gsap`**, never from `gsap` directly.
 - Motion (`motion/react`) for UI interactions: hover, buttons, menus, drawer, modals, cursor.
@@ -140,6 +140,11 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
   - Important actions write `audit()` in the same transaction.
 - **Settings** are typed per section (`src/server/settings/schema.ts`), with defaults for every field. Secrets are environment variables only (`.env.example`).
 - **Every paid integration sits behind an adapter with a local dev or mock provider**, so the whole flow runs without keys.
+- **Checkout** (`src/server/checkout`, `src/server/orders`):
+  - Money rules are pure functions in `checkout/pricing.ts` (zone, fee, coupon, totals). The quote and the placed order both go through `checkout/quote.ts`, so they never disagree.
+  - The order lifecycle is `orders/state.ts`. Move orders only with `transitionOrder()` (in a transaction), which writes the timeline event and the stock side effects.
+  - The e-receipt (React Email) and the invoice PDF (React PDF) both render one `InvoiceData` (`invoice/data.ts`). Change them together.
+  - The storefront checkout reuses the site's tokens and type; errors use `text-alert`.
 
 ## Code conventions
 

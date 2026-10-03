@@ -1,86 +1,50 @@
-import { inArray } from "drizzle-orm";
 import { z } from "zod";
-import { getDb } from "@/db/client";
-import { variants } from "@/db/schema";
-import { FRAGRANCES } from "@/db/seed-data";
+import { bagSchema } from "@/lib/checkout";
+import { priceBag } from "@/server/checkout/quote";
+import { checkoutOpen, noStore } from "@/server/checkout/http";
+import { poolDb } from "@/server/db/pool";
 
-// Checkout placeholder, shaped for Stripe Checkout Sessions.
-// To go live:
-//   1. npm i stripe, and set STRIPE_SECRET_KEY
-//   2. Map each validated line to a Stripe price (store stripe_price_id on `variants`)
-//   3. stripe.checkout.sessions.create({ mode: "payment", line_items, success_url, cancel_url })
-//   4. Return { url: session.url } with status 200. The cart drawer already redirects to `url`.
-
-const Body = z.object({
-  items: z
-    .array(z.object({ sku: z.string().min(1).max(64), qty: z.number().int().min(1).max(10) }))
-    .min(1)
-    .max(20),
-});
+// The bag's "Checkout" button: checks the bag can be bought (prices and stock are re-read here,
+// never taken from the browser), then sends the customer to the checkout page.
 
 export type CheckoutResponse =
   | { status: "ready"; url: string }
-  | { status: "unavailable"; message: string; subtotalPoisha: number }
+  | { status: "unavailable"; message: string }
   | { status: "invalid"; message: string };
+
+const Body = z.object({ items: bagSchema }).strict();
+const reply = (r: CheckoutResponse, status = 200) => Response.json(r, { status, headers: noStore });
 
 export async function POST(req: Request) {
   const parsed = Body.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) {
-    return Response.json(
-      { status: "invalid", message: "Your bag looks empty." } satisfies CheckoutResponse,
-      {
-        status: 422,
-      },
-    );
-  }
-
-  const skus = parsed.data.items.map((i) => i.sku);
-  const db = getDb();
-  const priced = db
-    ? await db
-        .select({
-          sku: variants.sku,
-          pricePoisha: variants.pricePoisha,
-          stock: variants.stock,
-        })
-        .from(variants)
-        .where(inArray(variants.sku, skus))
-        .catch(() => null)
-    : FRAGRANCES.flatMap((f) => f.variants).filter((v) => skus.includes(v.sku));
-  if (!priced) {
-    return Response.json(
-      { status: "invalid", message: "We couldn't price your bag. Try again." },
-      { status: 503 },
-    );
-  }
-
-  const bySku = new Map(priced.map((p) => [p.sku, p]));
-  for (const item of parsed.data.items) {
-    const v = bySku.get(item.sku);
-    if (!v)
-      return Response.json(
-        { status: "invalid", message: "An item is no longer available." },
-        { status: 409 },
-      );
-    if (v.stock < item.qty) {
-      return Response.json(
-        { status: "invalid", message: "One of your bottles is running low. Adjust the quantity." },
-        { status: 409 },
-      );
-    }
-  }
-  const subtotalPoisha = parsed.data.items.reduce(
-    (s, i) => s + bySku.get(i.sku)!.pricePoisha * i.qty,
-    0,
-  );
-
-  // Prices are always recomputed on the server: the client's totals are never trusted.
-  return Response.json(
-    {
+  if (!parsed.success) return reply({ status: "invalid", message: "Your bag looks empty." }, 422);
+  if (!checkoutOpen())
+    return reply({
       status: "unavailable",
       message: "Checkout opens soon. Your bag is saved on this device.",
-      subtotalPoisha,
-    } satisfies CheckoutResponse,
-    { status: 200 },
-  );
+    });
+  try {
+    const { lines, unavailable } = await priceBag(poolDb(), parsed.data.items);
+    if (unavailable.length)
+      return reply(
+        {
+          status: "invalid",
+          message: "Something in your bag has sold out. Remove it to continue.",
+        },
+        409,
+      );
+    const short = lines.find((l) => l.qty > l.available);
+    if (short)
+      return reply(
+        {
+          status: "invalid",
+          message: `Only ${short.available} ${short.name} left. Adjust the quantity.`,
+        },
+        409,
+      );
+    return reply({ status: "ready", url: "/checkout" });
+  } catch (e) {
+    console.error("[checkout]", e);
+    return reply({ status: "invalid", message: "We couldn't check your bag. Try again." }, 503);
+  }
 }

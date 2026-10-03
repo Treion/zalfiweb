@@ -55,9 +55,18 @@ It checks PostgreSQL is reachable (and says so plainly if not), starts the local
 - `src/app/(site)/` is the storefront. `src/app/(admin)/admin/` is the admin, with its own root layout and stylesheet; it never loads GSAP, Lenis or three.js.
 - `src/proxy.ts` sends signed-out visitors to `/admin/login` and adds security headers. Pages, actions and route handlers each check the role again.
 
-## 5. Dev email
+## 5. Dev email and SMS
 
-Without Resend keys, emails (invitations, and later e-receipts) are printed in the terminal and saved as HTML in `.data/outbox/`.
+Without Resend keys, emails (invitations and e-receipts) are printed in the terminal and saved in `.data/outbox/`: the HTML, and for receipts the PDF invoice that was attached.
+
+Without BulkSMSBD keys, checkout codes are printed in the terminal and appended to `.data/sms.log`. Outside production the checkout also shows the code under the code field, so you can test on one screen.
+
+## Trying a checkout locally
+
+1. In the admin, open **Settings → Payments** and switch **Cash on delivery** on (it is off by default). Online payment connects in phase 5; until then an online order waits for payment and cancels itself after the unpaid-order time.
+2. Add a bottle to the bag on the shop and press **Checkout**.
+3. Fill in your details and press **Send code**. Type the code shown under the field.
+4. Choose a district and area, then **Place order**. The receipt lands in `.data/outbox/`, and the order appears in **Admin → Orders**.
 
 ## 6. Uploads
 
