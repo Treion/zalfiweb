@@ -16,7 +16,10 @@ export default async function Home() {
   return (
     <main id="main">
       <Experience fragrances={fragrances} noteAvail={noteAvail} />
-      <Story feature={fragrances.find((f) => f.slug === "bond") ?? fragrances[0]} />
+      <Story
+        feature={fragrances.find((f) => f.slug === "bond") ?? fragrances[0]}
+        count={fragrances.length}
+      />
       <Newsletter />
     </main>
   );

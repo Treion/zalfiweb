@@ -20,10 +20,13 @@ function isActive(pathname: string, href: string) {
 /** The navigation list, shared by the desktop sidebar and the mobile drawer */
 export function NavList({
   allowed,
+  badges = {},
   collapsed = false,
   onNavigate,
 }: {
   allowed: string[];
+  /** Counts that need attention, by href (e.g. low-stock sizes on Inventory) */
+  badges?: Record<string, number>;
   collapsed?: boolean;
   onNavigate?: () => void;
 }) {
@@ -50,8 +53,30 @@ export function NavList({
                     collapsed && "justify-center px-0",
                   )}
                 >
-                  <item.icon className={cn("size-4 shrink-0", active && "text-gold")} />
-                  {collapsed ? <span className="sr-only">{item.label}</span> : item.label}
+                  <span className="relative">
+                    <item.icon className={cn("size-4 shrink-0", active && "text-gold")} />
+                    {collapsed && !!badges[item.href] && (
+                      <span className="absolute -top-1 -right-1 size-2 rounded-full bg-[var(--tone-warning-fg)]" />
+                    )}
+                  </span>
+                  {collapsed ? (
+                    <span className="sr-only">
+                      {item.label}
+                      {badges[item.href] ? `, ${badges[item.href]} need attention` : ""}
+                    </span>
+                  ) : (
+                    <>
+                      {item.label}
+                      {!!badges[item.href] && (
+                        <span
+                          className="ml-auto rounded-full bg-[var(--tone-warning-bg)] px-1.5 text-xs font-medium text-[var(--tone-warning-fg)] tabular-nums"
+                          aria-label={`${badges[item.href]} need attention`}
+                        >
+                          {badges[item.href]}
+                        </span>
+                      )}
+                    </>
+                  )}
                 </Link>
               );
               return collapsed ? (
@@ -73,9 +98,11 @@ export function NavList({
 /** Desktop sidebar (lg and up). Collapses to icons; the choice is kept in a cookie. */
 export function Sidebar({
   allowed,
+  badges,
   initialCollapsed,
 }: {
   allowed: string[];
+  badges?: Record<string, number>;
   initialCollapsed: boolean;
 }) {
   const [collapsed, setCollapsed] = useState(initialCollapsed);
@@ -106,7 +133,7 @@ export function Sidebar({
         </Link>
       </div>
       <div className={cn("flex-1 overflow-y-auto py-4", collapsed ? "px-2" : "px-3")}>
-        <NavList allowed={allowed} collapsed={collapsed} />
+        <NavList allowed={allowed} badges={badges} collapsed={collapsed} />
       </div>
       <button
         type="button"

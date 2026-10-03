@@ -11,6 +11,7 @@ import { Nav } from "@/components/ui/Nav";
 import { Footer } from "@/components/sections/Footer";
 import { getFragrances } from "@/db/queries";
 import "./globals.css";
+import { countWord, listNames } from "@/lib/words";
 
 const bodoni = Bodoni_Moda({
   subsets: ["latin"],
@@ -27,7 +28,15 @@ const hanken = Hanken_Grotesk({
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
-export const metadata: Metadata = {
+export async function generateMetadata(): Promise<Metadata> {
+  const fragrances = await getFragrances();
+  return {
+    ...metadata,
+    description: `ZALFI is a niche perfume house. ${countWord(fragrances.length, true)} eaux de parfum in smoked glass: ${listNames(fragrances.map((f) => f.name))}.`,
+  };
+}
+
+const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
     default: "ZALFI | Eau de Parfum",
@@ -75,7 +84,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             <Nav />
             {children}
             <Footer fragrances={fragrances} />
-            <CartDrawer />
+            <CartDrawer worldCount={fragrances.length} />
           </CartProvider>
         </SmoothScroll>
         <StageLoader fragrances={stageFragrances} />

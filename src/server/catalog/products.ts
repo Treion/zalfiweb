@@ -292,17 +292,15 @@ export async function setFragranceNotes(
     const before = await tx.select().from(fragranceNotes).where(eq(fragranceNotes.fragranceId, id));
     await tx.delete(fragranceNotes).where(eq(fragranceNotes.fragranceId, id));
     if (list.length)
-      await tx
-        .insert(fragranceNotes)
-        .values(
-          list.map((n, i) => ({
-            fragranceId: id,
-            noteId: idOf.get(n.noteSlug)!,
-            layer: n.layer,
-            label: n.label,
-            position: i,
-          })),
-        );
+      await tx.insert(fragranceNotes).values(
+        list.map((n, i) => ({
+          fragranceId: id,
+          noteId: idOf.get(n.noteSlug)!,
+          layer: n.layer,
+          label: n.label,
+          position: i,
+        })),
+      );
     await audit(tx, actor, "product.notes", {
       entity: "fragrance",
       entityId: id,

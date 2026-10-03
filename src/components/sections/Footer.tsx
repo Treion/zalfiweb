@@ -5,6 +5,7 @@ import { ContactIcons } from "@/components/ui/ContactIcons";
 import { INFO_PAGES, type InfoPage } from "@/content/pages";
 import { CONTACT, MAPS_URL } from "@/lib/contact";
 import type { Fragrance } from "@/lib/fragrance";
+import { countWord } from "@/lib/words";
 
 const pages = (group: InfoPage["group"]) =>
   INFO_PAGES.filter((p) => p.group === group).map((p) => ({ href: `/${p.slug}`, label: p.title }));
@@ -37,7 +38,7 @@ export function Footer({
       <div className="grid grid-cols-12 gap-x-4 gap-y-12">
         <nav aria-labelledby="footer-worlds" className="col-span-12 lg:col-span-5">
           <h2 id="footer-worlds" className="eyebrow text-bone-dim">
-            The six worlds
+            {`The ${countWord(fragrances.length)} worlds`}
           </h2>
           <ul className="mt-6 grid grid-cols-2 gap-x-6 gap-y-4">
             {fragrances.map((f) => (

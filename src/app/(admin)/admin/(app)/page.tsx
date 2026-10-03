@@ -61,7 +61,7 @@ export default async function OverviewPage() {
       label: "Review shipping fees and Dhaka areas",
       href: "/admin/settings",
     },
-    { done: false, label: "Set real prices in taka", note: "Products, phase 3" },
+    { done: false, label: "Set real prices in taka", href: "/admin/products" },
   ];
 
   const stats = [
@@ -121,9 +121,6 @@ export default async function OverviewPage() {
                       >
                         Open
                       </Link>
-                    )}
-                    {s.note && (
-                      <span className="text-muted-foreground ml-auto text-xs">{s.note}</span>
                     )}
                   </li>
                 ))}

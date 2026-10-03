@@ -7,12 +7,13 @@ import { SplitWords } from "@/components/motion/SplitWords";
 import { Logo } from "@/components/brand/Logo";
 import { BottleImage } from "@/components/media/BottleImage";
 import type { Fragrance } from "@/lib/fragrance";
+import { countWord } from "@/lib/words";
 
 /**
  * The house, told briefly. Bone paper after the dark collection: an editorial spread with the
  * headline running over the bottle, the emblem as a watermark, and scrubbed parallax.
  */
-export function Story({ feature }: { feature: Fragrance }) {
+export function Story({ feature, count = 6 }: { feature: Fragrance; count?: number }) {
   const root = useRef<HTMLElement>(null);
   const reduced = useReducedMotion();
 
@@ -116,7 +117,7 @@ export function Story({ feature }: { feature: Fragrance }) {
           </p>
           <dl className="border-noir/15 grid grid-cols-3 gap-6 border-t pt-8 md:col-span-9">
             {[
-              ["Six", "worlds, one house"],
+              [countWord(count, true), "worlds, one house"],
               ["Eau", "de parfum, made to linger"],
               ["One", "smoked-glass cube"],
             ].map(([k, v]) => (

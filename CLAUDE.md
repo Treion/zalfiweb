@@ -24,6 +24,8 @@ The build plan lives in `PLAN.md`, and the note photo list and prompts in `NOTES
   - Never crop, distort, recolour or retouch them. Always `object-contain`, quality 90.
   - All six are black smoked-glass cubes and differ only by cap (silver ribbed, gunmetal ribbed, gold ribbed, chrome sphere, black sphere, gold sphere). On dark worlds they need rim or back light to read.
   - `npm run assets:bottles` bakes `maps/{slug}-{color,normal,mask}.webp` and `src/components/stage/bottle-meta.ts` for the WebGL relighting. Re-run it if a bottle photo changes. Never edit generated files by hand.
+  - A bottle photo uploaded in the admin is baked by the same code (`src/server/catalog/bake.ts`) and stored with the fragrance (`bottle_meta`, `bottle_maps`). `resolveBottle()` picks the DB data or the generated files.
+  - The number of chapters follows the published fragrances (`setChapterCount`). Write counts with `countWord()` (`src/lib/words.ts`), never a hard-coded "six".
 - **Note images:** `public/images/notes/{slug}.png`. They must be photorealistic: real photos, or owner-approved AI images that are indistinguishable from studio photography. If one is missing, render `<AssetFrame>` (hairline frame + filename), **never** a cartoon, icon or placeholder art. Check availability on the server with `src/lib/assets.ts`. `npm run notes:fetch` sources openly licensed Wikimedia photos (it needs those domains allowed) and writes `CREDITS.md`, which must be kept.
 
 ## Design direction: NOT generic AI design
@@ -87,7 +89,7 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
 - **Chapter names** (the WebGL masthead) sit just above the bottle, like a magazine masthead, with only the foot of the letters behind the cap, so they always read (`MASTHEAD_*` in `stage/director.ts`). Keep floating notes clear of that band.
 - **Few words, straight to buying:** chapters show eyebrow, name, tagline and notes, plus Discover / Add to bag from the start of the chapter (`ch.cta`). No story paragraphs on the home page or the product page (`story` stays in the data for SEO).
 - `data-reveal` elements are hidden until their timeline runs, but only with JS and motion allowed (`html.js`, set before paint).
-- `ChapterIndex` (desktop) lists the six chapters. A jump never scrolls through the worlds in between:
+- `ChapterIndex` (desktop) lists every chapter. A jump never scrolls through the worlds in between:
   1. A `WorldVeil` in the destination's colour fades in.
   2. The scroll and the scrub tween (`st.getTween().progress(1)`) move behind it.
   3. The veil lifts.
@@ -131,7 +133,7 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
 - The full spec is `ZALFI_BACKEND_SPEC.md`. The plan and progress are in `docs/BACKEND_PLAN.md`, judgement calls in `docs/DECISIONS.md`, and local setup in `docs/SETUP.md`. Work happens on `claude/zalfi-backend`, one phase at a time, stopping at each checkpoint.
 - **Money is integer poisha, BDT only** (`formatPrice` → `৳1,250`). Store UTC; show and group by Asia/Dhaka (`src/lib/time.ts`).
 - **Two root layouts:** `app/(site)` is the storefront (unchanged); `app/(admin)/admin` is the admin, with its own `admin.css`, shadcn/ui components (`src/components/admin/ui`), light and dark themes (`next-themes`), and no GSAP, Lenis or three.js.
-- **Writes that touch money or stock go through `withTx()`** (`src/server/db/pool.ts`, Neon's WebSocket Pool). Storefront reads stay on the HTTP driver. Every stock change is a `stock_movements` row; `npm run stock:check` proves stock equals the ledger.
+- **Writes that touch money or stock go through `withTx()`** (`src/server/db/pool.ts`, Neon's WebSocket Pool). Storefront reads stay on the HTTP driver. Every stock change is a `stock_movements` row, through `adjustStock()` and friends in `src/server/catalog/stock.ts`; `npm run stock:check` proves stock equals the ledger. Available = stock − active reservations. Catalogue edits call `revalidateStorefront()`.
 - **Admin access:**
   - Permissions live in one matrix (`src/server/auth/permissions.ts`).
   - Pages call `requireAdmin(permission)`. Mutations are server actions through `runAction(permission, strictZodSchema, input, fn)`. Route handlers check `getAdmin()` and `can()`.

@@ -7,6 +7,7 @@ import { ImageResponse } from "next/og";
 import { LOGO_PARTS, LOGO_VIEWBOX, WORDMARK_VIEWBOX } from "@/components/brand/logo-paths";
 import type { Fragrance } from "@/lib/fragrance";
 import { readLocal } from "@/server/providers/storage";
+import { countWord } from "@/lib/words";
 
 export const OG_SIZE = { width: 1200, height: 630 };
 
@@ -89,7 +90,9 @@ export async function houseOgImage(fragrances: Fragrance[]) {
       >
         <img src={logo.src} width={300} height={300 / logo.ratio} alt="" />
         <div style={{ display: "flex", flexDirection: "column" }}>
-          <div style={{ fontSize: 54, lineHeight: 1 }}>Six worlds,</div>
+          <div style={{ fontSize: 54, lineHeight: 1 }}>
+            {`${countWord(fragrances.length, true)} worlds,`}
+          </div>
           <div style={{ fontSize: 54, lineHeight: 1.05, fontStyle: "italic" }}>
             in smoked glass.
           </div>

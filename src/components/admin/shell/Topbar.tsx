@@ -30,7 +30,15 @@ const initials = (name: string) =>
     .join("")
     .toUpperCase();
 
-export function Topbar({ me, allowed }: { me: Me; allowed: string[] }) {
+export function Topbar({
+  me,
+  allowed,
+  badges,
+}: {
+  me: Me;
+  allowed: string[];
+  badges?: Record<string, number>;
+}) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -54,7 +62,7 @@ export function Topbar({ me, allowed }: { me: Me; allowed: string[] }) {
             <Logo variant="wordmark" title="ZALFI" className="h-4 w-auto" />
           </SheetTitle>
           <div className="px-3 py-2">
-            <NavList allowed={allowed} onNavigate={() => setMenuOpen(false)} />
+            <NavList allowed={allowed} badges={badges} onNavigate={() => setMenuOpen(false)} />
           </div>
         </SheetContent>
       </Sheet>

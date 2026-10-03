@@ -12,6 +12,7 @@ import { stageState } from "@/components/stage/stage-state";
 import type { Fragrance } from "@/lib/fragrance";
 import { formatPrice } from "@/lib/money";
 import { enterWorld, leaveWorld, resetRoom } from "./room";
+import { countWord } from "@/lib/words";
 
 /** Editorial stagger (desktop), in svh: an asymmetric line-up rather than a row of cards */
 const OFFSETS = [0, 5, 1, 7, 2, 6];
@@ -43,7 +44,8 @@ export function Lineup({ fragrances }: { fragrances: Fragrance[] }) {
     >
       <header data-lineup-text data-reveal className="flex items-end justify-between gap-6">
         <h2 className="font-display text-[clamp(2.1rem,4.4vw,4.75rem)] leading-[0.95]">
-          Six worlds. <br className="md:hidden" />
+          {`${countWord(fragrances.length, true)} worlds. `}
+          <br className="md:hidden" />
           <span className="display-italic">Choose yours.</span>
         </h2>
         <Link
@@ -55,7 +57,10 @@ export function Lineup({ fragrances }: { fragrances: Fragrance[] }) {
         </Link>
       </header>
 
-      <ul className="static:mt-16 my-auto grid grid-cols-3 gap-x-3 gap-y-7 md:grid-cols-6 md:gap-x-6">
+      <ul
+        className="static:mt-16 my-auto grid grid-cols-3 gap-x-3 gap-y-7 md:grid-cols-[repeat(var(--cols),minmax(0,1fr))] md:gap-x-6"
+        style={{ "--cols": fragrances.length } as CSSProperties}
+      >
         {fragrances.map((f, i) => (
           <li
             key={f.slug}

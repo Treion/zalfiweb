@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BottleImage, bottleAspect } from "@/components/media/BottleImage";
@@ -56,7 +57,7 @@ export default async function FragrancePage({ params }: PageProps<"/fragrances/[
     name: `ZALFI ${f.name}`,
     description: f.story,
     brand: { "@type": "Brand", name: "ZALFI" },
-    image: new URL(f.bottleImage, site).toString(),
+    image: [f.bottleImage, ...f.images.map((i) => i.url)].map((u) => new URL(u, site).toString()),
     category: "Eau de parfum",
     offers: f.variants.map((v) => ({
       "@type": "Offer",
@@ -139,6 +140,32 @@ export default async function FragrancePage({ params }: PageProps<"/fragrances/[
           <div className="mt-24" {...enter(6)}>
             <NotesPyramid fragrance={f} noteAvail={noteAvail} />
           </div>
+
+          {f.images.length > 0 && (
+            <section
+              aria-label={`${f.name}, in photographs`}
+              className="mt-24 grid grid-cols-2 gap-3 border-t border-current/15 pt-8"
+              {...enter(7)}
+            >
+              {f.images.map((img, i) => (
+                <figure
+                  key={img.url}
+                  className={`relative overflow-hidden ${i === 0 && f.images.length % 2 === 1 ? "col-span-2" : ""}`}
+                  style={{
+                    aspectRatio: img.width && img.height ? `${img.width} / ${img.height}` : "4 / 5",
+                  }}
+                >
+                  <Image
+                    src={img.url}
+                    alt={img.alt}
+                    fill
+                    sizes="(min-width: 768px) 20vw, 50vw"
+                    className="object-cover"
+                  />
+                </figure>
+              ))}
+            </section>
+          )}
 
           <Link
             href={`/fragrances/${next.slug}`}

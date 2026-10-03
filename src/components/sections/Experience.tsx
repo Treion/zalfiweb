@@ -24,6 +24,7 @@ import { FragranceChapter, buildChapterTimeline } from "./FragranceChapter";
 import { Landing } from "./Landing";
 import { Lineup } from "./Lineup";
 import { closeRoom, roomOpen } from "./room";
+import { countWord } from "@/lib/words";
 
 /** Where a jump lands in a chapter: name, tagline and top notes are set (vh units) */
 const JUMP_TO = 130;
@@ -244,7 +245,7 @@ export function Experience({ fragrances, noteAvail }: Props) {
   return (
     <section
       ref={root}
-      aria-label="ZALFI: the collection and its six worlds"
+      aria-label={`ZALFI: the collection and its ${countWord(count)} worlds`}
       className="static:h-auto relative h-(--exp-h-m) md:h-(--exp-h)"
       style={style}
     >

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Bodoni_Moda, Hanken_Grotesk } from "next/font/google";
 import "./(site)/globals.css";
+import { getFragrances } from "@/db/queries";
+import { countWord } from "@/lib/words";
 
 // With two root layouts (the storefront and the admin) there is no single layout to compose a 404
 // from, so unmatched URLs render this page on its own: the storefront's 404, without the stage.
@@ -19,7 +21,8 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-export default function GlobalNotFound() {
+export default async function GlobalNotFound() {
+  const count = (await getFragrances()).length;
   return (
     <html lang="en" className={`${bodoni.variable} ${hanken.variable}`}>
       <body>
@@ -31,7 +34,7 @@ export default function GlobalNotFound() {
               <br />
               <span className="display-italic">doesn&rsquo;t exist.</span>
             </h1>
-            <p className="text-bone-dim mt-8">Six others do.</p>
+            <p className="text-bone-dim mt-8">{`${countWord(count, true)} others do.`}</p>
             <Link
               href="/#collection"
               className="eyebrow border-bone mt-8 inline-block border-b pb-1"

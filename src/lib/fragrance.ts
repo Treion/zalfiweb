@@ -78,6 +78,8 @@ export type Fragrance = {
   profile: ScentProfile | null;
   notes: FragranceNote[];
   variants: Variant[];
+  /** Gallery photos added in the admin, in order (none at launch) */
+  images: { url: string; alt: string; width: number | null; height: number | null }[];
 };
 
 export const notesByLayer = (f: Pick<Fragrance, "notes">, layer: NoteLayer) =>

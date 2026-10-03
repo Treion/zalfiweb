@@ -35,6 +35,7 @@ It checks PostgreSQL is reachable (and says so plainly if not), starts the local
 |---|---|
 | `npm run check` | Lint, typecheck, unit tests, production build. Run before every commit. |
 | `npm test` | Unit tests (Vitest), in `tests/unit`. |
+| `npm run test:db` | Database tests in `tests/db` (stock ledger, reservations, the last-bottle race). Needs PostgreSQL running; starts the local stand-in itself. |
 | `npm run db:generate` | Writes a migration after a schema change in `src/db/tables/*`. |
 | `npm run db:migrate` | Applies migrations. |
 | `npm run db:seed:demo -- --clear` | Removes the demo data only. |
@@ -49,10 +50,19 @@ It checks PostgreSQL is reachable (and says so plainly if not), starts the local
   - `auth/`: Better Auth, the permission matrix, session guards
   - `settings/`: typed settings
   - `admin/`: team, audit queries, CSV
-  - `providers/`: email (later also payments, SMS, couriers and storage)
+  - `catalog/`: products, sizes, images, the bottle-photo bake (`bake.ts`), the stock ledger and reservations (`stock.ts`), inventory
+  - `providers/`: email and storage (later also payments, SMS and couriers)
 - `src/app/(site)/` is the storefront. `src/app/(admin)/admin/` is the admin, with its own root layout and stylesheet; it never loads GSAP, Lenis or three.js.
 - `src/proxy.ts` sends signed-out visitors to `/admin/login` and adds security headers. Pages, actions and route handlers each check the role again.
 
 ## 5. Dev email
 
 Without Resend keys, emails (invitations, and later e-receipts) are printed in the terminal and saved as HTML in `.data/outbox/`.
+
+## 6. Uploads
+
+Without `BLOB_READ_WRITE_TOKEN`, photos uploaded in the admin (bottle photos, gallery images and their baked maps) are saved in `.data/uploads/` (git-ignored) and served from `/media/…`. With the token set, they go to Vercel Blob. Each upload is at most 4 MB.
+
+## 7. Scheduled jobs
+
+`vercel.json` runs `/api/cron/release-reservations` every 10 minutes on Vercel, which releases stock held by unpaid orders once their time is up. It needs `CRON_SECRET`. Locally, availability already ignores expired holds, so nothing needs to run.

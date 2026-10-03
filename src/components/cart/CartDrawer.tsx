@@ -8,10 +8,11 @@ import { useLenis } from "@/components/motion/SmoothScroll";
 import { formatPrice } from "@/lib/money";
 import type { CheckoutResponse } from "@/app/api/checkout/route";
 import { useCart } from "./cart-store";
+import { countWord } from "@/lib/words";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
-export function CartDrawer() {
+export function CartDrawer({ worldCount = 6 }: { worldCount?: number }) {
   const cart = useCart();
   const { open, closeBag } = cart;
   const lenis = useLenis();
@@ -126,7 +127,7 @@ export function CartDrawer() {
                 <div className="flex h-full flex-col justify-center gap-6 pb-24">
                   <p className="font-display text-3xl leading-tight">Your bag is empty.</p>
                   <p className="text-smoke">
-                    Six worlds are waiting. Start with the one you can smell from here.
+                    {`${countWord(worldCount, true)} worlds are waiting. Start with the one you can smell from here.`}
                   </p>
                   <Link
                     href="/#collection"

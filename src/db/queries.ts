@@ -2,7 +2,7 @@ import "server-only";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import type { Fragrance, NoteLayer } from "@/lib/fragrance";
 import { getDb } from "./client";
-import { fragranceNotes, fragrances, notes, variants } from "./schema";
+import { fragranceImages, fragranceNotes, fragrances, notes, variants } from "./schema";
 import { resolveBottle } from "@/lib/bottle";
 import { FRAGRANCES } from "./seed-data";
 
@@ -21,7 +21,7 @@ export async function getFragrances(): Promise<Fragrance[]> {
       .orderBy(asc(fragrances.sortOrder));
     if (!rows.length) return FRAGRANCES;
     const ids = rows.map((r) => r.id);
-    const [noteRows, variantRows] = await Promise.all([
+    const [noteRows, variantRows, imageRows] = await Promise.all([
       db
         .select({
           fragranceId: fragranceNotes.fragranceId,
@@ -41,6 +41,11 @@ export async function getFragrances(): Promise<Fragrance[]> {
         .from(variants)
         .where(and(inArray(variants.fragranceId, ids), eq(variants.active, true)))
         .orderBy(asc(variants.sizeMl)),
+      db
+        .select()
+        .from(fragranceImages)
+        .where(inArray(fragranceImages.fragranceId, ids))
+        .orderBy(asc(fragranceImages.position), asc(fragranceImages.id)),
     ]);
     return rows.map((f) => ({
       slug: f.slug,
@@ -75,6 +80,9 @@ export async function getFragrances(): Promise<Fragrance[]> {
           pricePoisha,
           stock,
         })),
+      images: imageRows
+        .filter((i) => i.fragranceId === f.id)
+        .map(({ url, alt, width, height }) => ({ url, alt, width, height })),
     }));
   } catch (err) {
     console.warn("[db] getFragrances failed, using seed data:", (err as Error).message);
