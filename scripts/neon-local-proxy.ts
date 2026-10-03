@@ -67,7 +67,20 @@ const server = http.createServer(async (req, res) => {
   let body = "";
   for await (const chunk of req) body += chunk;
 
-  const client = await poolFor(conn).connect();
+  let client: pg.PoolClient;
+  try {
+    client = await poolFor(conn).connect();
+  } catch (e) {
+    // Postgres isn't running (or the connection string is wrong): say so, and keep the proxy up
+    const err = e as NodeJS.ErrnoException & { errors?: NodeJS.ErrnoException[] };
+    const code = err.code ?? err.errors?.[0]?.code;
+    console.error(
+      code === "ECONNREFUSED"
+        ? "[proxy] Can't reach PostgreSQL on localhost:5432. Is it running? (see docs/SETUP.md)"
+        : `[proxy] Can't connect to PostgreSQL: ${err.message}`,
+    );
+    return res.writeHead(503, cors).end(JSON.stringify({ message: "database unreachable", code }));
+  }
   try {
     const payload = JSON.parse(body) as Q | { queries: Q[] };
     let out: unknown;
