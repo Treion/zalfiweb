@@ -21,11 +21,12 @@
     "db:studio": "drizzle-kit studio",
     "notes:fetch": "tsx scripts/fetch-note-images.ts",
     "models:ingest": "tsx scripts/ingest-models.ts",
-    "admin:create-owner": "tsx scripts/create-owner.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "db:seed:demo": "tsx src/db/seed-demo.ts",
-    "stock:check": "tsx scripts/stock-check.ts"
+    "stock:check": "tsx scripts/stock-check.ts",
+    "admin": "tsx scripts/admin.ts",
+    "admin:create-owner": "tsx scripts/admin.ts create"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

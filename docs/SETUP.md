@@ -16,7 +16,7 @@ createdb zalfi                # once
 npm run db:migrate            # creates every table
 npm run db:seed               # the six fragrances, notes and sizes
 npm run db:seed:demo          # optional: 90 days of demo orders, customers and coupons
-npm run admin:create-owner -- --email you@example.com --name "Your Name"
+npm run admin                 # answer the questions: email, name, role, password
 ```
 
 Then, in two terminals:
@@ -36,7 +36,7 @@ npm run dev                   # http://localhost:3000, admin at http://localhost
 | `npm run db:migrate` | Applies migrations. |
 | `npm run db:seed:demo -- --clear` | Removes the demo data only. |
 | `npm run stock:check` | Proves every size's stock equals its stock ledger. |
-| `npm run admin:create-owner` | Creates an owner account (the first one, or a recovery). |
+| `npm run admin` | Admin accounts from the terminal: create (owner or manager), list, reset a password, switch off/on. Needs only PostgreSQL running. |
 
 ## 4. How the backend is laid out
 

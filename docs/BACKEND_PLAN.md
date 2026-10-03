@@ -159,4 +159,4 @@ adapters (src/server/providers/*): Payment (mock | SSLCommerz) · Courier (mock 
 
 - **Real prices in taka** for the six fragrances (50 ml).
 - Whether to **keep the newsletter** section (it only collects emails).
-- The **email address** for the first owner account (used by `npm run admin:create-owner`).
+- The **email address** for the first owner account (used by `npm run admin`).
