@@ -19,7 +19,7 @@ import net from "node:net";
 import pg from "pg";
 import { WebSocketServer } from "ws";
 
-const PORT = Number(process.env.NEON_LOCAL_PROXY_PORT ?? 4444);
+const PORT = Number(process.env.NEON_LOCAL_PROXY_PORT || 4444);
 const pools = new Map<string, pg.Pool>();
 const rawText = { getTypeParser: () => (v: string) => v };
 

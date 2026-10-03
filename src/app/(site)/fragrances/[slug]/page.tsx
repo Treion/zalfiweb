@@ -48,7 +48,7 @@ export default async function FragrancePage({ params }: PageProps<"/fragrances/[
   const next = all[(index + 1) % all.length];
   const noteAvail = availability(f.notes.map((n) => n.image));
   const from = f.variants[0];
-  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const site = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
   const jsonLd = {
     "@context": "https://schema.org",

@@ -11,7 +11,7 @@ const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "db.localtest.me"]);
 
 neonConfig.fetchEndpoint = (host) =>
   LOCAL_HOSTS.has(host)
-    ? `http://127.0.0.1:${process.env.NEON_LOCAL_PROXY_PORT ?? "4444"}/sql`
+    ? `http://127.0.0.1:${process.env.NEON_LOCAL_PROXY_PORT || "4444"}/sql`
     : `https://${host}/sql`;
 
 export type Db = ReturnType<typeof createDb>;

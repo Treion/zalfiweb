@@ -19,12 +19,15 @@ npm run db:seed:demo          # optional: 90 days of demo orders, customers and 
 npm run admin                 # answer the questions: email, name, role, password
 ```
 
-Then, in two terminals:
+Then start everything with one command:
 
 ```bash
-npm run db:proxy              # local stand-in for Neon (HTTP and WebSocket) on :4444
 npm run dev                   # http://localhost:3000, admin at http://localhost:3000/admin
 ```
+
+It checks PostgreSQL is reachable (and says so plainly if not), starts the local Neon stand-in
+(`npm run db:proxy`, HTTP and WebSocket on :4444) when the database is local, then starts Next.
+`npm run dev:next` starts Next alone.
 
 ## 3. Day to day
 

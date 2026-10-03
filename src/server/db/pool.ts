@@ -2,6 +2,7 @@ import { Pool, neonConfig } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import ws from "ws";
 import * as schema from "@/db/schema";
+import { env } from "@/lib/env";
 
 /**
  * The transactional database: Neon's WebSocket `Pool` driver, used for every write that touches
@@ -24,7 +25,7 @@ export type Executor = PoolDb | Tx;
 function create(url: string) {
   const host = new URL(url).hostname;
   if (LOCAL_HOSTS.has(host)) {
-    const port = process.env.NEON_LOCAL_PROXY_PORT ?? "4444";
+    const port = env("NEON_LOCAL_PROXY_PORT") ?? "4444";
     neonConfig.wsProxy = (h, p) => `127.0.0.1:${port}/v2?address=${h}:${p}`;
     neonConfig.useSecureWebSocket = false;
     neonConfig.pipelineTLS = false;
@@ -40,7 +41,7 @@ let cached: PoolDb | undefined;
 /** The pooled, transaction-capable database. Throws when DATABASE_URL is missing. */
 export function poolDb(): PoolDb {
   if (cached) return cached;
-  const url = process.env.DATABASE_URL;
+  const url = env("DATABASE_URL");
   if (!url) throw new Error("DATABASE_URL is not set: the backend needs a database");
   cached = create(url);
   return cached;

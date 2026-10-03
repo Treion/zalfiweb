@@ -14,6 +14,7 @@ import {
 import { poolDb } from "@/server/db/pool";
 import { hit, resetLimit } from "@/server/rate-limit";
 import { clientIp } from "@/server/request";
+import { env, siteUrl } from "@/lib/env";
 
 /**
  * Admin authentication (Better Auth, email + password). Customers never have accounts.
@@ -30,7 +31,7 @@ export const AUTH_BASE_PATH = "/api/admin/auth";
 const SIGN_IN_LIMIT = { perIp: 20, perEmail: 8, windowSeconds: 15 * 60 };
 
 function secret() {
-  const s = process.env.BETTER_AUTH_SECRET;
+  const s = env("BETTER_AUTH_SECRET");
   if (s) return s;
   if (process.env.NODE_ENV === "production" && process.env.NEXT_PHASE !== "phase-production-build")
     throw new Error("BETTER_AUTH_SECRET must be set in production");
@@ -38,15 +39,16 @@ function secret() {
 }
 
 function create() {
-  const baseURL =
-    process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const baseURL = env("BETTER_AUTH_URL") ?? siteUrl();
+  const dev = process.env.NODE_ENV !== "production";
   const db = poolDb();
   return betterAuth({
     appName: "ZALFI Admin",
     baseURL,
     basePath: AUTH_BASE_PATH,
     secret: secret(),
-    trustedOrigins: [baseURL],
+    // In development the admin may be opened as localhost or 127.0.0.1, on any port
+    trustedOrigins: dev ? [baseURL, "http://localhost:*", "http://127.0.0.1:*"] : [baseURL],
     database: drizzleAdapter(db, {
       provider: "pg",
       schema: {

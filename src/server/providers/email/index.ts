@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { env } from "@/lib/env";
 
 /**
  * Sending email, behind one interface. ZALFI sends only the e-receipt to customers (and invitation
@@ -72,8 +73,8 @@ export function resendEmail(apiKey: string, from: string): EmailProvider {
 
 /** The provider to use now: Resend only when selected in settings AND its key is present */
 export function emailProvider(selected: "dev" | "resend"): EmailProvider {
-  const key = process.env.RESEND_API_KEY;
+  const key = env("RESEND_API_KEY");
   if (selected === "resend" && key)
-    return resendEmail(key, process.env.EMAIL_FROM ?? "ZALFI <receipts@zalfi.com>");
+    return resendEmail(key, env("EMAIL_FROM") ?? "ZALFI <receipts@zalfi.com>");
   return devEmail;
 }

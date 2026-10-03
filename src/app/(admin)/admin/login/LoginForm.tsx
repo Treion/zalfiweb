@@ -6,6 +6,22 @@ import { authClient } from "@/server/auth/client";
 import { Button } from "@/components/admin/ui/button";
 import { Input } from "@/components/admin/ui/input";
 import { Label } from "@/components/admin/ui/label";
+import { PasswordInput } from "@/components/admin/ui/password-input";
+
+/** What went wrong, in words that say what to do next */
+function signInError(err: { status?: number; message?: string; code?: string } | null) {
+  const status = err?.status ?? 0;
+  const message = err?.message ?? "";
+  if (status === 401) return "That email and password don't match.";
+  if (status === 429) return "Too many attempts. Try again in a few minutes.";
+  if (status === 403 && /deactivat/i.test(message))
+    return "This account is switched off. Ask an owner to turn it back on.";
+  if (status === 403 && /origin/i.test(message))
+    return `This address isn't allowed to sign in. Open the admin at ${window.location.protocol}//localhost:${window.location.port || "3000"}/admin, or set NEXT_PUBLIC_SITE_URL in .env.`;
+  if (status >= 500 || status === 0)
+    return "The server couldn't reach the database. Make sure PostgreSQL is running and the site was started with npm run dev, then try again.";
+  return message || "Couldn't sign in. Try again.";
+}
 
 export function LoginForm({
   next,
@@ -26,19 +42,16 @@ export function LoginForm({
     const form = new FormData(e.currentTarget);
     setBusy(true);
     setError(null);
-    const { data, error } = await authClient.signIn.email({
-      email: String(form.get("email") ?? "").trim(),
-      password: String(form.get("password") ?? ""),
-    });
+    const res = await authClient.signIn
+      .email({
+        email: String(form.get("email") ?? "").trim(),
+        password: String(form.get("password") ?? ""),
+      })
+      .catch(() => ({ data: null, error: { status: 0, message: "" } }));
+    const { data, error } = res;
     setBusy(false);
     if (error) {
-      setError(
-        error.status === 429
-          ? "Too many attempts. Try again in a few minutes."
-          : error.status === 403
-            ? "This account is deactivated."
-            : "That email and password don't match.",
-      );
+      setError(signInError(error));
       return;
     }
     if (data && "twoFactorRedirect" in data && data.twoFactorRedirect) {
@@ -109,13 +122,7 @@ export function LoginForm({
       </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor="password">Password</Label>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-        />
+        <PasswordInput id="password" name="password" autoComplete="current-password" required />
       </div>
       {error && (
         <p role="alert" className="text-destructive text-sm">

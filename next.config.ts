@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Let the dev server be opened as 127.0.0.1 as well as localhost
+  allowedDevOrigins: ["127.0.0.1"],
   // Two root layouts (storefront and admin): unmatched URLs use app/global-not-found.tsx
   // authInterrupts: forbidden() renders the admin's 403 page for pages a role may not open
   experimental: { globalNotFound: true, authInterrupts: true },

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "tsx scripts/dev.ts",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -26,7 +26,8 @@
     "db:seed:demo": "tsx src/db/seed-demo.ts",
     "stock:check": "tsx scripts/stock-check.ts",
     "admin": "tsx scripts/admin.ts",
-    "admin:create-owner": "tsx scripts/admin.ts create"
+    "admin:create-owner": "tsx scripts/admin.ts create",
+    "dev:next": "next dev"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

@@ -192,9 +192,8 @@ async function create(db: pg.Client, preset: { email?: string; name?: string; ro
   console.log(`  Email:     ${bold(email)}`);
   if (generated)
     console.log(`  Password:  ${bold(password)}   ${dim("(write it down: it isn't shown again)")}`);
-  console.log(
-    `  Sign in:   ${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/admin\n`,
-  );
+  console.log(`  Sign in:   ${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/admin`);
+  console.log(dim("  (start the site first with: npm run dev)\n"));
 }
 
 async function list(db: pg.Client) {

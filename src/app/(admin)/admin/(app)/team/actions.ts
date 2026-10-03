@@ -14,11 +14,13 @@ import { runAction } from "@/server/auth/session";
 import { emailProvider } from "@/server/providers/email";
 import { getSettings } from "@/server/settings";
 import { ROLES } from "@/server/auth/permissions";
+import { env } from "@/lib/env";
 
 const role = z.enum(ROLES);
 
 async function siteUrl() {
-  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
+  const configured = env("NEXT_PUBLIC_SITE_URL");
+  if (configured) return configured;
   const h = await headers();
   return `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
 }

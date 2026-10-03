@@ -5,6 +5,7 @@ import { useState, type FormEvent } from "react";
 import { Button } from "@/components/admin/ui/button";
 import { Input } from "@/components/admin/ui/input";
 import { Label } from "@/components/admin/ui/label";
+import { PasswordInput } from "@/components/admin/ui/password-input";
 import { acceptInvitationAction } from "./actions";
 
 export function AcceptForm({ token }: { token: string }) {
@@ -37,10 +38,9 @@ export function AcceptForm({ token }: { token: string }) {
       </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor="password">Password</Label>
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           autoComplete="new-password"
           minLength={10}
           required
@@ -49,7 +49,7 @@ export function AcceptForm({ token }: { token: string }) {
       </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor="confirm">Repeat password</Label>
-        <Input id="confirm" name="confirm" type="password" autoComplete="new-password" required />
+        <PasswordInput id="confirm" name="confirm" autoComplete="new-password" required />
       </div>
       {error && (
         <p role="alert" className="text-destructive text-sm">
