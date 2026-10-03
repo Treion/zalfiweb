@@ -1,5 +1,4 @@
 import { Experience } from "@/components/sections/Experience";
-import { Newsletter } from "@/components/sections/Newsletter";
 import { Story } from "@/components/sections/Story";
 import { getFragrances } from "@/db/queries";
 import { NOTES } from "@/db/seed-data";
@@ -20,7 +19,6 @@ export default async function Home() {
         feature={fragrances.find((f) => f.slug === "bond") ?? fragrances[0]}
         count={fragrances.length}
       />
-      <Newsletter />
     </main>
   );
 }

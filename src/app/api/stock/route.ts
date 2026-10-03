@@ -3,7 +3,7 @@ import { getDb } from "@/db/client";
 import { fragrances, stockReservations, variants } from "@/db/schema";
 import { FRAGRANCES } from "@/db/seed-data";
 
-// Edge-portable (see api/newsletter/route.ts). Live stock for the bag and product pages.
+// Edge-portable (Web APIs and Neon's fetch driver only). Live stock for the bag and product pages.
 // `stock` is what can be bought now: stock minus bottles held for unpaid orders. Sizes that are
 // switched off, or belong to a hidden fragrance, aren't sold and don't appear.
 

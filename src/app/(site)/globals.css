@@ -179,6 +179,23 @@ html.sr-oudor [data-stage-fallback="oudor"] {
   html.stage-ready .world-surface::before {
     opacity: 0;
   }
+
+  /* House pages: an opened answer fades in. Opacity only; nothing slides, and with reduced
+     motion it simply appears. */
+  .info-reveal {
+    animation: info-reveal 0.5s var(--ease-cinema) both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .info-reveal {
+      animation: none;
+    }
+  }
+}
+
+@keyframes info-reveal {
+  from {
+    opacity: 0;
+  }
 }
 
 /*

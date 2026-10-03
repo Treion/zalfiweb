@@ -142,6 +142,8 @@ export const worldFragment = /* glsl */ `
   uniform float uFloorY;
   uniform float uFloor;
   uniform float uAspect;
+  /** 0..1: fades the key light and haze (the line-up stands on a plain dark) */
+  uniform float uQuiet;
   uniform sampler2D uHaze;
   varying vec2 vUv;
 
@@ -163,11 +165,11 @@ export const worldFragment = /* glsl */ `
     vec2 d = (uv - vec2(0.12, 1.1)) * vec2(uAspect, 1.0);
     float wash = exp(-dot(d, d) * 0.9);
     vec3 lightCol = mix(mix(uBg, vec3(1.0), 0.45), uAccent, 0.35 + dark * 0.3);
-    col = mix(col, lightCol, wash * (0.065 - dark * 0.025));
+    col = mix(col, lightCol, wash * (0.065 - dark * 0.025) * (1.0 - uQuiet));
 
     // Haze: soft smoke, baked once into a small texture and never animated
     float haze = texture2D(uHaze, uv).r;
-    col = mix(col, mix(uDeep, uAccent, 0.4), smoothstep(0.5, 0.95, haze) * (0.07 + dark * 0.1));
+    col = mix(col, mix(uDeep, uAccent, 0.4), smoothstep(0.5, 0.95, haze) * (0.07 + dark * 0.1) * (1.0 - uQuiet));
 
     // Floor: a glossy surface below the bottles' resting base line
     float below = smoothstep(uFloorY + 0.003, uFloorY - 0.3, uv.y) * uFloor;

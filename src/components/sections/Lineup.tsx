@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
-import { useEffect, useState, type CSSProperties, type FocusEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type FocusEvent } from "react";
 import { useCart } from "@/components/cart/cart-store";
 import { useLenis } from "@/components/motion/SmoothScroll";
 import { BottleImage, bottleAspect } from "@/components/media/BottleImage";
 import { lineupOpen } from "@/components/stage/choreography";
 import { StageAnchor } from "@/components/stage/StageAnchor";
 import { stageState } from "@/components/stage/stage-state";
+import { setNavSection } from "@/components/ui/nav-section";
 import type { Fragrance } from "@/lib/fragrance";
 import { formatPrice } from "@/lib/money";
 import { enterWorld, leaveWorld, resetRoom } from "./room";
@@ -27,7 +28,31 @@ const EASE = [0.22, 1, 0.36, 1] as const;
  */
 export function Lineup({ fragrances }: { fragrances: Fragrance[] }) {
   const lenis = useLenis();
+  const root = useRef<HTMLDivElement>(null);
   useEffect(() => resetRoom, []);
+
+  // In the static layout the line-up is an ordinary section: the nav outlines "Fragrances" while
+  // most of it is on screen. (In the motion layout the experience timeline decides.)
+  useEffect(() => {
+    const el = root.current;
+    const html = document.documentElement;
+    const isStatic = () =>
+      html.classList.contains("static-experience") ||
+      matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!el) return;
+    // Checked on each change: the stage may decide on the static layout after this mounts
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (isStatic()) setNavSection(e!.intersectionRatio >= 0.35 ? "fragrances" : null);
+      },
+      { threshold: [0, 0.35, 0.6] },
+    );
+    io.observe(el);
+    return () => {
+      io.disconnect();
+      setNavSection(null);
+    };
+  }, []);
 
   // Tabbing into the line-up from the landing brings it into view first
   function onFocus(e: FocusEvent<HTMLDivElement>) {
@@ -38,6 +63,7 @@ export function Lineup({ fragrances }: { fragrances: Fragrance[] }) {
 
   return (
     <div
+      ref={root}
       data-lineup
       onFocus={onFocus}
       className="room-ink px-gutter static:relative static:inset-auto static:pt-32 static:pb-24 absolute inset-0 flex flex-col pt-24 pb-5 text-(--room-ink) md:pt-28 md:pb-7"

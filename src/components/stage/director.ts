@@ -20,7 +20,7 @@ import {
   setChapterCount,
 } from "./config";
 import * as S from "./shaders";
-import { stageState } from "./stage-state";
+import { stageState, wakeStage } from "./stage-state";
 import { HOUSE_PALETTE, type StageFragrance } from "./worlds";
 import {
   BOTTLE_MODELS,
@@ -287,6 +287,7 @@ class Masthead {
     const tex = new THREE.CanvasTexture(canvas);
     tex.anisotropy = 4;
     this.uniforms.uMap.value = tex;
+    wakeStage();
     this.aspect = w / h;
     this.ratio = w / px;
   }
@@ -312,6 +313,8 @@ type Placement = {
   grounded: number;
   /** The anchor's resting base line: where the floor meets the bottle once it has landed */
   rest: number;
+  /** 0..1 the soft back glow: off in the line-up (a row of glows reads as a muddy band) */
+  glow: number;
 };
 
 type Frame = {
@@ -343,6 +346,7 @@ const mixPlacement = (a: Placement, b: Placement, t: number): Placement => ({
   opacity: mix(a.opacity, b.opacity, t),
   grounded: mix(a.grounded, b.grounded, t),
   rest: b.rest,
+  glow: mix(a.glow, b.glow, t),
 });
 
 const withOpacity = (p: Placement, k: number): Placement =>
@@ -426,6 +430,7 @@ export class StageDirector {
           uFloorY: { value: 0.2 },
           uFloor: { value: 0 },
           uAspect: { value: 1 },
+          uQuiet: { value: 0 },
           uHaze: { value: this.haze },
         },
         depthTest: false,
@@ -511,6 +516,7 @@ export class StageDirector {
       if (n > 0) await idle();
       if (this.disposed) return;
       const markReady = () => {
+        wakeStage();
         stageState.bottleReady[this.rigs.indexOf(rig)] = true;
         document.documentElement.classList.add(`sr-${rig.slug}`);
         if (!stageState.ready) {
@@ -613,6 +619,8 @@ export class StageDirector {
     this.rimLight.intensity = 0.5 + darkWorld * 1.0;
     const wu = this.world.material.uniforms;
     wu.uAspect.value = vw / vh;
+    // The line-up stands on a plain dark: its key light and haze fade out while it is open
+    wu.uQuiet.value = exp ? lineupOpen(s, k) : 0;
 
     const frame: Frame = { prod, lineup, exp, s, k, vw, vh, dt };
     const now = performance.now() / 1000;
@@ -748,15 +756,20 @@ export class StageDirector {
       const open = lineupOpen(f.s, f.k);
       rig.lift = damp(rig.lift, stageState.collectionHover === i ? open : 0, 4, f.dt);
       rig.spin = damp(rig.spin, rig.lift * 0.5, 4, f.dt);
-      const line = this.fit(rig, slot, {
-        dx: 0,
-        dy: rig.lift * slot.h * 0.04,
-        rotZ: 0,
-        rotY: rig.lift * 4 * DEG,
-        scale: 1 + rig.lift * 0.02,
-        opacity: L.arrive,
-        grounded: 1 - rig.lift * 0.6,
-      });
+      const line = this.fit(
+        rig,
+        slot,
+        {
+          dx: 0,
+          dy: rig.lift * slot.h * 0.04,
+          rotZ: 0,
+          rotY: rig.lift * 4 * DEG,
+          scale: 1 + rig.lift * 0.02,
+          opacity: L.arrive,
+          grounded: 1 - rig.lift * 0.6,
+        },
+        0,
+      );
       if (i === 0) {
         // Reva steps forward: from its place in the line-up into its world
         if (L.handoff <= 0) return { p: line, rect: exp, floor: false };
@@ -778,7 +791,7 @@ export class StageDirector {
   }
 
   /** Fits the photo inside an anchor (object-contain, never distorted) at a pose. */
-  private fit(rig: BottleRig, rect: Rect, pose: Pose): Placement {
+  private fit(rig: BottleRig, rect: Rect, pose: Pose, glow = 1): Placement {
     const fit = Math.min(rect.h, rect.w / rig.aspect);
     return {
       cx: rect.cx + pose.dx,
@@ -789,6 +802,7 @@ export class StageDirector {
       opacity: pose.opacity,
       grounded: pose.grounded,
       rest: rect.cy - fit / 2,
+      glow,
     };
   }
 
@@ -837,7 +851,8 @@ export class StageDirector {
     if (!rig.model) rig.glow.scale.set(pw * 2.4, ph * 1.45, 1);
     const glowU = rig.glow.material.uniforms;
     glowU.uColor.value.copy(cur.accent).lerp(WHITE, 0.25);
-    glowU.uOpacity.value = p.opacity * (0.03 + darkWorld * 0.12) * (1 + rig.lift * 0.15);
+    glowU.uOpacity.value = p.opacity * p.glow * (0.03 + darkWorld * 0.12);
+    rig.glow.visible = p.glow > 0.001;
 
     rig.shadow.position.set(p.cx, base + ph * 0.01, rig.model ? -ph * 0.35 : -2);
     rig.shadow.scale.set(pw * 1.35, ph * 0.1, 1);
@@ -871,6 +886,7 @@ export class StageDirector {
           record.inst = instantiate(src);
           record.inst.object.traverse((o) => (o.renderOrder = 7));
           this.scene?.add(record.inst.object);
+          wakeStage();
         });
       }
       const inst = rec.inst;

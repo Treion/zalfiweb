@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import clsx from "clsx";
 import { ContactIcons } from "@/components/ui/ContactIcons";
+import { InfoBlocks } from "@/components/info/InfoBlocks";
 import { INFO_PAGES, infoPage } from "@/content/pages";
 import { CONTACT, MAPS_URL } from "@/lib/contact";
 
@@ -29,7 +30,7 @@ const enter = (order: number) => ({
   style: { "--enter": order } as CSSProperties,
 });
 
-/** The house's information pages: About, FAQ, Contact, policies and terms. Quiet and readable. */
+/** The house's information pages: About, FAQ, Contact, policies and terms. Readable, and a little interactive. */
 export default async function InfoPageView({ params }: PageProps<"/[slug]">) {
   const page = infoPage((await params).slug);
   if (!page) notFound();
@@ -70,21 +71,8 @@ export default async function InfoPageView({ params }: PageProps<"/[slug]">) {
 
           {contact ? (
             <ContactDetails />
-          ) : page.sections.length ? (
-            <div className="mt-14 max-w-[40rem] space-y-12" {...enter(2)}>
-              {page.sections.map((s, i) => (
-                <section key={i}>
-                  {s.heading && (
-                    <h2 className="display-italic mb-4 text-2xl leading-snug">{s.heading}</h2>
-                  )}
-                  <div className="text-bone-dim space-y-4 leading-relaxed">
-                    {s.paragraphs.map((para, j) => (
-                      <p key={j}>{para}</p>
-                    ))}
-                  </div>
-                </section>
-              ))}
-            </div>
+          ) : page.blocks.length ? (
+            <InfoBlocks blocks={page.blocks} />
           ) : (
             <div className="mt-14 max-w-[36rem]" {...enter(2)}>
               <p className="display-italic text-2xl leading-snug">This page is being written.</p>

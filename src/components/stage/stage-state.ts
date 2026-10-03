@@ -14,6 +14,13 @@ export const stageState = {
   /** Ready flags set by the stage as textures load */
   ready: false,
   bottleReady: [] as boolean[],
+  /** The stage keeps drawing until this time (performance.now() ms), e.g. after a texture loads */
+  awakeUntil: 0,
 };
+
+/** Something changed that the scroll and anchors can't show (a texture arrived): draw for a while */
+export function wakeStage(ms = 1500) {
+  stageState.awakeUntil = Math.max(stageState.awakeUntil, performance.now() + ms);
+}
 
 export type StageState = typeof stageState;

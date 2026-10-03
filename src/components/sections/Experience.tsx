@@ -15,6 +15,7 @@ import {
   setChapterCount,
 } from "@/components/stage/config";
 import { lineupOpen } from "@/components/stage/choreography";
+import { setNavSection } from "@/components/ui/nav-section";
 import { StageAnchor } from "@/components/stage/StageAnchor";
 import { stageState } from "@/components/stage/stage-state";
 import { canRunStage } from "@/components/stage/support";
@@ -135,8 +136,11 @@ export function Experience({ fragrances, noteAvail }: Props) {
               last = c;
               setActive(c);
             }
+            const open = lineupOpen(stageState.s, k) >= 0.5;
             // Scrolling away from the line-up takes its hover world with it
-            if (roomOpen() && lineupOpen(stageState.s, k) < 0.5) closeRoom();
+            if (roomOpen() && !open) closeRoom();
+            // The nav outlines "Fragrances" while the line-up is open (a no-op unless it changes)
+            setNavSection(open ? "fragrances" : null);
           },
         });
         tl.fromTo(stageState, { s: 0 }, { s: total, duration: total }, 0);
@@ -230,6 +234,7 @@ export function Experience({ fragrances, noteAvail }: Props) {
       return () => {
         cancelAnimationFrame(skip);
         mm.revert();
+        setNavSection(null);
       };
     },
     { scope: root, dependencies: [reduced] },

@@ -97,3 +97,16 @@ Judgement calls made while building the backend and admin, newest last. Each one
 61. **The confirmation page** opens with a private access token in its link (24 random bytes). It is not indexed and shows only that order.
 62. **The checkout keeps a draft** of the details on the device, so a reload loses nothing. The bag and the draft are cleared once the order is placed.
 63. **Orders admin.** The list has quick views (to pack, to ship, on the way, needs attention). Notes are timeline events. The sidebar counts the orders waiting to be packed. The phone search accepts any format (`01712-345678`, `+8801712345678`).
+
+## Storefront changes before phase 5 (owner's requests)
+
+64. **The newsletter section is gone** (the form and `/api/newsletter`). The signups already stored stay in `newsletter_signups`, untouched. This settles the open question from phase 1: the e-receipt is the only email ZALFI sends.
+65. **The nav outlines where you are**, with a hairline box that fades in and out: Fragrances while the line-up is open, Find yours on the finder, Info on a house page. "The House" (a link to the story section) is replaced by **Info**, a small menu of the house pages, which also shows on phones.
+66. **House pages** use the owner's `all-policies.md`, rewritten at the owner's request in shorter, warmer sentences, with the same facts. Where the owner's documents disagreed, I chose as follows (the owner should confirm):
+    - **Returns.** The Terms said returns were accepted within a window, with refunds. The Refund policy and the Privacy policy both say all sales are final. The Terms' returns and damaged-item sections now point to the Refund policy.
+    - **Payment methods.** The owner's text (bank transfer, bKash, Nagad with a transaction reference, cash on delivery, preorders at 50/50) is kept as written. The checkout's online payment (SSLCommerz: cards, bKash, Nagad, Rocket) arrives in phase 5. The two should be brought in line then.
+    - **The domain.** The owner's text says www.zalfii.com (two i's). The pages say "this website", so a typo can't mislead.
+    - **International delivery** is kept in the Terms ("abroad where we can"), though the FAQ and the checkout serve Bangladesh only.
+    - **Brand updates by consent** stay in the Privacy policy and Terms, as the owner wrote them, though no newsletter is collected now.
+67. **The line-up stands on a plain dark.** The back glow behind each bottle (a row of them read as one muddy band) is off in the line-up. The world's key light and haze fade out while it is open, and return as Reva steps into her chapter.
+68. **The stage draws on demand.** It used to draw every frame while a bottle was on screen, even with nothing moving. Now it draws while the scroll, an anchor, the stage state or a loading texture changes, and stops 2.5 s after the last change (every damped follow and page glide finishes within that). Still frames were identical anyway, so nothing looks different. If frames keep coming in slower than about 38 fps, the resolution steps down (2 → 1.5 → 1), and never back up in that visit.

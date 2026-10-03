@@ -7,14 +7,19 @@ import { gsap } from "@/components/motion/gsap";
 import { anchors } from "./anchors";
 import { FOV, StageDirector, type Tier } from "./director";
 import { anyModels } from "./models";
+import { stageState } from "./stage-state";
 import type { StageFragrance } from "./worlds";
+
+/** How long the stage keeps drawing after the last change (every follow and glide is done by then) */
+const SETTLE_MS = 2500;
 
 /**
  * The persistent WebGL stage. One fixed canvas behind the page draws:
  *   the world background → giant fragrance names → back glow → contact shadow →
  *   floor reflection → the relit bottle photo (or its 3D model).
- * It renders only while a stage anchor is on screen, driven by gsap.ticker so it is frame-locked
- * with Lenis and ScrollTrigger. All per-frame work lives in StageDirector (outside React).
+ * It renders only while a stage anchor is on screen and something is moving, driven by gsap.ticker
+ * so it is frame-locked with Lenis and ScrollTrigger. All per-frame work lives in StageDirector
+ * (outside React).
  */
 export default function Stage({ fragrances }: { fragrances: StageFragrance[] }) {
   const tier: Tier = useMemo(
@@ -52,7 +57,7 @@ function Scene({
   fragrances: StageFragrance[];
   layer: React.RefObject<HTMLDivElement | null>;
 }) {
-  const { scene, gl, advance } = useThree();
+  const { scene, gl, advance, setDpr } = useThree();
   const director = useRef<StageDirector | null>(null);
 
   useEffect(() => {
@@ -66,24 +71,65 @@ function Scene({
     };
   }, [fragrances, scene, gl]);
 
-  // Frame-lock rendering to gsap.ticker (after Lenis has updated scroll), and only when needed
+  // Frame-lock rendering to gsap.ticker (after Lenis has updated scroll), and only when needed:
+  //  - only while a stage anchor is on (or near) the screen
+  //  - only while something moves: the scroll, an anchor, the stage state, or a texture arriving.
+  //    Once everything has been still for SETTLE_MS (long enough for every damped follow, fade
+  //    and page-to-page glide to finish), drawing stops until the next change. Still frames are
+  //    identical anyway, so this costs nothing to see and saves the GPU all the idle time.
+  //  - on a machine that can't keep up, the resolution steps down (never back up)
   useEffect(() => {
+    let last = NaN;
+    let changedAt = -Infinity;
+    let shown: boolean | null = null;
+    let slow = 0;
+    let lastDraw = 0;
+    let dpr = gl.getPixelRatio();
     const tick = (time: number) => {
       const vh = window.innerHeight;
+      const vw = window.innerWidth;
       let visible = false;
+      // A cheap fingerprint of everything the frame depends on
+      let sig = vw * 7 + vh * 13 + stageState.s * 17 + stageState.k * 19;
+      sig += stageState.collectionHover * 23 + stageState.spin * 29;
+      let n = 0;
       for (const a of anchors.values()) {
         const r = a.el.getBoundingClientRect();
-        if (r.bottom > -vh * 0.25 && r.top < vh * 1.25) {
-          visible = true;
-          break;
+        n++;
+        sig += (r.top * 31 + r.left * 37 + r.width * 41 + r.height * 43) * ((n % 7) + 1);
+        if (!visible && r.bottom > -vh * 0.25 && r.top < vh * 1.25) visible = true;
+      }
+      sig += n * 47;
+      if (visible !== shown && layer.current) {
+        shown = visible;
+        layer.current.style.visibility = visible ? "visible" : "hidden";
+      }
+      const now = performance.now();
+      if (sig !== last) {
+        last = sig;
+        changedAt = now;
+      }
+      const awake = now - changedAt < SETTLE_MS || now < stageState.awakeUntil;
+      if (!visible || document.hidden || !awake) {
+        lastDraw = 0;
+        return;
+      }
+      // Frame budget: sustained slow frames lower the resolution one step
+      if (lastDraw) {
+        const ms = now - lastDraw;
+        slow = ms > 26 && ms < 250 ? slow + 1 : Math.max(0, slow - 2);
+        if (slow > 45 && dpr > 1) {
+          dpr = Math.max(1, Math.round((dpr - 0.5) * 4) / 4);
+          setDpr(dpr);
+          slow = 0;
         }
       }
-      if (layer.current) layer.current.style.visibility = visible ? "visible" : "hidden";
-      if (visible && !document.hidden) advance(time * 1000);
+      lastDraw = now;
+      advance(time * 1000);
     };
     gsap.ticker.add(tick);
     return () => gsap.ticker.remove(tick);
-  }, [advance, layer]);
+  }, [advance, layer, gl, setDpr]);
 
   useFrame((state, delta) => {
     director.current?.update(
