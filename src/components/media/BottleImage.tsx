@@ -1,10 +1,9 @@
 import Image from "next/image";
 import clsx from "clsx";
 import type { Fragrance } from "@/lib/fragrance";
-import { BOTTLE_META } from "@/components/stage/bottle-meta";
 
 type Props = {
-  fragrance: Pick<Fragrance, "slug" | "bottleImage" | "bottleAlt">;
+  fragrance: Pick<Fragrance, "slug" | "bottleImage" | "bottleAlt" | "bottle">;
   /** `sizes` for the rendered bottle box (the helper widens it for the transparent margins) */
   sizes: string;
   /** Only for the LCP bottle. Everything else lazy-loads. */
@@ -25,7 +24,7 @@ type Props = {
  */
 export function BottleImage({ fragrance, sizes, preload, fit = "square", className }: Props) {
   if (fit === "trim") {
-    const m = BOTTLE_META[fragrance.slug];
+    const m = fragrance.bottle.meta;
     const sx = m.source.w / m.trim.w;
     return (
       <div className={clsx("relative h-full w-full", className)}>
@@ -75,7 +74,7 @@ function scaleSizes(sizes: string, k: number) {
 }
 
 /** CSS aspect-ratio of a bottle's trimmed bounds, e.g. "940 / 1334" */
-export const bottleAspect = (slug: string) => {
-  const m = BOTTLE_META[slug];
+export const bottleAspect = (f: Pick<Fragrance, "bottle">) => {
+  const m = f.bottle.meta;
   return `${m.trim.w} / ${m.trim.h}`;
 };

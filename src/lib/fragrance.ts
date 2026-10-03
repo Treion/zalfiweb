@@ -1,4 +1,5 @@
 /** Domain types shared by the database layer, server components and the WebGL stage. */
+import type { Bottle } from "./bottle";
 
 export type NoteLayer = "top" | "heart" | "base";
 
@@ -70,6 +71,8 @@ export type Fragrance = {
   capFinish: CapFinish;
   bottleImage: string;
   bottleAlt: string;
+  /** Layout data and relighting maps of the bottle photo (see lib/bottle.ts) */
+  bottle: Bottle;
   sortOrder: number;
   /** Null until the owner (or the seed) has set one: the product page then leaves it out */
   profile: ScentProfile | null;

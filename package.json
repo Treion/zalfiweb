@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "tsx scripts/dev.ts",
+    "dev": "tsx scripts/with-db.ts next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -27,7 +27,8 @@
     "stock:check": "tsx scripts/stock-check.ts",
     "admin": "tsx scripts/admin.ts",
     "admin:create-owner": "tsx scripts/admin.ts create",
-    "dev:next": "next dev"
+    "dev:next": "next dev",
+    "test:db": "tsx scripts/with-db.ts vitest run --config vitest.db.config.mts"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
@@ -36,6 +37,7 @@
     "@react-three/drei": "^10.7.8",
     "@react-three/fiber": "^9.8.0",
     "@tanstack/react-table": "^8.21.3",
+    "@vercel/blob": "^2.8.0",
     "better-auth": "^1.7.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

@@ -4,9 +4,9 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 import { ImageResponse } from "next/og";
-import { BOTTLE_META } from "@/components/stage/bottle-meta";
 import { LOGO_PARTS, LOGO_VIEWBOX, WORDMARK_VIEWBOX } from "@/components/brand/logo-paths";
 import type { Fragrance } from "@/lib/fragrance";
+import { readLocal } from "@/server/providers/storage";
 
 export const OG_SIZE = { width: 1200, height: 630 };
 
@@ -27,9 +27,16 @@ const fonts = async () => [
 ];
 
 /** The real bottle photo, trimmed to its bounds and resized: never cropped, never redrawn. */
-async function bottleDataUrl(slug: string, height: number) {
-  const m = BOTTLE_META[slug];
-  const buf = await sharp(path.join(root, "public/images/bottles", `${slug}.png`))
+/** The bottle photo's bytes, wherever it lives (the repo, local uploads, or Vercel Blob) */
+async function bottleBytes(src: string) {
+  if (/^https?:\/\//.test(src)) return Buffer.from(await (await fetch(src)).arrayBuffer());
+  if (src.startsWith("/media/")) return readLocal(src.slice("/media/".length));
+  return readFile(path.join(root, "public", src));
+}
+
+async function bottleDataUrl(f: Pick<Fragrance, "bottleImage" | "bottle">, height: number) {
+  const m = f.bottle.meta;
+  const buf = await sharp(await bottleBytes(f.bottleImage))
     .extract({ left: m.trim.x, top: m.trim.y, width: m.trim.w, height: m.trim.h })
     .resize({ height })
     .png()
@@ -54,8 +61,12 @@ function logoDataUrl(color: string, variant: "full" | "wordmark") {
 
 export async function houseOgImage(fragrances: Fragrance[]) {
   const logo = logoDataUrl("#EFEAE1", "full");
-  const picks = ["reva", "oudor", "solea"].filter((s) => fragrances.some((f) => f.slug === s));
-  const bottles = await Promise.all(picks.map((s, i) => bottleDataUrl(s, i === 1 ? 470 : 400)));
+  // Three bottles: Reva, Oudor and Solea when published, otherwise the first three
+  const preferred = ["reva", "oudor", "solea"]
+    .map((s) => fragrances.find((f) => f.slug === s))
+    .filter((f): f is Fragrance => !!f);
+  const picks = (preferred.length === 3 ? preferred : fragrances).slice(0, 3);
+  const bottles = await Promise.all(picks.map((f, i) => bottleDataUrl(f, i === 1 ? 470 : 400)));
   return new ImageResponse(
     <div
       style={{
@@ -114,7 +125,7 @@ export async function houseOgImage(fragrances: Fragrance[]) {
 
 export async function fragranceOgImage(f: Fragrance) {
   const logo = logoDataUrl(f.palette.ink, "wordmark");
-  const bottle = await bottleDataUrl(f.slug, 540);
+  const bottle = await bottleDataUrl(f, 540);
   return new ImageResponse(
     <div
       style={{

@@ -219,7 +219,7 @@ function Result({
           kind="product"
           slug={f.slug}
           className="relative h-[46svh] md:h-[62svh]"
-          style={{ aspectRatio: bottleAspect(f.slug) }}
+          style={{ aspectRatio: bottleAspect(f) }}
         >
           <div data-stage-fallback={f.slug} className="absolute inset-0">
             <BottleImage fragrance={f} fit="trim" sizes="(min-width: 768px) 32svh, 30svh" />

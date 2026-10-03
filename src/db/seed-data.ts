@@ -4,6 +4,7 @@
  * - Serves as the read fallback when DATABASE_URL is absent, so builds never fail.
  * Prices are taka placeholders until the owner sets real ones in the admin (Products).
  */
+import { resolveBottle } from "@/lib/bottle";
 import type {
   CapFinish,
   Fragrance,
@@ -95,6 +96,7 @@ const fragrance = (
   capFinish,
   bottleImage: `/images/bottles/${slug}.png`,
   bottleAlt: `ZALFI ${name} eau de parfum: a smoked black glass cube with a ${capLabel[capFinish]} cap`,
+  bottle: resolveBottle(slug),
   sortOrder,
   profile,
   notes: pyramid(notes),

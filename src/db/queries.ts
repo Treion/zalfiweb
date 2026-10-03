@@ -3,6 +3,7 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import type { Fragrance, NoteLayer } from "@/lib/fragrance";
 import { getDb } from "./client";
 import { fragranceNotes, fragrances, notes, variants } from "./schema";
+import { resolveBottle } from "@/lib/bottle";
 import { FRAGRANCES } from "./seed-data";
 
 /**
@@ -51,6 +52,7 @@ export async function getFragrances(): Promise<Fragrance[]> {
       capFinish: f.capFinish,
       bottleImage: f.bottleImage,
       bottleAlt: f.bottleAlt,
+      bottle: resolveBottle(f.slug, f.bottleMeta, f.bottleMaps),
       sortOrder: f.sortOrder,
       profile: f.profile ?? null,
       notes: noteRows

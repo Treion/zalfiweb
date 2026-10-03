@@ -4,7 +4,7 @@
  * config (see config.ts).
  */
 import {
-  CHAPTER_COUNT,
+  chapterCount,
   EXP,
   chRange,
   easeInOutSine,
@@ -122,11 +122,12 @@ export function worldBlend(
   k: number,
 ): { from: number; to: number; t: number; house: number } {
   let w = 0;
-  for (let i = 0; i < CHAPTER_COUNT; i++) w += smooth(prog(s, ...chRange(i, EXP.ch.world, k)));
+  const n = chapterCount();
+  for (let i = 0; i < n; i++) w += smooth(prog(s, ...chRange(i, EXP.ch.world, k)));
   const total = expTotal(k);
   const back = smooth(prog(s, total - EXP.outro * k - 30 * k, total - 10 * k));
   const from = Math.floor(w);
-  return { from, to: Math.min(CHAPTER_COUNT, from + 1), t: w - from, house: back };
+  return { from, to: Math.min(n, from + 1), t: w - from, house: back };
 }
 
 /** Masthead (giant fragrance name behind the bottle) for chapter i. */

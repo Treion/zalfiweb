@@ -53,11 +53,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const catalogue = Object.fromEntries(
     fragrances.flatMap((f) => f.variants.map((v) => [v.sku, v.pricePoisha] as const)),
   );
-  const stageFragrances = fragrances.map(({ slug, name, palette, capFinish }) => ({
+  const stageFragrances = fragrances.map(({ slug, name, palette, capFinish, bottle }) => ({
     slug,
     name,
     palette,
     capFinish,
+    bottle,
   }));
   return (
     <html lang="en" className={`${bodoni.variable} ${hanken.variable}`} suppressHydrationWarning>

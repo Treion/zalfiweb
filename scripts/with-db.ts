@@ -1,10 +1,11 @@
 /**
- * `npm run dev`: the whole local site in one terminal.
+ * Runs a command with the local database ready: `tsx scripts/with-db.ts <command> [args…]`.
  *  - checks PostgreSQL is reachable and says plainly if it isn't
  *  - starts the local Neon stand-in (scripts/neon-local-proxy.ts) when the database is local and it
  *    isn't already running
- *  - starts `next dev` (any extra arguments are passed on, e.g. `npm run dev -- -p 3001`)
- * Stopping it (Ctrl+C) stops both.
+ *  - runs the command (`npm run dev` is `next dev` through this; extra arguments pass on, e.g.
+ *    `npm run dev -- -p 3001`)
+ * When the command ends (or Ctrl+C), the stand-in it started stops too.
  */
 import "dotenv/config";
 import { spawn, type ChildProcess } from "node:child_process";
@@ -81,8 +82,12 @@ async function main() {
         shell: process.platform === "win32",
       }),
     );
+    // Give the stand-in a moment to listen before the command connects
+    await new Promise((r) => setTimeout(r, 800));
   }
-  const next = spawn(bin("next"), ["dev", ...process.argv.slice(2)], {
+  const [cmd, ...args] = process.argv.slice(2);
+  if (!cmd) throw new Error("Usage: tsx scripts/with-db.ts <command> [args…]");
+  const next = spawn(bin(cmd), args, {
     stdio: "inherit",
     shell: process.platform === "win32",
   });

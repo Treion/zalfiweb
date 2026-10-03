@@ -6,13 +6,13 @@ import { useLenis } from "@/components/motion/SmoothScroll";
 import { useReducedMotion } from "@/components/motion/use-reduced-motion";
 import { bottleAspect } from "@/components/media/BottleImage";
 import {
-  CHAPTER_COUNT,
   EXP,
   MOBILE_SCALE,
   chapterAt,
   chapterStart,
   expTotal,
   lineupStart,
+  setChapterCount,
 } from "@/components/stage/config";
 import { lineupOpen } from "@/components/stage/choreography";
 import { StageAnchor } from "@/components/stage/StageAnchor";
@@ -31,7 +31,8 @@ const JUMP_TO = 130;
 type Props = { fragrances: Fragrance[]; noteAvail: Record<string, boolean> };
 
 /** Scroll offset (svh) at which the line-up stands complete: where links to #collection land */
-const lineupAt = (k: number) => (lineupStart(k) / expTotal(k)) * (expTotal(k) - 100);
+const lineupAt = (k: number, n: number) =>
+  (lineupStart(k) / expTotal(k, n)) * (expTotal(k, n) - 100);
 
 /**
  * The home experience, in one sticky viewport over the WebGL stage: it lands on the ZALFI logo;
@@ -48,6 +49,9 @@ export function Experience({ fragrances, noteAvail }: Props) {
   const [active, setActive] = useState(-1);
   const [veil, setVeil] = useState<number | null>(null);
   const first = fragrances[0];
+  // One chapter per published fragrance: the shared timing helpers read this count
+  const count = fragrances.length;
+  setChapterCount(count);
 
   /**
    * Jump to a chapter without rushing through the worlds in between: wash the screen in the
@@ -210,7 +214,11 @@ export function Experience({ fragrances, noteAvail }: Props) {
           { autoAlpha: 1, duration: 30 * k },
           chapterStart(0, k) + EXP.ch.world[0] * k,
         );
-        tl.to(index, { autoAlpha: 0, duration: 20 * k }, chapterStart(CHAPTER_COUNT, k) - 30 * k);
+        tl.to(
+          index,
+          { autoAlpha: 0, duration: 20 * k },
+          chapterStart(fragrances.length, k) - 30 * k,
+        );
 
         // Chapters
         q("[data-chapter]").forEach((el, i) => buildChapterTimeline(tl, el as HTMLElement, i, k));
@@ -227,10 +235,10 @@ export function Experience({ fragrances, noteAvail }: Props) {
   );
 
   const style = {
-    "--exp-h": `${expTotal(1)}svh`,
-    "--exp-h-m": `${expTotal(MOBILE_SCALE)}svh`,
-    "--lineup-at": `${lineupAt(1)}svh`,
-    "--lineup-at-m": `${lineupAt(MOBILE_SCALE)}svh`,
+    "--exp-h": `${expTotal(1, count)}svh`,
+    "--exp-h-m": `${expTotal(MOBILE_SCALE, count)}svh`,
+    "--lineup-at": `${lineupAt(1, count)}svh`,
+    "--lineup-at-m": `${lineupAt(MOBILE_SCALE, count)}svh`,
   } as CSSProperties;
 
   return (
@@ -251,7 +259,7 @@ export function Experience({ fragrances, noteAvail }: Props) {
         <StageAnchor
           kind="experience"
           className="static:hidden pointer-events-none absolute top-[43%] left-1/2 h-[34svh] -translate-x-1/2 -translate-y-1/2 md:top-[48%] md:h-[62svh]"
-          style={{ aspectRatio: bottleAspect(first.slug) }}
+          style={{ aspectRatio: bottleAspect(first) }}
         />
 
         <Landing />

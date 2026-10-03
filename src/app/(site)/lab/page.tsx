@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Logo } from "@/components/brand/Logo";
 import { BottleImage } from "@/components/media/BottleImage";
 import { NoteImage } from "@/components/media/NoteImage";
-import { BOTTLE_META } from "@/components/stage/bottle-meta";
+import { resolveBottle } from "@/lib/bottle";
 import { FRAGRANCES, NOTES } from "@/db/seed-data";
 import { availability } from "@/lib/assets";
 import { NOTE_LAYERS, notesByLayer, type Palette } from "@/lib/fragrance";
@@ -61,7 +61,7 @@ export default function LabPage() {
       {/* Worlds */}
       <div id="worlds">
         {FRAGRANCES.map((f, i) => {
-          const meta = BOTTLE_META[f.slug];
+          const meta = resolveBottle(f.slug).meta;
           return (
             <section
               key={f.slug}

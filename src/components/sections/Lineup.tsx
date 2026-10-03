@@ -112,7 +112,7 @@ function LineupItem({ fragrance: f, index }: { fragrance: Fragrance; index: numb
           kind="lineup"
           index={index}
           className="relative mx-auto w-[68%] md:w-[80%]"
-          style={{ aspectRatio: bottleAspect(f.slug) }}
+          style={{ aspectRatio: bottleAspect(f) }}
         >
           <div data-stage-fallback={f.slug} className="absolute inset-0">
             <motion.div

@@ -65,10 +65,19 @@ export const EXP = {
  */
 export const ROOM_FOLLOW_S = 0.4;
 
-export const CHAPTER_COUNT = 6;
+/**
+ * How many chapters the home experience has: one per published fragrance (six at launch). Set by
+ * the Experience and the stage from the catalogue they render, so hiding or adding a fragrance in
+ * the admin reshapes the timeline without code changes.
+ */
+const chapters = { count: 6 };
+export const chapterCount = () => chapters.count;
+export function setChapterCount(n: number) {
+  chapters.count = Math.max(1, Math.round(n));
+}
 
-export function expTotal(k = 1) {
-  return (EXP.intro + EXP.lineup + CHAPTER_COUNT * EXP.chapter + EXP.outro) * k;
+export function expTotal(k = 1, n = chapters.count) {
+  return (EXP.intro + EXP.lineup + n * EXP.chapter + EXP.outro) * k;
 }
 
 /** Where the line-up stands complete, every bottle in its slot */
@@ -95,9 +104,9 @@ export const chRange = (i: number, seg: readonly [number, number], k = 1): [numb
   chapterStart(i, k) + seg[1] * k,
 ];
 
-/** Index of the chapter that "owns" scroll position s (-1 before chapters, CHAPTER_COUNT after) */
+/** Index of the chapter that "owns" scroll position s (-1 before chapters, the count after) */
 export function chapterAt(s: number, k = 1) {
   if (s < chapterStart(0, k) + EXP.ch.world[0] * k) return -1;
   const i = Math.floor((s - chapterStart(0, k)) / (EXP.chapter * k) + 1e-6);
-  return Math.min(CHAPTER_COUNT, Math.max(0, i));
+  return Math.min(chapters.count, Math.max(0, i));
 }

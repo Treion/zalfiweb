@@ -1,3 +1,4 @@
+import type { Bottle } from "@/lib/bottle";
 import type { Palette } from "@/lib/fragrance";
 
 /** The house world: shown for the intro, hero and collection. */
@@ -13,4 +14,5 @@ export type StageFragrance = {
   name: string;
   palette: Palette;
   capFinish: string;
+  bottle: Bottle;
 };

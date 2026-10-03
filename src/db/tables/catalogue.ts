@@ -13,6 +13,7 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import type { BottleMeta } from "@/components/stage/bottle-meta";
 import type { Palette, ScentProfile } from "@/lib/fragrance";
 
 export const noteLayer = pgEnum("note_layer", ["top", "heart", "base"]);
@@ -38,6 +39,12 @@ export const fragrances = pgTable(
     capFinish: capFinish("cap_finish").notNull(),
     bottleImage: text("bottle_image").notNull(),
     bottleAlt: text("bottle_alt").notNull(),
+    /** Layout data of an admin-uploaded bottle photo (trim, shoulder, cap). Null: the generated
+     *  BOTTLE_META for this slug (the six launch bottles, baked by `npm run assets:bottles`). */
+    bottleMeta: jsonb("bottle_meta").$type<BottleMeta>(),
+    /** URL prefix of that photo's relighting maps: `${bottleMaps}-color.webp`, -normal, -mask.
+     *  Null: /images/bottles/maps/{slug}. */
+    bottleMaps: text("bottle_maps"),
     sortOrder: integer("sort_order").notNull().default(0),
     /** Family, longevity, sillage, seasons and moments (see ScentProfile). Null hides it. */
     profile: jsonb("profile").$type<ScentProfile>(),

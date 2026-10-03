@@ -87,7 +87,7 @@ export default async function FragrancePage({ params }: PageProps<"/fragrances/[
               slug={f.slug}
               spin={f.slug in BOTTLE_MODELS}
               className="relative h-[52svh] md:h-[74svh]"
-              style={{ aspectRatio: bottleAspect(f.slug) }}
+              style={{ aspectRatio: bottleAspect(f) }}
             >
               <div data-stage-fallback={f.slug} className="absolute inset-0">
                 <BottleImage

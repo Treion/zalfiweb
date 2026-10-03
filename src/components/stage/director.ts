@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import type { Palette } from "@/lib/fragrance";
 import { anchors, type Anchor } from "./anchors";
-import { BOTTLE_META } from "./bottle-meta";
+import type { BottleMeta } from "./bottle-meta";
 import {
   bottlePose,
   chapterProgress,
@@ -11,7 +11,14 @@ import {
   worldBlend,
   type Pose,
 } from "./choreography";
-import { EXP, ROOM_FOLLOW_S, chapterAt, easeInOutCubic, lineupStart } from "./config";
+import {
+  EXP,
+  ROOM_FOLLOW_S,
+  chapterAt,
+  easeInOutCubic,
+  lineupStart,
+  setChapterCount,
+} from "./config";
 import * as S from "./shaders";
 import { stageState } from "./stage-state";
 import { HOUSE_PALETTE, type StageFragrance } from "./worlds";
@@ -167,9 +174,11 @@ class BottleRig {
 
   constructor(
     readonly slug: string,
+    readonly meta: BottleMeta,
+    /** URL prefix of the relighting maps; null: no maps, the DOM photo stands in */
+    readonly mapsUrl: string | null,
     shared: Record<string, THREE.IUniform>,
   ) {
-    const meta = BOTTLE_META[slug];
     this.aspect = meta.trim.w / meta.trim.h;
     this.maps = { uColor: { value: null }, uNormal: { value: null }, uMask: { value: null } };
     const common = {
@@ -385,6 +394,7 @@ export class StageDirector {
   private rimLight = new THREE.DirectionalLight(0xffffff, 0.8);
 
   constructor(private fragrances: StageFragrance[]) {
+    setChapterCount(fragrances.length);
     this.palettes = [HOUSE_PALETTE, ...fragrances.map((f) => f.palette)].map(toLinear);
     this.shared = {
       uBg: { value: this.current.bg },
@@ -424,7 +434,9 @@ export class StageDirector {
     );
     this.world.renderOrder = -10;
     this.world.frustumCulled = false;
-    this.rigs = fragrances.map((f) => new BottleRig(f.slug, this.shared));
+    this.rigs = fragrances.map(
+      (f) => new BottleRig(f.slug, f.bottle.meta, f.bottle.maps, this.shared),
+    );
     this.mastheads = fragrances.map(() => new Masthead());
   }
 
@@ -514,7 +526,7 @@ export class StageDirector {
         try {
           const src = await this.library.load(entry);
           if (this.disposed) return;
-          const shoulder = BOTTLE_META[rig.slug]?.shoulder ?? 0.37;
+          const shoulder = rig.meta.shoulder;
           rig.setModel(
             instantiate(src, { bottle: { shoulder } }),
             instantiate(src, { bottle: { shoulder }, mirror: true }),
@@ -525,7 +537,9 @@ export class StageDirector {
           console.warn("[stage] 3D model failed, using the relit photo", rig.slug, err);
         }
       }
-      const base = `/images/bottles/maps/${rig.slug}`;
+      const base = rig.mapsUrl;
+      // No baked maps yet (a new fragrance without its photo): the DOM photo stays in place
+      if (!base) continue;
       try {
         const [c, n, m] = await Promise.all([
           get(`${base}-color.webp`, true),

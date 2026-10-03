@@ -44,7 +44,7 @@ export default async function StageLab({ searchParams }: PageProps<"/lab/stage">
         kind="product"
         slug={f.slug}
         className="relative col-span-12 mx-auto h-[72svh] md:col-span-6"
-        style={{ aspectRatio: bottleAspect(f.slug) }}
+        style={{ aspectRatio: bottleAspect(f) }}
       >
         <div data-stage-fallback={f.slug} className="absolute inset-0">
           <BottleImage fragrance={f} fit="trim" sizes="36vw" preload />
