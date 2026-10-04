@@ -92,6 +92,11 @@
     outline-offset: 4px;
   }
 
+  /* Focus handed back after a mouse close (the cart button, when the bag closes) */
+  [data-quiet-focus]:focus-visible {
+    outline: none;
+  }
+
   /* The custom cursor replaces the system one only on fine pointers with motion allowed */
   html.has-custom-cursor,
   html.has-custom-cursor * {

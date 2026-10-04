@@ -21,6 +21,9 @@ export function CartDrawer({ worldCount = 6 }: { worldCount?: number }) {
   const router = useRouter();
   const panel = useRef<HTMLDivElement>(null);
   const restoreFocus = useRef<HTMLElement | null>(null);
+  // Closed with the keyboard (Esc), the cart button gets its focus ring back; closed with the
+  // mouse, focus still returns there but quietly, with no ring
+  const closedByKey = useRef(false);
   const [checkout, setCheckout] = useState<
     { state: "idle" } | { state: "loading" } | { state: "message"; text: string }
   >({ state: "idle" });
@@ -29,6 +32,7 @@ export function CartDrawer({ worldCount = 6 }: { worldCount?: number }) {
   useEffect(() => {
     if (!open) return;
     restoreFocus.current = document.activeElement as HTMLElement | null;
+    closedByKey.current = false;
     lenis?.stop();
     const root = document.documentElement;
     const prevOverflow = root.style.overflow;
@@ -39,7 +43,10 @@ export function CartDrawer({ worldCount = 6 }: { worldCount?: number }) {
     );
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeBag();
+      if (e.key === "Escape") {
+        closedByKey.current = true;
+        closeBag();
+      }
       if (e.key !== "Tab" || !panel.current) return;
       const focusables = panel.current.querySelectorAll<HTMLElement>(
         'a[href], button:not([disabled]), input, [tabindex]:not([tabindex="-1"])',
@@ -61,7 +68,16 @@ export function CartDrawer({ worldCount = 6 }: { worldCount?: number }) {
       document.removeEventListener("keydown", onKey);
       root.style.overflow = prevOverflow;
       lenis?.start();
-      restoreFocus.current?.focus?.();
+      const el = restoreFocus.current;
+      if (el) {
+        const quiet = !closedByKey.current;
+        if (quiet) {
+          // Browsers that ignore focusVisible: the attribute hides the ring until focus moves on
+          el.setAttribute("data-quiet-focus", "");
+          el.addEventListener("blur", () => el.removeAttribute("data-quiet-focus"), { once: true });
+        }
+        el.focus({ focusVisible: !quiet } as FocusOptions);
+      }
     };
   }, [open, closeBag, lenis]);
 
