@@ -10,6 +10,7 @@ A guide for the owner and the managers: how to run the shop from `/admin`. It fo
 - [Sending with another courier or your own rider](#sending-with-another-courier-or-your-own-rider)
 - [Cancelling and refunding](#cancelling-and-refunding)
 - [Products, photos and prices](#products-photos-and-prices)
+- [Notes](#notes)
 - [Stock](#stock)
 - [Coupons](#coupons)
 - [Customers](#customers)
@@ -135,10 +136,19 @@ For couriers without a connection (Sundarban, SA Paribahan, Paperfly…), your o
 - **World and cap:** the fragrance's colours on the shop, with a preview, and the cap finish.
 - **Bottle photo:** the main photograph: a cut-out bottle on a transparent background, as PNG or WebP, at least 600 × 600 px (2000 × 2000 is best). Upload a new one and the site checks it and bakes its lighting maps itself.
 - **Gallery:** more photos, with descriptions for screen readers. Drag them into order.
-- **Notes:** top, heart and base notes.
+- **Notes:** top, heart and base notes. Pick each from the notes library (its photo comes with it) and write how this fragrance names it, e.g. "Crushed Wild Mint". The picker's **New note…** adds a note to the library without leaving the page. The home page shows up to three notes per layer (two on phones); the product page shows them all.
 - **Sizes and prices:** each size's price (in taka), SKU, whether it's on sale, and its low-stock level.
 
 Changes show on the shop at once. **New fragrance** (top of Products) adds one; the home page gains a chapter by itself.
+
+## Notes
+
+**Notes** (under Catalogue) is the library of ingredients the fragrances are made of: each with its photo, and which fragrances use it.
+
+- **New note:** a name, a photo and a few words describing the photo (read aloud to people who can't see it). The photo must have a transparent background (PNG or WebP, up to 4 MB): the notes float over each fragrance's colour. It is trimmed and centred for you, so every note sits at the same scale.
+- **Open a note** to rename it, describe it, or **Replace the photo**. Changes show on the shop at once. The name here is the ingredient; each fragrance can word it its own way (Products → Notes).
+- **Delete** works once no fragrance uses the note. Take it out of those fragrances first; the note's page lists them.
+- **No empty spaces on the shop:** a note whose photo is missing is simply left out, and the others close up.
 
 ## Stock
 

@@ -111,7 +111,10 @@ export async function getProductAdmin(id: number, exec: Executor = poolDb()) {
       .from(fragranceImages)
       .where(eq(fragranceImages.fragranceId, id))
       .orderBy(asc(fragranceImages.position), asc(fragranceImages.id)),
-    exec.select({ slug: notes.slug, name: notes.name }).from(notes).orderBy(asc(notes.name)),
+    exec
+      .select({ slug: notes.slug, name: notes.name, image: notes.image })
+      .from(notes)
+      .orderBy(asc(notes.name)),
   ]);
   const reserved = await reservedBy(
     exec,

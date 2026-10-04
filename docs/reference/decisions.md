@@ -264,3 +264,7 @@ Judgement calls made while building the backend and admin, newest last. Each one
     - Three headers per environment (Client-ID, Client-Secret, Client-Context). The city and zone are matched from the address like Pathao's, then through CarryBee's own address lookup.
     - Its webhook carries the secret from CarryBee's Webhook Integration page in `X-CB-Webhook-Integration-Header`, compared in constant time, and the answer is 202 with the secret echoed back. The parcel's status is re-read from the order details API (`transfer_status`).
     - The doc names no public tracking page, so customers see the consignment ID. Reverse pickups, exchanges and bulk orders aren't used yet.
+124. **Notes are managed in the admin, and the shop never shows an empty space for one.**
+    - Admin → Notes holds the library: name, alt text and photo per note, and where each is used. A photo is required and must be transparent; it is framed like the owner's own (trimmed, centred at ~86%, at most 1200px) and stored as WebP with the product photos. The slug is fixed once made (3D models key on it). A note can be deleted only once no fragrance uses it.
+    - Products → Notes picks from the library, with thumbnails, and can create a note in place.
+    - White Oud (Oudor) and Precious Woods (Bond) had no photo and were removed at the owner's request (migration 0012). On the shop, a note whose photo isn't available is left out (`withNotePhotos()`); the remaining notes take the slots in order. `/lab` still shows frames for missing files.

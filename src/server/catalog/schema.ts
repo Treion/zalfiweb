@@ -98,6 +98,28 @@ export const notesSchema = z
   )
   .max(30);
 
+/** A note in the library (Admin → Notes): its name and how its photo is described */
+export const noteDetailsSchema = z
+  .object({
+    name: z.string().trim().min(2, "Give the note a name.").max(40),
+    alt: z
+      .string()
+      .trim()
+      .min(6, "Describe the photo in a few words (for screen readers).")
+      .max(160),
+  })
+  .strict();
+
+/** A note's slug from its name: "Pink Pepper" → pink-pepper */
+export const noteSlugOf = (name: string) =>
+  name
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+
 export const ADJUST_REASONS = [
   { value: "restock", label: "New stock arrived" },
   { value: "count", label: "Stock count correction" },

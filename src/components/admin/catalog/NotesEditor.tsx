@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
 import { ArrowDownIcon, ArrowUpIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -22,10 +24,24 @@ import {
 } from "@/components/admin/ui/select";
 import { setNotesAction } from "@/app/(admin)/admin/(app)/products/actions";
 import { LAYER_LABELS } from "./labels";
+import { NewNoteDialog } from "./NewNoteDialog";
 
 type Layer = "top" | "heart" | "base";
 type Row = { key: string; noteSlug: string; label: string };
-type Lib = { slug: string; name: string }[];
+type Lib = { slug: string; name: string; image: string }[];
+
+/** What the home page's chapters show per layer (NOTE_SLOTS): three, two on phones */
+const SHOWN = 3;
+const NEW = "__new__";
+
+function Thumb({ src }: { src?: string }) {
+  if (!src) return <span className="bg-muted size-6 shrink-0 rounded" />;
+  return (
+    <span className="bg-muted relative size-6 shrink-0 overflow-hidden rounded">
+      <Image src={src} alt="" fill sizes="24px" className="object-contain p-0.5" />
+    </span>
+  );
+}
 
 let uid = 0;
 const nextKey = () => `n${++uid}`;
@@ -40,6 +56,9 @@ export function NotesEditor({
   initial: { noteSlug: string; layer: Layer; label: string }[];
   library: Lib;
 }) {
+  const [lib, setLib] = useState(library);
+  // The row a new note is being made for (from its picker's "New note…")
+  const [making, setMaking] = useState<{ layer: Layer; key: string } | null>(null);
   const build = () =>
     Object.fromEntries(
       (["top", "heart", "base"] as Layer[]).map((l) => [
@@ -52,7 +71,8 @@ export function NotesEditor({
   const [rows, setRows] = useState(build);
   const [dirty, setDirty] = useState(false);
   const [pending, start] = useTransition();
-  const nameOf = (slug: string) => library.find((n) => n.slug === slug)?.name ?? slug;
+  const nameOf = (slug: string) => lib.find((n) => n.slug === slug)?.name ?? slug;
+  const imageOf = (slug: string) => lib.find((n) => n.slug === slug)?.image;
 
   const update = (layer: Layer, fn: (list: Row[]) => Row[]) => {
     setRows((r) => ({ ...r, [layer]: fn(r[layer]) }));
@@ -88,7 +108,10 @@ export function NotesEditor({
         <CardTitle>Notes</CardTitle>
         <CardDescription>
           Pick each note from the library (its photo comes with it) and write how this fragrance
-          names it.
+          names it. The home page shows up to {SHOWN} per layer, two on phones.{" "}
+          <Link href="/admin/notes" className="text-foreground underline underline-offset-4">
+            Manage notes
+          </Link>
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-6 lg:grid-cols-3">
@@ -104,20 +127,33 @@ export function NotesEditor({
                 <Select
                   value={r.noteSlug}
                   onValueChange={(v) =>
-                    update(layer, (list) =>
-                      list.map((x) => (x.key === r.key ? { ...x, noteSlug: v } : x)),
-                    )
+                    v === NEW
+                      ? setMaking({ layer, key: r.key })
+                      : update(layer, (list) =>
+                          list.map((x) => (x.key === r.key ? { ...x, noteSlug: v } : x)),
+                        )
                   }
                 >
                   <SelectTrigger className="w-full" size="sm" aria-label="Note">
-                    <SelectValue>{nameOf(r.noteSlug)}</SelectValue>
+                    <SelectValue>
+                      <span className="flex items-center gap-2">
+                        <Thumb src={imageOf(r.noteSlug)} />
+                        {nameOf(r.noteSlug)}
+                      </span>
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {library.map((n) => (
+                    {lib.map((n) => (
                       <SelectItem key={n.slug} value={n.slug}>
-                        {n.name}
+                        <span className="flex items-center gap-2">
+                          <Thumb src={n.image} />
+                          {n.name}
+                        </span>
                       </SelectItem>
                     ))}
+                    <SelectItem value={NEW}>
+                      <PlusIcon /> New note…
+                    </SelectItem>
                   </SelectContent>
                 </Select>
                 <div className="flex items-center gap-1">
@@ -172,16 +208,36 @@ export function NotesEditor({
               onClick={() =>
                 update(layer, (list) => [
                   ...list,
-                  { key: nextKey(), noteSlug: library[0]?.slug ?? "", label: "" },
+                  { key: nextKey(), noteSlug: lib[0]?.slug ?? "", label: "" },
                 ])
               }
-              disabled={!library.length}
+              disabled={!lib.length}
             >
               <PlusIcon /> Add a {LAYER_LABELS[layer].toLowerCase()} note
             </Button>
+            {rows[layer].length > SHOWN && (
+              <p className="text-muted-foreground text-xs">
+                The home page shows the first {SHOWN}; the product page shows them all.
+              </p>
+            )}
           </section>
         ))}
       </CardContent>
+      <NewNoteDialog
+        open={!!making}
+        onOpenChange={(o) => !o && setMaking(null)}
+        onCreated={(n) => {
+          setLib((l) =>
+            [...l, { slug: n.slug, name: n.name, image: n.image }].sort((a, b) =>
+              a.name.localeCompare(b.name),
+            ),
+          );
+          if (making)
+            update(making.layer, (list) =>
+              list.map((x) => (x.key === making.key ? { ...x, noteSlug: n.slug } : x)),
+            );
+        }}
+      />
       <CardFooter className="justify-end gap-3 border-t">
         {dirty && <span className="text-muted-foreground text-xs">Unsaved changes</span>}
         <Button onClick={save} disabled={pending || !dirty}>

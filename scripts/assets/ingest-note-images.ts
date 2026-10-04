@@ -5,9 +5,9 @@
  *
  * Every image in the folder (PNG or WebP with a transparent background, named however) is matched
  * to a note by its name: "agar wood.png" → agarwood, "nut meg.png" → nutmeg, "rose.png" →
- * red-rose. Each is trimmed to its subject and centred on a transparent square at ~86% fill, so
- * every note reads at the same scale, at most 1200px square, and written to
- * public/images/notes/{slug}.png. It is never enlarged past its own pixels.
+ * red-rose, "Fresh Mint Leaf Cluster.png" → mint. Each is framed by frameNote()
+ * (src/server/catalog/note-photo.ts, shared with Admin → Notes) and written to
+ * public/images/notes/{slug}.png.
  *
  * Files that match no note are listed and left alone; an existing image is kept unless --force.
  */
@@ -15,11 +15,11 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 import { NOTES } from "../../src/db/seed-data";
+import { frameNote } from "../../src/server/catalog/note-photo";
+
+export { frameNote };
 
 const OUT = path.join(process.cwd(), "public/images/notes");
-/** The site never shows a note wider than ~600 device pixels: 1200 keeps them sharp and light */
-const MAX = 1200;
-const FILL = 0.86;
 
 const key = (s: string) =>
   s
@@ -36,46 +36,25 @@ const ALIASES: Record<string, string[]> = {
   agarwood: ["agar", "agarwood"],
   cedarwood: ["cedar"],
   sandalwood: ["sandal"],
-  "precious-woods": ["preciouswood", "woods"],
-  "white-oud": ["whiteoud"],
   musk: ["whitemusk", "warmmusk"],
 };
 
 export function slugFor(filename: string): string | null {
   const k = key(filename);
-  for (const n of NOTES) {
-    const names = [n.slug, n.name, ...(ALIASES[n.slug] ?? [])].map(key);
-    if (names.includes(k)) return n.slug;
-  }
-  return null;
-}
-
-/** Trim to the subject and centre it on a transparent square, the subject filling ~86% of it */
-export async function frameNote(input: Buffer) {
-  const trimmed = await sharp(input).ensureAlpha().trim({ threshold: 1 }).png().toBuffer();
-  const t = await sharp(trimmed).metadata();
-  const long = Math.max(t.width!, t.height!);
-  const fitted =
-    long > MAX * FILL
-      ? await sharp(trimmed)
-          .resize({ width: MAX * FILL, height: MAX * FILL, fit: "inside" })
-          .png()
-          .toBuffer()
-      : trimmed;
-  const m = await sharp(fitted).metadata();
-  const side = Math.min(MAX, Math.round(Math.max(m.width!, m.height!) / FILL));
-  return sharp({
-    create: { width: side, height: side, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
-  })
-    .composite([
-      {
-        input: fitted,
-        left: Math.round((side - m.width!) / 2),
-        top: Math.round((side - m.height!) / 2),
-      },
-    ])
-    .png({ compressionLevel: 9, adaptiveFiltering: true })
-    .toBuffer();
+  const named = NOTES.map((n) => ({
+    slug: n.slug,
+    names: [n.slug, n.name, ...(ALIASES[n.slug] ?? [])].map(key),
+  }));
+  const exact = named.find((n) => n.names.includes(k));
+  if (exact) return exact.slug;
+  // "Fresh Mint Leaf Cluster" → mint: the longest note name inside the file name wins, so
+  // "Green Apple Slices" is green-apple, not apple
+  let best: { slug: string; len: number } | null = null;
+  for (const n of named)
+    for (const name of n.names)
+      if (name.length >= 3 && k.includes(name) && (!best || name.length > best.len))
+        best = { slug: n.slug, len: name.length };
+  return best?.slug ?? null;
 }
 
 async function main() {

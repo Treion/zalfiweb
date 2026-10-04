@@ -4,6 +4,7 @@ import {
   BoxesIcon,
   CreditCardIcon,
   LayoutDashboardIcon,
+  LeafIcon,
   PackageIcon,
   PlugIcon,
   ReceiptTextIcon,
@@ -67,6 +68,12 @@ export const NAV: { label?: string; items: NavItem[] }[] = [
         href: "/admin/products",
         label: "Products",
         icon: PackageIcon,
+        permission: "products.manage",
+      },
+      {
+        href: "/admin/notes",
+        label: "Notes",
+        icon: LeafIcon,
         permission: "products.manage",
       },
       {

@@ -49,10 +49,8 @@ const QUERIES: Record<string, string[]> = {
   iris: ["purple iris flower isolated", "Iris germanica flower white background"],
   nutmeg: ["nutmeg with mace", "nutmeg mace isolated"],
   oud: ["agarwood chips", "oud wood chips"],
-  "precious-woods": ["exotic wood samples", "hardwood offcuts"],
   saffron: ["saffron threads white background", "saffron stigmas isolated"],
   "red-rose": ["red rose isolated white background", "red rose flower white"],
-  "white-oud": ["light agarwood chips", "aquilaria wood pale"],
   agarwood: ["agarwood resin wood", "Aquilaria agarwood piece"],
   musk: ["ambrette seeds", "Abelmoschus moschatus seeds"],
 };

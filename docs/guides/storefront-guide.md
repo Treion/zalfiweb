@@ -83,12 +83,12 @@ The design rules (type, colour, motion, what never to do) are in `CLAUDE.md`. Ke
 |---|---|---|
 | The logo | `public/brand/logo.png` (the original artwork) | `npm run assets:logo` traces it into the site's vector logo and the email logo |
 | The six bottles | `public/images/bottles/{reva,riven,maree,solea,bond,oudor}.png`: 2000 × 2000 px, transparent | `npm run assets:bottles` bakes the lighting maps. A photo uploaded in the admin is baked by itself |
-| Note photos (lavender, vanilla…) | `public/images/notes/{note}.png` | None: they show as soon as they're there |
+| Note photos (lavender, vanilla…) | Admin → Notes, or `public/images/notes/{note}.png` | None: they show as soon as they're there |
 | 3D models (optional) | `assets/models/`, see its README | `npm run models:ingest` |
 
 **Bottles:** never crop, recolour or retouch them; the site shows them whole and relights them itself.
 
-**Note photos:** 22 of the 26 are in (yours, from the `trans` upload). The other four (`mint.png`, `apple.png`, `precious-woods.png`, `white-oud.png`) show a fine frame with their file name until they arrive, never a drawing or an icon. To add or replace photos, put them in a folder (transparent PNG or WebP, named however you like, e.g. `white oud.png`) and run `npm run notes:ingest -- <folder>` (add `--force` to replace ones already there). It renames them, trims and centres them, and saves them to `public/images/notes/`. They must look like real photographs. For notes you have no photo of, `npm run notes:fetch` downloads openly licensed real photos from Wikimedia Commons, cuts them out, and writes their credits to `CREDITS.md` (keep that file). Review every one before publishing. The list of notes, and prompts for studio photography, are in `docs/content/note-images.md`.
+**Note photos:** every note has one (yours). Add, rename or re-photograph notes in the admin (**Catalogue → Notes**), and put them in a fragrance from **Products → Notes**. A note without a photo is left out of the shop, never shown as an empty space. To bring in a folder of photos at once (transparent PNG or WebP, named however you like, e.g. `white oud.png`), run `npm run notes:ingest -- <folder>` (add `--force` to replace ones already there): it renames them, trims and centres them, and saves them to `public/images/notes/`. They must look like real photographs. `npm run notes:fetch` can find openly licensed real photos on Wikimedia Commons and writes their credits to `CREDITS.md` (keep that file). The note list is in `docs/content/note-images.md`.
 
 ## Motion, and the static version
 

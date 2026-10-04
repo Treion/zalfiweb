@@ -10,7 +10,7 @@ import { ScentProfile } from "@/components/product/ScentProfile";
 import { StageAnchor } from "@/components/stage/StageAnchor";
 import { BOTTLE_MODELS } from "@/components/stage/model-manifest";
 import { getFragrance, getFragrances } from "@/db/queries";
-import { availability } from "@/lib/assets";
+import { availability, withNotePhotos } from "@/lib/assets";
 import { NOTE_LAYERS, notesByLayer, worldVars } from "@/lib/fragrance";
 
 export const revalidate = 300;
@@ -44,8 +44,8 @@ export default async function FragrancePage({ params }: PageProps<"/fragrances/[
   const { slug } = await params;
   const all = await getFragrances();
   const index = all.findIndex((x) => x.slug === slug);
-  const f = all[index];
-  if (!f) notFound();
+  if (!all[index]) notFound();
+  const f = withNotePhotos(all[index]);
   const next = all[(index + 1) % all.length];
   const noteAvail = availability(f.notes.map((n) => n.image));
   const from = f.variants[0];

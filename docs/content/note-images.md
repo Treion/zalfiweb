@@ -13,7 +13,7 @@ Every note image the site needs. Drop each one into `public/images/notes/` using
 
 **Received: the owner's own photos (2026-10-04).** 22 transparent PNG and WebP images were uploaded in a `trans` folder and brought in with `npm run notes:ingest -- <folder>`. The script matches each file to its note however it was named (`agar wood.png` → `agarwood.png`, `pathcouli.png` → `patchouli.png`, `rose.png` → `red-rose.png`). It trims each one, centres it on a transparent square at about 86% fill (at most 1200px, never enlarged), and saves it under the exact filename below. Alt text in `seed-data.ts` (and migration `0011`) describes these photos.
 
-**Still to come (4):** `mint.png`, `apple.png`, `precious-woods.png`, `white-oud.png`. Drop them in a folder and run the same command.
+**All in (2026-10-05):** mint, apple and a better sandalwood followed. White Oud and Precious Woods had no photo and were removed from Oudor and Bond at the owner's request. New notes, and new photos for existing ones, are now added in **Admin → Notes**; the rows below for those two stay only as a record.
 
 **Fallback route: real, openly licensed photos from Wikimedia Commons.** Run `npm run notes:fetch` once `commons.wikimedia.org` and `upload.wikimedia.org` are allowed in the environment's network settings. The script:
 
@@ -40,7 +40,7 @@ The originals were uploaded to the repo root and are moved to `public/images/bot
 
 Logo: `logo.png` ✓ (1483×1061, black on transparent). It is traced to SVG in M0.
 
-## Notes (26 images, `public/images/notes/`: 22 received)
+## Notes (24 images, `public/images/notes/`: all received)
 
 Some notes appear in more than one fragrance under different names (for example "Crushed Wild Mint" and "Cool Mint"). Those share one ingredient image, and the elegant label comes from the database. No fragrance uses the same image twice.
 
@@ -77,12 +77,12 @@ Some notes appear in more than one fragrance under different names (for example 
 
 ```
 ☑ pineapple.png        ☑ jasmine.png          ☑ coconut.png          ☑ saffron.png
-☐ mint.png             ☑ lime.png             ☑ vanilla.png          ☑ red-rose.png
-☑ lavender.png         ☑ patchouli.png        ☑ iris.png             ☐ white-oud.png
+☑ mint.png             ☑ lime.png             ☑ vanilla.png          ☑ red-rose.png
+☑ lavender.png         ☑ patchouli.png        ☑ iris.png             ✕ white-oud.png
 ☑ oakmoss.png          ☑ green-apple.png      ☑ nutmeg.png           ☑ agarwood.png
 ☑ vetiver.png          ☑ tuberose.png         ☑ oud.png              ☑ musk.png
-☑ tonka-bean.png       ☑ cedarwood.png        ☐ precious-woods.png
-☑ cucumber.png         ☑ sandalwood.png       ☐ apple.png
+☑ tonka-bean.png       ☑ cedarwood.png        ✕ precious-woods.png
+☑ cucumber.png         ☑ sandalwood.png       ☑ apple.png
 ```
 
 ---
