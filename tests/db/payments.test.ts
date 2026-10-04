@@ -1,5 +1,6 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { isolateIntegrations } from "./isolate";
 import {
   adminUsers,
   customers,
@@ -35,6 +36,7 @@ let seq = 0;
 const phone = () => `0177${String((Date.now() + seq++) % 10_000_000).padStart(7, "0")}`;
 let variantId = 0;
 const saved = new Map<string, unknown>();
+const providers = isolateIntegrations();
 
 const stockOf = async () =>
   (
@@ -87,6 +89,7 @@ async function online(method: "sslcommerz" | "cod" = "sslcommerz") {
 }
 
 beforeAll(async () => {
+  await providers.save();
   await poolDb().insert(adminUsers).values({ id: admin.id, name: "Test", email: admin.email });
   const [f] = await poolDb()
     .insert(fragrances)
@@ -113,7 +116,7 @@ beforeAll(async () => {
   const pinned = {
     payments: { sslcommerzEnabled: true, codEnabled: true, unpaidExpiryMinutes: 30 },
     shipping: {},
-    integrations: { payments: "mock" },
+    integrations: {},
   };
   for (const [key, value] of Object.entries(pinned)) {
     const [row] = await poolDb().select().from(settings).where(eq(settings.key, key));
@@ -126,6 +129,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  await providers.restore();
   await new Promise((r) => setTimeout(r, 2500));
   const ids = (
     await poolDb()

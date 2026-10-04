@@ -169,6 +169,8 @@ export const shippingRules = (s: Settings<"shipping">): ShippingRules => ({
 export function enabledMethods(p: Settings<"payments">, onlineReady = true): PaymentMethod[] {
   const m: PaymentMethod[] = [];
   if (p.sslcommerzEnabled && onlineReady) m.push("sslcommerz");
+  const wallet = (w: Settings<"payments">["manual"]["bkash"]) => w.enabled && !!w.number;
+  if (p.manual.enabled && (wallet(p.manual.bkash) || wallet(p.manual.nagad))) m.push("manual");
   if (p.codEnabled) m.push("cod");
   return m;
 }

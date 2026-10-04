@@ -16,6 +16,17 @@ import type { OrderStatus } from "@/server/orders/state";
 export const COURIER_NAMES = ["pathao", "steadfast", "redx", "manual", "mock"] as const;
 export type CourierName = (typeof COURIER_NAMES)[number];
 
+/** "Other courier": names offered in the send dialog (anything else can be typed) */
+export const OTHER_COURIERS = [
+  "Own rider",
+  "Sundarban Courier",
+  "SA Paribahan",
+  "Paperfly",
+  "eCourier",
+  "Delivery Tiger",
+  "Janani Express",
+];
+
 /** The status of a parcel taken back from the admin before pickup (not a courier's own word) */
 export const CANCELLED_HERE = "cancelled_by_zalfi";
 

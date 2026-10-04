@@ -3,7 +3,7 @@ import type { ListParams } from "@/components/admin/data-table/url-state";
 import { adminUsers, orders, returns, shipments } from "@/db/schema";
 import { poolDb, type Executor } from "@/server/db/pool";
 import { ORDER_STATUSES, type OrderStatus } from "@/server/orders/state";
-import { CANCELLED_HERE, type CourierName } from "./types";
+import { CANCELLED_HERE, COURIER_NAMES, type CourierName } from "./types";
 
 /** The Shipping page: parcels by courier and state, failed deliveries, returns, cash on delivery */
 
@@ -12,7 +12,7 @@ export type ShippingView = (typeof SHIPPING_VIEWS)[number];
 export const SHIPMENT_FILTER_KEYS = ["courier", "status", "view", "days"];
 
 const like = (q: string) => `%${q.replace(/[%_\\]/g, "\\$&")}%`;
-const COURIERS: CourierName[] = ["mock", "pathao", "steadfast"];
+const COURIERS: readonly CourierName[] = COURIER_NAMES;
 /** Delivered, as far as the cash goes (a return asked for after delivery was still paid for) */
 const DELIVERED: OrderStatus[] = ["delivered", "return_requested"];
 

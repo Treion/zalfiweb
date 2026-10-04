@@ -137,6 +137,14 @@ export async function reserveStock(tx: Tx, orderId: number, lines: Line[], expir
     .values(items.map((l) => ({ orderId, variantId: l.variantId, qty: l.qty, expiresAt })));
 }
 
+/** Holds an order's reserved bottles for longer (a bKash or Nagad payment waiting to be checked) */
+export async function extendReservations(tx: Tx, orderId: number, expiresAt: Date) {
+  await tx
+    .update(stockReservations)
+    .set({ expiresAt })
+    .where(and(eq(stockReservations.orderId, orderId), isNull(stockReservations.releasedAt)));
+}
+
 /** Sells straight from stock (Cash on Delivery): checks availability, then deducts */
 export async function sellStock(tx: Tx, orderId: number, lines: Line[], label: string) {
   const items = normalise(lines);

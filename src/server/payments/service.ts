@@ -319,7 +319,7 @@ async function markUnpaid(paymentId: number, status: string, data: unknown, sour
  * The provider's validation, applied: a match makes the payment paid and confirms the order (its
  * held bottles become a sale); anything else is recorded as a failed attempt.
  */
-async function applyValidation(
+export async function applyValidation(
   paymentId: number,
   v: Validation,
   source: string,

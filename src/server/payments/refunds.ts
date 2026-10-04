@@ -9,11 +9,19 @@ import { providerByName } from "./providers";
 import type { RefundResult } from "./types";
 
 /**
- * Refunds, full or partial. An online payment is refunded through its provider (SSLCommerz takes
- * a while: the refund stays "processing" until its status check says refunded). A cash-on-
- * delivery order is refunded by hand (cash or a mobile transfer), and the refund is only recorded.
+ * Refunds, full or partial. An SSLCommerz payment is refunded through SSLCommerz (it takes a while:
+ * the refund stays "processing" until its status check says refunded). Everything else is paid
+ * back outside the site and recorded here: aamarPay refunds in its merchant panel, bKash or Nagad
+ * payments by a transfer back, cash on delivery in cash or a mobile transfer.
  * The order's payment status follows the refunds that have completed.
  */
+
+/** How a payment's refund is made: through the provider's API, or outside the site and recorded */
+export function refundModeOf(provider: string | null): "api" | "panel" | "hand" {
+  if (provider === "sslcommerz" || provider === "mock") return "api";
+  if (provider === "aamarpay") return "panel";
+  return "hand";
+}
 
 type PaymentRow = typeof payments.$inferSelect;
 type RefundRow = typeof refunds.$inferSelect;
@@ -28,9 +36,11 @@ export function refundable(
   const online = paid
     .filter((p) => p.status === "paid" && p.provider !== "cod")
     .reduce((s, p) => s + p.amount, 0);
-  // Cash on delivery: the courier collected the total
+  // Cash on delivery: the courier collected the total (unless it was paid another way first,
+  // and recorded as a payment)
   const cash =
     order.paymentMethod === "cod" &&
+    online === 0 &&
     ["paid", "partially_refunded", "refunded"].includes(order.paymentStatus)
       ? order.total
       : 0;
@@ -108,11 +118,12 @@ export async function issueRefund(
           p.provider !== "cod" &&
           p.amount - refundedFrom(p.id) >= input.amount,
       ) ?? null;
-    const manual = !payment;
-    if (manual && o.paymentMethod !== "cod")
+    if (!payment && o.paymentMethod !== "cod")
       throw new UserFacingError(
         "Refund each payment separately: no single payment covers that amount.",
       );
+    const mode = refundModeOf(payment?.provider ?? null);
+    const manual = mode !== "api";
 
     const [row] = await tx
       .insert(refunds)
@@ -123,7 +134,8 @@ export async function issueRefund(
         reason: input.reason,
         status: manual ? "completed" : "pending",
         issuedBy: admin.id,
-        providerRef: manual ? "manual" : null,
+        // "manual" as before; "panel" for a refund made in aamarPay's merchant panel
+        providerRef: manual ? (mode === "panel" ? "panel" : "manual") : null,
       })
       .returning();
     await audit(tx, admin, "refund.issue", {
@@ -135,14 +147,16 @@ export async function issueRefund(
       await addEvent(tx, orderId, {
         type: "refund",
         actor: `admin:${admin.id}`,
-        message: `Refund of ${formatPrice(input.amount)} recorded, paid back by hand. ${input.reason}`,
+        message: `Refund of ${formatPrice(input.amount)} recorded, ${
+          mode === "panel" ? "made in the aamarPay merchant panel" : "paid back by hand"
+        }. ${input.reason}`,
       });
       await syncOrderStatus(tx, orderId);
     }
-    return { order: o, refund: row!, payment };
+    return { order: o, refund: row!, payment, manual };
   });
 
-  if (!prep.payment) return prep.refund;
+  if (prep.manual || !prep.payment) return prep.refund;
 
   const provider = await providerByName(prep.payment.provider);
   let result: RefundResult;

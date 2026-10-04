@@ -6,7 +6,16 @@ import { formatPrice } from "@/lib/money";
 import { formatDateTime, formatRelative } from "@/lib/time";
 import type { OrderRow } from "@/server/orders/manage";
 import type { orderPayments } from "@/server/payments/admin-query";
-import { RefreshRefund, RefundButton } from "./PaymentControls";
+import { refundModeOf } from "@/server/payments/refunds";
+import { ManualCheck, RecordPayment, RefreshRefund, RefundButton } from "./PaymentControls";
+
+/** What the customer typed for a bKash or Nagad payment (or the team, for one recorded by hand) */
+function handDetails(raw: unknown) {
+  const first = (Array.isArray(raw) ? raw : []).find(
+    (r: { source?: string }) => r?.source === "customer" || r?.source === "admin",
+  ) as { data?: { sender?: string; trxId?: string; reference?: string; by?: string } } | undefined;
+  return first?.data ?? null;
+}
 
 type Data = Awaited<ReturnType<typeof orderPayments>>;
 type Validation = {
@@ -37,13 +46,26 @@ export function PaymentPanel({
 }) {
   const { sum } = data;
   const cod = o.paymentMethod === "cod";
+  const paidWith = data.payments.find((p) => p.status === "paid")?.provider ?? null;
+  const unpaid = ["unpaid", "failed"].includes(o.paymentStatus);
+  const open = !["cancelled", "returned"].includes(o.status);
   return (
     <Card>
       <CardHeader>
         <CardTitle>Payment</CardTitle>
         {canRefund && sum.left > 0 && (
           <CardAction>
-            <RefundButton orderId={o.id} number={o.number} left={sum.left} manual={cod} />
+            <RefundButton
+              orderId={o.id}
+              number={o.number}
+              left={sum.left}
+              mode={cod && !paidWith ? "hand" : refundModeOf(paidWith)}
+            />
+          </CardAction>
+        )}
+        {canManage && unpaid && open && sum.left === 0 && (
+          <CardAction>
+            <RecordPayment orderId={o.id} number={o.number} total={o.total} />
           </CardAction>
         )}
       </CardHeader>
@@ -72,6 +94,7 @@ export function PaymentPanel({
             <ul className="flex flex-col gap-3">
               {data.payments.map((p) => {
                 const v = p.validation as Validation;
+                const hand = p.provider === "manual" ? handDetails(p.raw) : null;
                 return (
                   <li key={p.id} className="flex flex-col gap-1">
                     <div className="flex items-center justify-between gap-2">
@@ -86,10 +109,26 @@ export function PaymentPanel({
                       </span>
                       <span className="tabular-nums">{formatPrice(p.amount)}</span>
                     </div>
+                    {hand && (
+                      <p className="text-xs">
+                        {hand.trxId
+                          ? `From ${hand.sender ?? "?"} · TrxID `
+                          : `Recorded by ${hand.by ?? "the team"} · reference `}
+                        <span className="font-mono">{hand.trxId ?? hand.reference}</span>
+                      </p>
+                    )}
+                    {hand?.trxId && p.status === "initiated" && canManage && (
+                      <ManualCheck
+                        paymentId={p.id}
+                        amount={p.amount}
+                        wallet={p.methodReported === "nagad" ? "Nagad" : "bKash"}
+                        trxId={hand.trxId}
+                      />
+                    )}
                     {v && (
                       <p className="text-muted-foreground text-xs">
                         {v.accepted
-                          ? `Validated ${v.validatedAt ? formatDateTime(v.validatedAt) : ""}${v.bankTranId ? ` · bank ${v.bankTranId}` : ""}`
+                          ? `${p.provider === "manual" ? "Confirmed" : "Validated"} ${v.validatedAt ? formatDateTime(v.validatedAt) : ""}${v.bankTranId && p.provider !== "manual" ? ` · bank ${v.bankTranId}` : ""}`
                           : `Not accepted: ${v.reason}`}
                       </p>
                     )}
@@ -133,7 +172,11 @@ export function PaymentPanel({
                   <p className="text-xs">{r.reason}</p>
                   <p className="text-muted-foreground text-xs">
                     {[
-                      r.paymentId === null ? "Paid back by hand" : "Through the provider",
+                      r.providerRef === "panel"
+                        ? "Made in the aamarPay panel"
+                        : r.paymentId === null || ["manual", "hand"].includes(r.providerRef ?? "")
+                          ? "Paid back by hand"
+                          : "Through the provider",
                       r.by,
                       formatRelative(r.createdAt),
                     ]

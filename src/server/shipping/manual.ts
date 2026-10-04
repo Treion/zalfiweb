@@ -15,16 +15,7 @@ export const MANUAL_STATUSES = MOCK_STATUSES;
 export type ManualStatus = MockStatus;
 export const MANUAL_STEPS = Object.keys(MANUAL_STATUSES) as ManualStatus[];
 
-/** Couriers offered by name in the send dialog (anything else can be typed) */
-export const OTHER_COURIERS = [
-  "Own rider",
-  "Sundarban Courier",
-  "SA Paribahan",
-  "Paperfly",
-  "eCourier",
-  "Delivery Tiger",
-  "Janani Express",
-];
+export { OTHER_COURIERS } from "./types";
 
 export const manualCourier: CourierProvider = {
   name: "manual",

@@ -6,7 +6,7 @@ import type { OrderRow } from "@/server/orders/manage";
 import type { CourierOption } from "@/server/shipping/couriers";
 import { trackingUrl } from "@/server/shipping/tracking";
 import { mapStatus } from "@/server/shipping/status";
-import { COURIER_LABELS } from "@/server/shipping/types";
+import { manualTrackingUrl, shipmentLabel } from "@/server/shipping/shipment-meta";
 import type { ShipmentRow } from "@/server/shipping/service";
 import { codAmountFor } from "@/server/shipping/service";
 import { SendToCourier, ShipmentActions } from "./ShipmentControls";
@@ -39,7 +39,7 @@ export function ShipmentPanel({
         {current ? (
           <>
             <div className="flex items-center justify-between gap-2">
-              <span className="font-medium">{COURIER_LABELS[current.courier]}</span>
+              <span className="font-medium">{shipmentLabel(current)}</span>
               <Badge
                 variant={
                   current.active
@@ -74,7 +74,10 @@ export function ShipmentPanel({
                 ? `Last news ${formatRelative(current.lastCheckedAt)}`
                 : "No news yet"}
               {(() => {
-                const url = trackingUrl(current.courier, current.trackingCode, o.customerPhone);
+                const url =
+                  current.courier === "manual"
+                    ? manualTrackingUrl(current)
+                    : trackingUrl(current.courier, current.trackingCode, o.customerPhone);
                 return url ? (
                   <>
                     {" · "}
@@ -95,9 +98,11 @@ export function ShipmentPanel({
                 orderId={o.id}
                 shipmentId={current.id}
                 mock={current.courier === "mock"}
+                manual={current.courier === "manual"}
+                cancelsHere={["mock", "manual", "redx"].includes(current.courier)}
                 underWay={current.active}
                 canCancel={current.active && o.status === "packed"}
-                courierLabel={COURIER_LABELS[current.courier]}
+                courierLabel={shipmentLabel(current)}
               />
             )}
           </>
@@ -128,7 +133,7 @@ export function ShipmentPanel({
               .filter((s) => s !== current)
               .map((s) => (
                 <p key={s.id} className="text-muted-foreground text-xs">
-                  {`${COURIER_LABELS[s.courier]} ${s.consignmentId ?? ""} · ${mapStatus(s.courier, s.status).label}`}
+                  {`${shipmentLabel(s)} ${s.consignmentId ?? ""} · ${mapStatus(s.courier, s.status).label}`}
                 </p>
               ))}
           </div>

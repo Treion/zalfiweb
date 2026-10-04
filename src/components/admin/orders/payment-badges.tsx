@@ -33,5 +33,12 @@ export const REFUND_LABELS = Object.fromEntries(
 
 /** A payment record's gateway, in words */
 export const gatewayLabel = (provider: string) =>
-  ({ mock: "Test gateway", sslcommerz: "SSLCommerz", cod: "Cash on delivery" })[provider] ??
-  provider;
+  (
+    ({
+      mock: "Test gateway",
+      sslcommerz: "SSLCommerz",
+      aamarpay: "aamarPay",
+      manual: "By hand",
+      cod: "Cash on delivery",
+    }) as Record<string, string>
+  )[provider] ?? provider;

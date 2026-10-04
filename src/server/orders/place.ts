@@ -49,7 +49,8 @@ async function byIdempotencyKey(key: string): Promise<PlacedOrder | null> {
  * Places a guest order. Everything is recomputed here: prices, stock, the coupon, the shipping fee
  * and the total. In one transaction it saves the customer, the order and its lines, then either
  * sells the stock (cash on delivery: the order is confirmed) or reserves it until the unpaid-order
- * expiry (online payment), and for online payment opens the payment page. The same idempotency key
+ * expiry (online payment, or bKash or Nagad by hand), and for online payment opens the payment
+ * page. The same idempotency key
  * always returns the same order.
  */
 export async function placeOrder(
@@ -67,6 +68,9 @@ export async function placeOrder(
     throw new UserFacingError(`${PAYMENT_LABELS[input.paymentMethod]} isn't available right now.`);
   const rules = shippingRules(ship);
   const cod = input.paymentMethod === "cod";
+  const manual = input.paymentMethod === "manual";
+  // Online payment holds the bottles for minutes; bKash or Nagad by hand, for hours
+  const holdMinutes = manual ? pay.manual.holdHours * 60 : pay.unpaidExpiryMinutes;
 
   let placed: PlacedOrder;
   try {
@@ -129,7 +133,7 @@ export async function placeOrder(
         });
 
       const now = new Date();
-      const expiresAt = cod ? null : new Date(now.getTime() + pay.unpaidExpiryMinutes * 60_000);
+      const expiresAt = cod ? null : new Date(now.getTime() + holdMinutes * 60_000);
       const [order] = await tx
         .insert(orders)
         .values({
@@ -176,7 +180,9 @@ export async function placeOrder(
         actor: "customer",
         message: cod
           ? "Order placed, cash on delivery."
-          : `Order placed. Stock held for ${pay.unpaidExpiryMinutes} minutes while payment is made.`,
+          : manual
+            ? `Order placed, to be paid by bKash or Nagad. Stock held for ${pay.manual.holdHours} hours for the transaction ID.`
+            : `Order placed. Stock held for ${pay.unpaidExpiryMinutes} minutes while payment is made.`,
         data: { total: t.total, coupon: couponId ? input.coupon : null },
       });
       return {
@@ -191,6 +197,8 @@ export async function placeOrder(
         void sendReceipt(id).catch((e: Error) => console.error("[receipt]", e.message));
         return p;
       }
+      // bKash or Nagad: the order's page shows where to send the money, and takes the TrxID
+      if (manual) return p;
       // Online: straight to the payment page. If it can't open, the order's page offers "Pay now".
       try {
         return { ...p, next: await startPayment(id) };

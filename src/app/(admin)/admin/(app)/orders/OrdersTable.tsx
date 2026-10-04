@@ -27,6 +27,7 @@ import {
   STATUS_LABELS,
 } from "@/server/orders/state";
 import type { CourierOption } from "@/server/shipping/couriers";
+import { COURIER_LABELS, COURIER_NAMES } from "@/server/shipping/types";
 import { moveOrdersAction } from "./actions";
 import { sendManyAction } from "../shipping/actions";
 
@@ -168,16 +169,20 @@ export function OrdersTable({
           label: "Methods",
           options: [
             { value: "sslcommerz", label: "Online" },
+            { value: "manual", label: "bKash or Nagad (by hand)" },
             { value: "cod", label: "Cash on delivery" },
           ],
+        },
+        {
+          key: "check",
+          label: "To check",
+          options: [{ value: "1", label: "bKash or Nagad payment to check" }],
         },
         {
           key: "courier",
           label: "Couriers",
           options: [
-            { value: "pathao", label: "Pathao" },
-            { value: "steadfast", label: "Steadfast" },
-            { value: "mock", label: "Test courier" },
+            ...COURIER_NAMES.map((c) => ({ value: c, label: COURIER_LABELS[c] })),
             { value: "none", label: "Not with a courier" },
           ],
         },

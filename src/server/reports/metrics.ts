@@ -1,6 +1,7 @@
 import { and, eq, gte, lt, sql, type SQL } from "drizzle-orm";
 import { orderItems, orders, payments, shipments, stockMovements, variants } from "@/db/schema";
 import { poolDb, type Executor } from "@/server/db/pool";
+import { getIntegrations } from "@/server/integrations";
 import { listInventory } from "@/server/catalog/inventory";
 import { getSettings } from "@/server/settings";
 import { effectiveThreshold } from "@/server/catalog/stock";
@@ -297,7 +298,14 @@ async function lowStockThen(then: Date, exec: Executor): Promise<Glance> {
 /* Needs attention                                                                               */
 
 export type Attention = {
-  kind: "expiring" | "payment_failed" | "delivery_failed" | "return_requested" | "out_of_stock";
+  kind:
+    | "integration"
+    | "manual_payment"
+    | "expiring"
+    | "payment_failed"
+    | "delivery_failed"
+    | "return_requested"
+    | "out_of_stock";
   title: string;
   detail: string;
   href: string;
@@ -305,9 +313,11 @@ export type Attention = {
 };
 
 /**
- * What someone should look at now: unpaid orders about to lapse (within the hour), online
- * payments that failed in the last day on orders still waiting, failed deliveries, return
- * requests, and sizes on sale that are sold out. Oldest problems first within each kind.
+ * What someone should look at now: a payment gateway, courier or messaging service that is failing
+ * (Admin → Integrations), bKash or Nagad payments waiting to be checked, unpaid orders about to
+ * lapse (within the hour), online payments that failed in the last day on orders still waiting,
+ * failed deliveries, return requests, and sizes on sale that are sold out. Oldest problems first
+ * within each kind.
  */
 export async function attention(now: Date = new Date(), exec: Executor = poolDb()) {
   const soon = new Date(now.getTime() + 3600_000);
@@ -321,7 +331,23 @@ export async function attention(now: Date = new Date(), exec: Executor = poolDb(
     failedAt: orders.deliveryFailedAt,
     updatedAt: orders.updatedAt,
   };
-  const [expiring, failedPay, failedDelivery, returns, inv] = await Promise.all([
+  const [failing, toCheck, expiring, failedPay, failedDelivery, returns, inv] = await Promise.all([
+    getIntegrations(exec).then((list) =>
+      list.filter((r) => r.enabled && r.lastCheck && !r.lastCheck.ok),
+    ),
+    exec
+      .select({ ...pick, payAt: payments.createdAt, wallet: payments.methodReported })
+      .from(payments)
+      .innerJoin(orders, eq(orders.id, payments.orderId))
+      .where(
+        and(
+          eq(payments.provider, "manual"),
+          eq(payments.status, "initiated"),
+          eq(orders.status, "pending_payment"),
+        ),
+      )
+      .orderBy(payments.createdAt)
+      .limit(50),
     exec
       .select(pick)
       .from(orders)
@@ -365,6 +391,20 @@ export async function attention(now: Date = new Date(), exec: Executor = poolDb(
   ]);
   const mins = (d: Date) => Math.max(1, Math.round((d.getTime() - now.getTime()) / 60_000));
   const items: Attention[] = [
+    ...failing.map((r) => ({
+      kind: "integration" as const,
+      title: r.def.label,
+      detail: r.lastCheck!.message,
+      href: "/admin/integrations",
+      at: new Date(r.lastCheck!.at),
+    })),
+    ...toCheck.map((o) => ({
+      kind: "manual_payment" as const,
+      title: o.number,
+      detail: `${o.name}: paid by ${o.wallet === "nagad" ? "Nagad" : "bKash"}, check the transaction ID`,
+      href: `/admin/orders/${o.id}`,
+      at: o.payAt,
+    })),
     ...expiring.map((o) => ({
       kind: "expiring" as const,
       title: o.number,

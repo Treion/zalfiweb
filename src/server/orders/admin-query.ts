@@ -15,6 +15,11 @@ import {
 } from "drizzle-orm";
 import type { ListParams } from "@/components/admin/data-table/url-state";
 import { adminUsers, orderEvents, orderItems, orders } from "@/db/schema";
+import { PAYMENT_METHODS, type PaymentMethod } from "@/lib/checkout";
+import { COURIER_NAMES, type CourierName } from "@/server/shipping/types";
+
+/** The order in a correlated subquery (Drizzle leaves a bare "id", which means the subquery's) */
+const ORDER_ID = sql.raw(`"orders"."id"`);
 import { poolDb, type Executor } from "@/server/db/pool";
 import { ORDER_STATUSES, PAYMENT_STATUSES, type OrderStatus } from "./state";
 
@@ -28,6 +33,7 @@ export const ORDER_FILTER_KEYS = [
   "days",
   "coupon",
   "view",
+  "check",
 ];
 
 /** Quick views over the list */
@@ -62,10 +68,15 @@ function orderWhere(p: ListParams): SQL | undefined {
     parts.push(inArray(orders.status, [...ORDER_VIEWS[f.view as keyof typeof ORDER_VIEWS]]));
   if (f.payment && (PAYMENT_STATUSES as readonly string[]).includes(f.payment))
     parts.push(eq(orders.paymentStatus, f.payment as (typeof PAYMENT_STATUSES)[number]));
-  if (f.method === "cod" || f.method === "sslcommerz")
-    parts.push(eq(orders.paymentMethod, f.method));
-  if (f.courier === "mock" || f.courier === "pathao" || f.courier === "steadfast")
-    parts.push(eq(orders.courier, f.courier));
+  if (f.method && (PAYMENT_METHODS as readonly string[]).includes(f.method))
+    parts.push(eq(orders.paymentMethod, f.method as PaymentMethod));
+  // bKash or Nagad payments the customer has sent a transaction ID for, waiting for the team
+  if (f.check === "1")
+    parts.push(
+      sql`exists (select 1 from payments p where p.order_id = ${ORDER_ID} and p.provider = 'manual' and p.status = 'initiated')`,
+    );
+  if (f.courier && (COURIER_NAMES as readonly string[]).includes(f.courier))
+    parts.push(eq(orders.courier, f.courier as CourierName));
   if (f.courier === "none") parts.push(sql`${orders.courier} is null`);
   if (f.zone === "inside_dhaka" || f.zone === "outside_dhaka") parts.push(eq(orders.zone, f.zone));
   if (f.coupon === "any") parts.push(sql`${orders.couponCode} is not null`);

@@ -5,6 +5,8 @@ import {
   CircleSlashIcon,
   ClockIcon,
   PackageXIcon,
+  PlugZapIcon,
+  SmartphoneIcon,
   Undo2Icon,
 } from "lucide-react";
 import { PageHeader } from "@/components/admin/shell/PageHeader";
@@ -40,6 +42,8 @@ import { parseRange, rangeQuery } from "@/server/reports/range";
 export const metadata = { title: "Overview" };
 
 const ATTENTION: Record<Attention["kind"], { label: string; icon: typeof ClockIcon }> = {
+  integration: { label: "Integration failing", icon: PlugZapIcon },
+  manual_payment: { label: "Check payment", icon: SmartphoneIcon },
   expiring: { label: "Lapsing soon", icon: ClockIcon },
   payment_failed: { label: "Payment failed", icon: BanknoteIcon },
   delivery_failed: { label: "Delivery failed", icon: AlertTriangleIcon },

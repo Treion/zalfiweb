@@ -475,7 +475,11 @@ export function CheckoutFlow({
                     <span className="flex flex-1 flex-col gap-1 md:flex-row md:items-baseline md:justify-between">
                       <span className="font-display text-2xl">{PAYMENT_LABELS[m]}</span>
                       <span className="text-smoke text-sm">
-                        {m === "cod" ? "Pay the courier in cash" : "Card, bKash, Nagad, Rocket"}
+                        {m === "cod"
+                          ? "Pay the courier in cash"
+                          : m === "manual"
+                            ? "Send it yourself, then give us the transaction ID"
+                            : "Card, bKash, Nagad, Rocket"}
                       </span>
                     </span>
                   </label>

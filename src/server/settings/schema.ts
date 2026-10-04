@@ -12,6 +12,25 @@ import { COURIER_NAMES } from "@/server/shipping/types";
  */
 const poisha = z.number().int().min(0).max(100_000_00);
 
+/** A mobile wallet that takes manual payments: the number customers send money to */
+const wallet = z
+  .object({
+    enabled: z.boolean().default(false),
+    /** Empty, or a Bangladeshi mobile number (checked when saved) */
+    number: z
+      .string()
+      .trim()
+      .max(20)
+      .refine(
+        (n) => n === "" || /^01[3-9]\d{8}$/.test(n.replace(/[\s-]/g, "")),
+        "Use an 11-digit mobile number",
+      )
+      .default(""),
+    /** Personal: Send Money. Merchant: Payment. Agent: Cash In. */
+    accountType: z.enum(["personal", "merchant", "agent"]).default("personal"),
+  })
+  .prefault({});
+
 export const SETTINGS_SCHEMAS = {
   store: z.object({
     name: z.string().trim().min(1).max(80).default("ZALFI"),
@@ -55,6 +74,19 @@ export const SETTINGS_SCHEMAS = {
       .min(5)
       .max(24 * 60)
       .default(30),
+    /**
+     * bKash or Nagad Send Money, confirmed by the team: for when the gateways are down, or for
+     * customers who prefer it. Set up in Admin → Integrations.
+     */
+    manual: z
+      .object({
+        enabled: z.boolean().default(false),
+        /** How long an order waits for its transaction ID before it lapses */
+        holdHours: z.number().int().min(1).max(72).default(24),
+        bkash: wallet,
+        nagad: wallet,
+      })
+      .prefault({}),
   }),
   inventory: z.object({
     lowStockThreshold: z.number().int().min(0).max(10_000).default(5),

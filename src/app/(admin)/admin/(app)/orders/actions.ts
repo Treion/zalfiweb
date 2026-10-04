@@ -1,5 +1,11 @@
 "use server";
 
+import {
+  confirmManualPayment,
+  HAND_METHODS,
+  recordPaymentByHand,
+  rejectManualPayment,
+} from "@/server/payments/manual";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { runAction } from "@/server/auth/session";
@@ -66,6 +72,73 @@ export async function refundAction(input: unknown) {
       const r = await issueRefund(d.id, { amount: d.amount, reason: d.reason }, admin.actor);
       revalidatePath("/admin", "layout");
       return { status: r.status };
+    },
+  );
+}
+
+/** bKash or Nagad: the money is there. The order is confirmed, as a gateway payment would be. */
+export async function confirmManualPaymentAction(input: unknown) {
+  return runAction(
+    "orders.manage",
+    z
+      .object({
+        paymentId: id,
+        amount: z.number().int().min(100).max(100_000_00),
+        note: z.string().trim().max(300),
+      })
+      .strict(),
+    input,
+    async (d, admin) => {
+      const outcome = await confirmManualPayment(
+        d.paymentId,
+        { amount: d.amount, note: d.note },
+        admin.actor,
+      );
+      revalidatePath("/admin", "layout");
+      return outcome;
+    },
+  );
+}
+
+/** bKash or Nagad: the money isn't there. The customer can send the transaction ID again. */
+export async function rejectManualPaymentAction(input: unknown) {
+  return runAction(
+    "orders.manage",
+    z
+      .object({
+        paymentId: id,
+        reason: z.string().trim().min(3, "Say what was wrong.").max(200),
+      })
+      .strict(),
+    input,
+    async (d, admin) => {
+      await rejectManualPayment(d.paymentId, d.reason, admin.actor);
+      revalidatePath("/admin", "layout");
+    },
+  );
+}
+
+/** Any unpaid order, paid another way (gateway down, a phone order, a bank transfer) */
+export async function recordPaymentAction(input: unknown) {
+  return runAction(
+    "orders.manage",
+    z
+      .object({
+        id,
+        method: z.enum(HAND_METHODS),
+        reference: z.string().trim().min(3, "Add the payment's reference.").max(60),
+        amount: z.number().int().min(100).max(100_000_00),
+      })
+      .strict(),
+    input,
+    async (d, admin) => {
+      const outcome = await recordPaymentByHand(
+        d.id,
+        { method: d.method, reference: d.reference, amount: d.amount },
+        admin.actor,
+      );
+      revalidatePath("/admin", "layout");
+      return outcome;
     },
   );
 }
