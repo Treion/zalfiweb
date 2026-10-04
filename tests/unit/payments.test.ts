@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { mockNotice, mockProvider } from "@/server/payments/mock";
-import { mockAllowed, resolveGateway } from "@/server/payments/providers";
+import { gatewayFrom, mockAllowed } from "@/server/payments/providers";
+import * as aamar from "@/server/payments/aamarpay";
+import { CATALOG, resolve } from "@/server/integrations";
 import { refundable, statusAfterRefunds } from "@/server/payments/refunds";
 import {
   mismatch,
@@ -299,23 +301,138 @@ describe("test gateway", () => {
 describe("choosing the gateway", () => {
   it("never uses the test gateway on the live site", () => {
     expect(mockAllowed()).toBe(true);
+    expect(resolve(CATALOG["test-gateway"], undefined).enabled).toBe(true);
     vi.stubEnv("VERCEL_ENV", "production");
     expect(mockAllowed()).toBe(false);
-    expect(resolveGateway("mock").provider).toBeNull();
+    expect(resolve(CATALOG["test-gateway"], undefined)).toMatchObject({
+      configured: false,
+      enabled: false,
+    });
   });
 
   it("uses SSLCommerz only with its keys, sandbox unless told live", () => {
     vi.stubEnv("SSLCOMMERZ_STORE_ID", "");
     vi.stubEnv("SSLCOMMERZ_STORE_PASSWORD", "");
-    expect(resolveGateway("sslcommerz").provider?.name).toBe("mock");
+    expect(resolve(CATALOG.sslcommerz, undefined).enabled).toBe(false);
     vi.stubEnv("SSLCOMMERZ_STORE_ID", "store");
     vi.stubEnv("SSLCOMMERZ_STORE_PASSWORD", "secret");
-    expect(resolveGateway("sslcommerz").provider).toMatchObject({
-      name: "sslcommerz",
-      mode: "sandbox",
-    });
+    const r = resolve(CATALOG.sslcommerz, undefined);
+    expect(r.enabled).toBe(true);
+    expect(gatewayFrom("sslcommerz", r)).toMatchObject({ name: "sslcommerz", mode: "sandbox" });
     vi.stubEnv("SSLCOMMERZ_IS_LIVE", "true");
-    expect(resolveGateway("sslcommerz").provider?.mode).toBe("live");
+    expect(gatewayFrom("sslcommerz", resolve(CATALOG.sslcommerz, undefined)).mode).toBe("live");
+  });
+
+  it("builds aamarPay from its keys, with refunds made in its panel", () => {
+    vi.stubEnv("AAMARPAY_STORE_ID", "aamarpaytest");
+    vi.stubEnv("AAMARPAY_SIGNATURE_KEY", "key");
+    const p = gatewayFrom("aamarpay", resolve(CATALOG.aamarpay, undefined));
+    expect(p).toMatchObject({ name: "aamarpay", mode: "sandbox", refunds: "panel" });
+  });
+});
+
+describe("aamarPay", () => {
+  const cfg = { storeId: "aamarpaytest", signatureKey: "sig-key", live: false };
+  const session = {
+    tranId: "ZLF-001046-7KQ2M",
+    amount: 457_000,
+    orderNumber: "ZLF-001046",
+    customer: {
+      name: "Nusrat Jahan",
+      email: "nusrat@example.com",
+      phone: "01712345678",
+      address: "Road 7A, House 21, Dhanmondi",
+      district: "Dhaka",
+    },
+    items: [{ name: "Reva", qty: 2 }],
+    urls: {
+      success: "https://zalfi.test/api/payments/return/aamarpay?outcome=success&tran=T",
+      fail: "https://zalfi.test/api/payments/return/aamarpay?outcome=fail&tran=T",
+      cancel: "https://zalfi.test/api/payments/return/aamarpay?outcome=cancel&tran=T",
+      ipn: "https://zalfi.test/api/payments/ipn/aamarpay",
+    },
+  };
+
+  it("sends the order in BDT, as JSON, with every required field", () => {
+    const b = aamar.sessionBody(cfg, session);
+    expect(b).toMatchObject({
+      store_id: "aamarpaytest",
+      signature_key: "sig-key",
+      tran_id: "ZLF-001046-7KQ2M",
+      amount: "4570.00",
+      currency: "BDT",
+      cus_country: "Bangladesh",
+      type: "json",
+      success_url: session.urls.success,
+      cancel_url: session.urls.cancel,
+    });
+    expect(b.desc).toContain("Reva x2");
+    expect(aamar.aamarBase(false)).toBe("https://sandbox.aamarpay.com");
+    expect(aamar.aamarBase(true)).toBe("https://secure.aamarpay.com");
+  });
+
+  it("reads the payment page, or the reason it refused", () => {
+    expect(
+      aamar.parseSession({
+        result: "true",
+        payment_url: "https://sandbox.aamarpay.com/paynow.php?track=x",
+      }),
+    ).toEqual({ ok: true, url: "https://sandbox.aamarpay.com/paynow.php?track=x" });
+    expect(aamar.parseSession({ result: "false", reason: "Invalid Store ID" })).toEqual({
+      ok: false,
+      error: "Invalid Store ID",
+    });
+    expect(aamar.parseSession("Signature key is invalid").ok).toBe(false);
+  });
+
+  it("never trusts a callback on its own, and matches even the empty cancel", () => {
+    expect(aamar.parseNotice({ mer_txnid: "T-1", pay_status: "Successful" })).toEqual({
+      tranId: "T-1",
+      valId: "T-1",
+      status: "valid",
+      authentic: false,
+    });
+    expect(aamar.parseNotice({ mer_txnid: "T-1", pay_status: "Failed" }).status).toBe("failed");
+    expect(aamar.parseNotice({ _tran: "T-2", _outcome: "cancel" })).toMatchObject({
+      tranId: "T-2",
+      status: "cancelled",
+      valId: null,
+    });
+  });
+
+  it("accepts a payment only when the check says Successful for this transaction and amount", () => {
+    const v = aamar.parseTrxCheck({
+      pg_txnid: "AAM1694948761103545",
+      mer_txnid: "T-1",
+      pay_status: "Successful",
+      status_code: "2",
+      amount: "4570.00",
+      currency_merchant: "BDT",
+      payment_type: "bKash-bKash",
+      risk_level: "0",
+      risk_title: "Safe",
+      signature_key: "never-kept",
+    })!;
+    expect(v).toMatchObject({
+      valid: true,
+      tranId: "T-1",
+      valId: "AAM1694948761103545",
+      amount: 457_000,
+      currency: "BDT",
+      method: "bKash-bKash",
+      risky: false,
+      riskTitle: null,
+    });
+    expect(JSON.stringify(v.raw)).not.toContain("never-kept");
+    expect(mismatch(v, { tranId: "T-1", amount: 457_000 })).toBeNull();
+    expect(mismatch(v, { tranId: "T-1", amount: 457_100 })).toMatch(/amount/);
+    const failed = aamar.parseTrxCheck({
+      mer_txnid: "T-1",
+      pay_status: "Failed",
+      status_code: "7",
+    })!;
+    expect(failed).toMatchObject({ valid: false, status: "FAILED" });
+    expect(aamar.parseTrxCheck("Invalid request")).toBeNull();
   });
 });
 

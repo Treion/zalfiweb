@@ -1,4 +1,4 @@
-import { timingSafeEqual } from "node:crypto";
+import { safeEqual } from "@/server/secret";
 import { mapSteadfast } from "./status-steadfast";
 import { trackingUrl } from "./tracking";
 import type { CourierProvider, CreatedShipment, ShipmentInput } from "./types";
@@ -7,6 +7,7 @@ import type { CourierProvider, CreatedShipment, ShipmentInput } from "./types";
  * Steadfast Courier, following its API (portal.packzy.com/api/v1, headers Api-Key and Secret-Key):
  *  - order:   POST create_order               → consignment_id, tracking_code, status
  *  - status:  GET  status_by_cid/{id}          → delivery_status
+ *  - balance: GET  get_balance                  → current_balance (the connection test)
  *  - webhook: POST to us, "Authorization: Bearer <the token we set in Steadfast's panel>"
  * Steadfast has no cancel endpoint: a parcel is cancelled from its portal.
  */
@@ -53,13 +54,7 @@ export function parseSteadfastCreated(b: Json): CreatedShipment {
   };
 }
 
-const same = (a: string, b: string) => {
-  const x = Buffer.from(a);
-  const y = Buffer.from(b);
-  return x.length === y.length && timingSafeEqual(x, y);
-};
-
-export function steadfast(cfg: SteadfastConfig): CourierProvider {
+export function steadfast(cfg: SteadfastConfig) {
   async function call(path: string, init: RequestInit = {}) {
     const res = await fetch(`${STEADFAST_BASE}${path}`, {
       ...init,
@@ -72,12 +67,23 @@ export function steadfast(cfg: SteadfastConfig): CourierProvider {
       signal: AbortSignal.timeout(20_000),
       cache: "no-store",
     });
-    return (await res.json().catch(() => ({}))) as Json;
+    const b = (await res.json().catch(() => ({}))) as Json;
+    if (res.status === 401 || res.status === 403)
+      throw new Error(`Steadfast refused the keys: ${String(b.message ?? res.status)}`);
+    return b;
   }
 
-  return {
+  const provider: CourierProvider & { balance(): Promise<number> } = {
     name: "steadfast",
     mode: "live",
+
+    /** Taka in the Steadfast account */
+    async balance() {
+      const b = await call("/get_balance");
+      if (Number(b.status) !== 200)
+        throw new Error(String(b.message ?? "Steadfast didn't answer the balance check"));
+      return Number(b.current_balance ?? 0);
+    },
 
     async createShipment(input) {
       return parseSteadfastCreated(
@@ -100,7 +106,7 @@ export function steadfast(cfg: SteadfastConfig): CourierProvider {
     handleWebhook(headers, body) {
       const auth = headers.get("authorization") ?? "";
       const tokenSent = auth.replace(/^Bearer\s+/i, "");
-      if (!cfg.webhookToken || !tokenSent || !same(tokenSent, cfg.webhookToken)) return null;
+      if (!safeEqual(tokenSent, cfg.webhookToken)) return null;
       const b = (body ?? {}) as Json;
       if (!b.consignment_id) return null;
       const status =
@@ -119,4 +125,7 @@ export function steadfast(cfg: SteadfastConfig): CourierProvider {
 
     map: mapSteadfast,
   };
+  return provider;
 }
+
+export type SteadfastProvider = ReturnType<typeof steadfast>;

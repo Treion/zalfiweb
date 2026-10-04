@@ -1,6 +1,7 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import { orders, shipments } from "@/db/schema";
 import { poolDb, type Executor } from "@/server/db/pool";
+import { manualTrackingUrl } from "./shipment-meta";
 import { trackingUrl } from "./tracking";
 import { CANCELLED_HERE } from "./types";
 
@@ -22,6 +23,9 @@ export async function orderTracking(orderId: number, exec: Executor = poolDb()) 
   return {
     courier: row.s.courier,
     trackingCode: row.s.trackingCode,
-    url: trackingUrl(row.s.courier, row.s.trackingCode, row.phone),
+    url:
+      row.s.courier === "manual"
+        ? manualTrackingUrl(row.s)
+        : trackingUrl(row.s.courier, row.s.trackingCode, row.phone),
   };
 }

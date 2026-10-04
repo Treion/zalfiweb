@@ -286,8 +286,8 @@ export async function recordCheck(
   clearIntegrationCache();
 }
 
-/** A real call was refused because of the keys: flag it for the owner (Overview → Needs attention) */
-export async function noteKeysRejected(name: IntegrationName, message: string) {
+/** A real call failed (keys refused, provider down): flag it for the owner (Overview → Needs attention) */
+export async function noteFailure(name: IntegrationName, message: string) {
   await recordCheck(name, { ok: false, message, source: "live" }).catch((e) =>
     console.error(`[integrations] couldn't record ${name}'s failure`, e),
   );

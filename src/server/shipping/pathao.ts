@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { safeEqual } from "@/server/secret";
 import { mapPathao, normalisePathao } from "./status-pathao";
 import { trackingUrl } from "./tracking";
 import type { CourierProvider, CreatedShipment, ShipmentInput } from "./types";
@@ -5,7 +7,7 @@ import type { CourierProvider, CreatedShipment, ShipmentInput } from "./types";
 /**
  * Pathao Courier, following its Merchant API (aladdin/api/v1):
  *  - token:    POST issue-token (client id and secret, merchant username and password)
- *  - lookups:  GET city-list, cities/{id}/zone-list, zones/{id}/area-list
+ *  - lookups:  GET city-list, cities/{id}/zone-list, zones/{id}/area-list, stores
  *  - order:    POST orders            → consignment_id
  *  - status:   GET orders/{id}/info   → order_status_slug
  *  - webhook:  POST to us, with the secret we set in Pathao's panel in X-PATHAO-Signature
@@ -89,12 +91,18 @@ export function parseCreated(b: Json): CreatedShipment {
 }
 
 export type PathaoPlace = { id: number; name: string };
+export type PathaoStore = { id: number; name: string; address: string };
 
 let token: { value: string; expires: number; key: string } | null = null;
 
 export function pathao(cfg: PathaoConfig) {
   const base = `${pathaoBase(cfg.live)}/aladdin/api/v1`;
-  const key = `${cfg.live}:${cfg.clientId}:${cfg.username}`;
+  // A changed password or secret (rotated in the admin) gets a new token at once
+  const fingerprint = createHash("sha256")
+    .update(`${cfg.clientSecret}\0${cfg.password}`)
+    .digest("hex")
+    .slice(0, 16);
+  const key = `${cfg.live}:${cfg.clientId}:${cfg.username}:${fingerprint}`;
 
   async function accessToken() {
     if (token && token.key === key && token.expires > Date.now() + 60_000) return token.value;
@@ -141,6 +149,7 @@ export function pathao(cfg: PathaoConfig) {
     listOf(b).map((x) => ({ id: Number(x[id]), name: String(x[name]) }));
 
   const provider: CourierProvider & {
+    stores(): Promise<PathaoStore[]>;
     cities(): Promise<PathaoPlace[]>;
     zones(cityId: number): Promise<PathaoPlace[]>;
     areas(zoneId: number): Promise<PathaoPlace[]>;
@@ -148,6 +157,13 @@ export function pathao(cfg: PathaoConfig) {
     name: "pathao",
     mode: cfg.live ? "live" : "sandbox",
 
+    async stores() {
+      return listOf(await call("/stores")).map((x) => ({
+        id: Number(x.store_id),
+        name: String(x.store_name ?? `Store ${x.store_id}`),
+        address: String(x.store_address ?? ""),
+      }));
+    },
     async cities() {
       return places(await call("/city-list"), "city_id", "city_name");
     },
@@ -178,8 +194,7 @@ export function pathao(cfg: PathaoConfig) {
 
     handleWebhook(headers, body) {
       // Authentic only with the secret we set in Pathao's webhook settings
-      if (!cfg.webhookSecret || headers.get("x-pathao-signature") !== cfg.webhookSecret)
-        return null;
+      if (!safeEqual(headers.get("x-pathao-signature"), cfg.webhookSecret)) return null;
       const b = (body ?? {}) as Json;
       const event = b.event ? String(b.event) : null;
       // Pathao's set-up check ("webhook_integration") names no parcel: authentic, nothing to apply

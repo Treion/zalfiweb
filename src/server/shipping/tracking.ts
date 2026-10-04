@@ -4,5 +4,7 @@ export function trackingUrl(name: string, trackingCode: string | null, phone: st
   if (name === "pathao")
     return `https://merchant.pathao.com/tracking?consignment_id=${encodeURIComponent(trackingCode)}&phone=${encodeURIComponent(phone)}`;
   if (name === "steadfast") return `https://steadfast.com.bd/t/${encodeURIComponent(trackingCode)}`;
+  if (name === "redx")
+    return `https://redx.com.bd/track-parcel/?trackingId=${encodeURIComponent(trackingCode)}`;
   return null;
 }

@@ -2,7 +2,6 @@ import { eq } from "drizzle-orm";
 import { orders } from "@/db/schema";
 import { audit, type Actor } from "@/server/audit";
 import { poolDb } from "@/server/db/pool";
-import { getSettings } from "@/server/settings";
 import { emailProvider } from "@/server/providers/email";
 import { loadInvoice } from "@/server/invoice/data";
 import { renderReceipt } from "@/server/invoice/email";
@@ -17,12 +16,12 @@ export async function sendReceipt(orderId: number, admin?: Actor) {
   const loaded = await loadInvoice(orderId);
   if (!loaded) return { ok: false as const, error: "Order not found" };
   const { order, data } = loaded;
-  const [{ html, text, subject }, pdf, { email }] = await Promise.all([
+  const [{ html, text, subject }, pdf, provider] = await Promise.all([
     renderReceipt(data),
     renderInvoicePdf(data),
-    getSettings("integrations"),
+    emailProvider(),
   ]);
-  const sent = await emailProvider(email).send({
+  const sent = await provider.send({
     to: order.customerEmail,
     subject,
     html,

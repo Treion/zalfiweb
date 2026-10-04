@@ -10,7 +10,9 @@ import { transitionOrder } from "@/server/orders/manage";
 import { TRANSITIONS, type OrderStatus } from "@/server/orders/state";
 import { firstDelivery } from "@/server/payments/service";
 import { getSettings } from "@/server/settings";
-import { courier, pathaoCourier } from "./couriers";
+import { courier, courierForNew, pathaoCourier, redxCourier } from "./couriers";
+import type { ManualStatus } from "./manual";
+import { shipmentLabel } from "./shipment-meta";
 import { mockWebhook } from "./mock";
 import { matchPlace } from "./pathao-geo";
 import type { MockStatus } from "./status-mock";
@@ -21,8 +23,8 @@ import { CANCELLED_HERE, COURIER_LABELS, type CourierName, type ShipmentInput } 
  * Shipping, the same for every courier:
  *  - sendToCourier: the courier takes the parcel (with the cash to collect for cash on delivery,
  *    nothing for orders paid online); the order is packed and waits for pickup.
- *  - applyCourierStatus: each status the courier reports (webhook, poll, or the test courier's
- *    buttons) is mapped to an order state and the order moves along the state machine to it,
+ *  - applyCourierStatus: each status the courier reports (webhook, poll, the test courier's
+ *    buttons, or the team's own updates for another courier) is mapped to an order state and the order moves along the state machine to it,
  *    through any steps in between. Stale or repeated updates change nothing.
  *  - recordReturn: a parcel that came back, with the reason, its condition and whether the
  *    bottles went back on the shelf.
@@ -79,7 +81,7 @@ export async function activeShipment(exec: Tx | ReturnType<typeof poolDb>, order
 
 /** For the send dialog: Pathao's cities and zones, with the ones matching the address chosen */
 export async function pathaoPlaces(orderId: number, cityId?: number) {
-  const p = pathaoCourier();
+  const p = await pathaoCourier();
   if (!p) throw new UserFacingError("Pathao isn't set up yet.");
   const [o] = await poolDb().select().from(orders).where(eq(orders.id, orderId)).limit(1);
   if (!o) throw new UserFacingError("That order no longer exists.");
@@ -91,12 +93,31 @@ export async function pathaoPlaces(orderId: number, cityId?: number) {
 }
 
 async function autoPathao(district: string, area: string) {
-  const p = pathaoCourier();
+  const p = await pathaoCourier();
   if (!p) return null;
   const city = matchPlace(await p.cities(), district);
   if (!city) return null;
   const zone = matchPlace(await p.zones(city.id), area);
   return zone ? { cityId: city.id, zoneId: zone.id } : null;
+}
+
+/** For the send dialog: RedX's delivery areas in the customer's district, with the match chosen */
+export async function redxPlaces(orderId: number) {
+  const r = await redxCourier();
+  if (!r) throw new UserFacingError("RedX isn't set up yet.");
+  const [o] = await poolDb().select().from(orders).where(eq(orders.id, orderId)).limit(1);
+  if (!o) throw new UserFacingError("That order no longer exists.");
+  const areas = await r.areas(o.addressDistrict);
+  const match = matchPlace(areas, o.addressArea) ?? matchPlace(areas, o.addressDistrict);
+  return { areas, areaId: match?.id ?? null };
+}
+
+async function autoRedx(district: string, area: string) {
+  const r = await redxCourier();
+  if (!r) return null;
+  const areas = await r.areas(district);
+  const match = matchPlace(areas, area) ?? matchPlace(areas, district);
+  return match ? { areaId: match.id, areaName: match.name } : null;
 }
 
 /**
@@ -109,16 +130,21 @@ export async function sendToCourier(
   opts: {
     courier?: CourierName;
     pathao?: { cityId: number; zoneId: number; areaId?: number | null };
+    redx?: { areaId: number; areaName: string };
+    manual?: ShipmentInput["manual"];
   },
   admin: Actor,
 ) {
   const name = opts.courier ?? (await getSettings("shipping")).defaultCourier;
-  const provider = courier(name);
-  const label = COURIER_LABELS[name];
+  const provider = await courierForNew(name);
+  const label =
+    name === "manual" && opts.manual?.courierName ? opts.manual.courierName : COURIER_LABELS[name];
   if (!provider)
     throw new UserFacingError(
-      `${label} isn't set up yet. Add its keys, or choose another courier.`,
+      `${label} is switched off or not set up (Admin → Integrations). Choose another courier.`,
     );
+  if (name === "manual" && !opts.manual?.courierName.trim())
+    throw new UserFacingError("Say which courier, or rider, takes the parcel.");
 
   const prep = await withTx(async (tx) => {
     const [o] = await tx.select().from(orders).where(eq(orders.id, orderId)).for("update");
@@ -131,7 +157,7 @@ export async function sendToCourier(
       );
     const current = await activeShipment(tx, orderId);
     if (current)
-      throw new UserFacingError(`${o.number} is already with ${COURIER_LABELS[current.courier]}.`);
+      throw new UserFacingError(`${o.number} is already with ${shipmentLabel(current)}.`);
     const [{ n }] = (await tx
       .select({ n: sql<number>`count(*)::int` })
       .from(shipments)
@@ -175,6 +201,12 @@ export async function sendToCourier(
     if (!pathaoPlace)
       throw await fail("its city and zone couldn't be matched. Choose them on the order page.");
   }
+  let redxArea = opts.redx;
+  if (name === "redx" && !redxArea) {
+    redxArea = (await autoRedx(o.addressDistrict, o.addressArea).catch(() => null)) ?? undefined;
+    if (!redxArea)
+      throw await fail("its delivery area couldn't be matched. Choose it on the order page.");
+  }
 
   const input: ShipmentInput = {
     reference,
@@ -186,8 +218,11 @@ export async function sendToCourier(
       area: o.addressArea,
     },
     codAmount,
+    declaredValue: o.total,
     items,
     pathao: pathaoPlace,
+    redx: redxArea,
+    manual: opts.manual,
   };
   let created;
   try {
@@ -256,18 +291,18 @@ export async function sendMany(ids: number[], name: CourierName | undefined, adm
 export async function applyCourierStatus(
   shipmentId: number,
   status: string,
-  source: "create" | "webhook" | "poll" | "simulate",
+  source: "create" | "webhook" | "poll" | "simulate" | "manual",
   message?: string | null,
 ) {
   const s0 = await poolDb().select().from(shipments).where(eq(shipments.id, shipmentId)).limit(1);
-  const provider = s0[0] ? courier(s0[0].courier) : null;
+  const provider = s0[0] ? await courier(s0[0].courier) : null;
   if (!s0[0] || !provider) return { changed: false };
   const mapped = provider.map(status);
 
   return withTx(async (tx) => {
     const [s] = await tx.select().from(shipments).where(eq(shipments.id, shipmentId)).for("update");
     if (!s) return { changed: false };
-    const label = COURIER_LABELS[s.courier];
+    const label = shipmentLabel(s);
     const same = s.status === status && source !== "create";
     const [o] = await tx.select().from(orders).where(eq(orders.id, s.orderId)).for("update");
     const steps = o && mapped.order ? pathTo(o.status, mapped.order) : [];
@@ -316,10 +351,15 @@ export async function applyCourierStatus(
 }
 
 /** A courier's webhook, end to end. Returns the HTTP status to answer with. */
-export async function handleCourierWebhook(name: string, headers: Headers, body: unknown) {
-  const provider = courier(name);
+export async function handleCourierWebhook(
+  name: string,
+  headers: Headers,
+  body: unknown,
+  url?: URL,
+) {
+  const provider = await courier(name);
   if (!provider) return 404;
-  const ev = provider.handleWebhook(headers, body);
+  const ev = provider.handleWebhook(headers, body, url);
   if (!ev) return 401;
   if (!ev.consignmentId) return 200;
   if (!(await firstDelivery(`${name}-webhook`, ev.eventId))) return 200;
@@ -348,7 +388,7 @@ export async function handleCourierWebhook(name: string, headers: Headers, body:
       addEvent(tx, s.orderId, {
         type: "courier",
         actor: "courier",
-        message: `${COURIER_LABELS[s.courier]}: ${ev.message}`,
+        message: `${shipmentLabel(s)}: ${ev.message}`,
       }),
     );
   return 200;
@@ -365,6 +405,24 @@ export async function simulateCourier(shipmentId: number, status: MockStatus) {
     mockWebhook(s.consignmentId, status),
   );
   if (code !== 200) throw new UserFacingError("The test courier is off on this site.");
+}
+
+/**
+ * Another courier (or the team's rider): the team records what happened, through the same code a
+ * real courier's update takes. Who did it goes in the activity log.
+ */
+export async function recordManualStatus(shipmentId: number, status: ManualStatus, admin: Actor) {
+  const [s] = await poolDb().select().from(shipments).where(eq(shipments.id, shipmentId)).limit(1);
+  if (!s || s.courier !== "manual")
+    throw new UserFacingError("Only parcels sent with another courier are moved by hand.");
+  const r = await applyCourierStatus(s.id, status, "manual", `Recorded by ${admin.email}.`);
+  if (r.changed)
+    await audit(poolDb(), admin, "shipment.manual-status", {
+      entity: "order",
+      entityId: s.orderId,
+      after: { status, consignmentId: s.consignmentId },
+    });
+  return r;
 }
 
 /** Asks each courier about its parcels still under way (cron, every 30 minutes) */
@@ -386,7 +444,7 @@ export async function pollShipments() {
     .limit(100);
   let changed = 0;
   for (const s of due) {
-    const provider = courier(s.courier);
+    const provider = await courier(s.courier);
     try {
       const status = provider ? await provider.getStatus(s.consignmentId!, s.trackingCode) : null;
       if (status) {
@@ -415,7 +473,7 @@ export async function cancelShipment(shipmentId: number, confirmed: boolean, adm
     throw new UserFacingError(
       "The courier has it already: it can only be cancelled before pickup.",
     );
-  const provider = courier(s.courier);
+  const provider = await courier(s.courier);
   const r = provider && s.consignmentId ? await provider.cancelShipment(s.consignmentId) : null;
   if (!r?.ok && !confirmed)
     throw new UserFacingError(r?.message ?? "Cancel it with the courier first.");
@@ -436,7 +494,7 @@ export async function cancelShipment(shipmentId: number, confirmed: boolean, adm
     await addEvent(tx, s.orderId, {
       type: "courier",
       actor: `admin:${admin.id}`,
-      message: `Parcel ${s.consignmentId} cancelled with ${COURIER_LABELS[s.courier]}. Ready to send again.`,
+      message: `Parcel ${s.consignmentId} cancelled with ${shipmentLabel(s)}. Ready to send again.`,
     });
     await audit(tx, admin, "shipment.cancel", {
       entity: "order",

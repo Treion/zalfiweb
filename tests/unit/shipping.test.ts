@@ -7,6 +7,9 @@ import { matchPlace } from "@/server/shipping/pathao-geo";
 import { parcelWeight, parseCreated, pathao, pathaoOrderBody } from "@/server/shipping/pathao";
 import { parseSteadfastCreated, steadfast, steadfastOrderBody } from "@/server/shipping/steadfast";
 import { mockCourier, mockWebhook } from "@/server/shipping/mock";
+import { manualCourier } from "@/server/shipping/manual";
+import { mapRedx } from "@/server/shipping/status-redx";
+import { parseRedxCreated, redx, redxBase, redxParcelBody } from "@/server/shipping/redx";
 import { trackingUrl } from "@/server/shipping/tracking";
 import { codAmountFor, pathTo } from "@/server/shipping/service";
 import { CANCELLED_HERE, type ShipmentInput } from "@/server/shipping/types";
@@ -22,6 +25,7 @@ const input: ShipmentInput = {
     area: "Dhanmondi",
   },
   codAmount: 457_000,
+  declaredValue: 457_000,
   items: [
     { name: "Reva", qty: 2 },
     { name: "Oudor", qty: 1 },
@@ -302,5 +306,108 @@ describe("helpers", () => {
     );
     expect(trackingUrl("mock", "MK1", "01712345678")).toBeNull();
     expect(trackingUrl("pathao", null, "01712345678")).toBeNull();
+  });
+});
+
+describe("RedX", () => {
+  const cfg = { accessToken: "jwt", pickupStoreId: "1234", live: false, webhookToken: "hook-tok" };
+
+  it("sends the parcel with its area, cash in whole taka and weight in grams", () => {
+    const b = redxParcelBody(cfg, { ...input, redx: { areaId: 1, areaName: "Dhanmondi" } });
+    expect(b).toMatchObject({
+      customer_name: "Nusrat Jahan",
+      customer_phone: "01712345678",
+      delivery_area: "Dhanmondi",
+      delivery_area_id: 1,
+      merchant_invoice_id: "ZLF-001234",
+      cash_collection_amount: "4570",
+      parcel_weight: 1500,
+      value: "4570",
+      pickup_store_id: 1234,
+    });
+    expect(b.parcel_details_json).toEqual([
+      { name: "Reva x2", category: "Perfume", value: 0 },
+      { name: "Oudor", category: "Perfume", value: 0 },
+    ]);
+    expect(() => redxParcelBody(cfg, input)).toThrow(/area/);
+    expect(redxBase(false)).toContain("sandbox.redx.com.bd");
+    expect(redxBase(true)).toContain("openapi.redx.com.bd");
+  });
+
+  it("reads the tracking ID, or why RedX refused", () => {
+    expect(parseRedxCreated({ tracking_id: "21A427TU4BN3R" })).toMatchObject({
+      consignmentId: "21A427TU4BN3R",
+      trackingCode: "21A427TU4BN3R",
+      status: "pickup-pending",
+    });
+    expect(() =>
+      parseRedxCreated({ message: "Validation failed", errors: { customer_phone: ["invalid"] } }),
+    ).toThrow(/Validation failed: invalid/);
+  });
+
+  it("maps RedX's statuses to the order", () => {
+    expect(mapRedx("ready-for-delivery")).toMatchObject({ order: "shipped", final: false });
+    expect(mapRedx("delivery-in-progress").order).toBe("out_for_delivery");
+    expect(mapRedx("delivered")).toMatchObject({ order: "delivered", final: true });
+    expect(mapRedx("agent-hold").attention).toBeTruthy();
+    expect(mapRedx("returned")).toMatchObject({ final: true, order: "delivery_failed" });
+    expect(mapRedx("Delivery In Progress").order).toBe("out_for_delivery");
+    expect(mapStatus("redx", "delivered").order).toBe("delivered");
+  });
+
+  it("accepts a webhook only with our token in the address", () => {
+    const r = redx(cfg);
+    const body = {
+      tracking_number: "21A427TU4BN3R",
+      status: "delivered",
+      timestamp: "2026-10-04T10:00:00Z",
+      message_en: "Parcel delivered",
+      invoice_number: "ZLF-001234",
+    };
+    const at = (q: string) => new URL(`https://zalfi.test/api/couriers/webhook/redx${q}`);
+    expect(r.handleWebhook(new Headers(), body, at("?token=hook-tok"))).toMatchObject({
+      consignmentId: "21A427TU4BN3R",
+      status: "delivered",
+      message: "Parcel delivered",
+    });
+    expect(r.handleWebhook(new Headers(), body, at("?token=wrong"))).toBeNull();
+    expect(r.handleWebhook(new Headers(), body, at(""))).toBeNull();
+    expect(trackingUrl("redx", "21A427TU4BN3R", "01712345678")).toBe(
+      "https://redx.com.bd/track-parcel/?trackingId=21A427TU4BN3R",
+    );
+  });
+});
+
+describe("other courier (by hand)", () => {
+  it("records the courier the team named, its tracking number and link", async () => {
+    const c = await manualCourier.createShipment({
+      ...input,
+      manual: {
+        courierName: "Sundarban Courier",
+        trackingCode: "SB-99812",
+        trackingUrl: "https://sundarban.example/track/SB-99812",
+      },
+    });
+    expect(c).toMatchObject({
+      consignmentId: "SB-99812",
+      status: "awaiting_pickup",
+      raw: {
+        courierName: "Sundarban Courier",
+        trackingUrl: "https://sundarban.example/track/SB-99812",
+      },
+    });
+    const own = await manualCourier.createShipment({
+      ...input,
+      manual: { courierName: "Own rider", trackingCode: null, trackingUrl: null },
+    });
+    expect(own.consignmentId).toMatch(/^MAN-[0-9A-F]{6}$/);
+    await expect(
+      manualCourier.createShipment({
+        ...input,
+        manual: { courierName: " ", trackingCode: null, trackingUrl: null },
+      }),
+    ).rejects.toThrow(/which courier/);
+    expect(mapStatus("manual", "delivered")).toMatchObject({ order: "delivered", final: true });
+    expect(manualCourier.handleWebhook(new Headers(), {})).toBeNull();
   });
 });

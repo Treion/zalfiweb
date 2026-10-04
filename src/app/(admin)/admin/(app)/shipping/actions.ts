@@ -5,12 +5,16 @@ import { z } from "zod";
 import { runAction } from "@/server/auth/session";
 import { courier } from "@/server/shipping/couriers";
 import { MOCK_STEPS } from "@/server/shipping/mock";
+import { MANUAL_STEPS, type ManualStatus } from "@/server/shipping/manual";
+import { COURIER_NAMES } from "@/server/shipping/types";
 import {
   RETURN_CONDITIONS,
   applyCourierStatus,
   cancelShipment,
   pathaoPlaces,
+  recordManualStatus,
   recordReturn,
+  redxPlaces,
   sendMany,
   sendToCourier,
   simulateCourier,
@@ -21,7 +25,7 @@ import { shipments } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 const id = z.number().int().positive();
-const courierName = z.enum(["mock", "pathao", "steadfast"]);
+const courierName = z.enum(COURIER_NAMES);
 const refresh = () => revalidatePath("/admin", "layout");
 
 export async function sendToCourierAction(input: unknown) {
@@ -35,11 +39,35 @@ export async function sendToCourierAction(input: unknown) {
           .object({ cityId: id, zoneId: id, areaId: id.nullable().optional() })
           .strict()
           .optional(),
+        redx: z
+          .object({ areaId: id, areaName: z.string().trim().min(1).max(120) })
+          .strict()
+          .optional(),
+        manual: z
+          .object({
+            courierName: z.string().trim().min(2, "Say which courier takes it.").max(60),
+            trackingCode: z.string().trim().max(60).nullable(),
+            trackingUrl: z
+              .string()
+              .trim()
+              .max(300)
+              .refine(
+                (u) => !u || /^https:\/\/[^\s]+$/.test(u),
+                "The tracking link must start with https://",
+              )
+              .nullable(),
+          })
+          .strict()
+          .optional(),
       })
       .strict(),
     input,
     async (d, admin) => {
-      const r = await sendToCourier(d.id, { courier: d.courier, pathao: d.pathao }, admin.actor);
+      const r = await sendToCourier(
+        d.id,
+        { courier: d.courier, pathao: d.pathao, redx: d.redx, manual: d.manual },
+        admin.actor,
+      );
       refresh();
       return r;
     },
@@ -68,6 +96,26 @@ export async function pathaoPlacesAction(input: unknown) {
   );
 }
 
+export async function redxPlacesAction(input: unknown) {
+  return runAction("shipping.manage", z.object({ orderId: id }).strict(), input, async (d) =>
+    redxPlaces(d.orderId),
+  );
+}
+
+/** Another courier (or the team's rider): the team records what happened */
+export async function manualStatusAction(input: unknown) {
+  return runAction(
+    "shipping.manage",
+    z.object({ shipmentId: id, status: z.enum(MANUAL_STEPS as [string, ...string[]]) }).strict(),
+    input,
+    async (d, admin) => {
+      const r = await recordManualStatus(d.shipmentId, d.status as ManualStatus, admin.actor);
+      refresh();
+      return r;
+    },
+  );
+}
+
 export async function simulateCourierAction(input: unknown) {
   return runAction(
     "shipping.manage",
@@ -84,7 +132,7 @@ export async function simulateCourierAction(input: unknown) {
 export async function refreshShipmentAction(input: unknown) {
   return runAction("shipping.manage", z.object({ shipmentId: id }).strict(), input, async (d) => {
     const [s] = await poolDb().select().from(shipments).where(eq(shipments.id, d.shipmentId));
-    const provider = s ? courier(s.courier) : null;
+    const provider = s ? await courier(s.courier) : null;
     if (!s || !provider || !s.consignmentId)
       throw new UserFacingError("That courier isn't set up.");
     const status = await provider.getStatus(s.consignmentId, s.trackingCode);

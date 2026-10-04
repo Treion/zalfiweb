@@ -54,8 +54,8 @@ export default async function ShippingPage({ searchParams }: PageProps<"/admin/s
     : "on_the_way";
   const p = readListParams(sp, { filterKeys: SHIPMENT_FILTER_KEYS, pageSize: 50 });
   const money = admin.can("revenue.view");
-  const couriers = availableCouriers();
-  const [summary, shipping, list, rets] = await Promise.all([
+  const [couriers, summary, shipping, list, rets] = await Promise.all([
+    availableCouriers(),
     courierSummary(30),
     getSettings("shipping"),
     view === "returns" ? null : listShipmentsAdmin(view, p),

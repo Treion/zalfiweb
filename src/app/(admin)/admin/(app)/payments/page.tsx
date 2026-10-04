@@ -11,7 +11,7 @@ import {
   listPaymentsAdmin,
   listRefundsAdmin,
 } from "@/server/payments/admin-query";
-import { currentGateway } from "@/server/payments/providers";
+import { gatewaySummary } from "@/server/payments/providers";
 import { PaymentsTable, RefundsTable } from "./PaymentsTable";
 
 export const metadata = { title: "Payments" };
@@ -22,7 +22,7 @@ export default async function PaymentsPage({ searchParams }: PageProps<"/admin/p
   const view = sp.view === "refunds" ? "refunds" : "transactions";
   const p = readListParams(sp, { filterKeys: PAYMENT_FILTER_KEYS, pageSize: 50 });
   const money = admin.can("revenue.view");
-  const gateway = await currentGateway();
+  const gateway = await gatewaySummary();
 
   const tx = view === "transactions" ? await listPaymentsAdmin(p) : null;
   const rf = view === "refunds" ? await listRefundsAdmin(p) : null;

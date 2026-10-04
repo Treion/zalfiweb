@@ -1,114 +1,120 @@
-import { env } from "@/lib/env";
+import { poolDb, type Executor } from "@/server/db/pool";
+import { getIntegration, type Resolved } from "@/server/integrations";
+import { getSettings } from "@/server/settings";
 import { testProvidersAllowed } from "@/server/test-mode";
+import { manualCourier } from "./manual";
 import { mockCourier } from "./mock";
 import { pathao, type PathaoConfig, type PathaoProvider } from "./pathao";
-import { steadfast, type SteadfastConfig } from "./steadfast";
-import { COURIER_LABELS, type CourierName, type CourierProvider } from "./types";
+import { redx, type RedxConfig, type RedxProvider } from "./redx";
+import { steadfast, type SteadfastConfig, type SteadfastProvider } from "./steadfast";
+import { COURIER_LABELS, COURIER_NAMES, type CourierName, type CourierProvider } from "./types";
 
 /**
- * Which couriers can take parcels now. A real courier is available only when its keys are in the
- * environment; the test courier only off the live site. The default courier is chosen in
- * Settings → Shipping, and each order can be sent with another.
+ * Which couriers take parcels. Pathao, Steadfast and RedX are set up and switched on in Admin →
+ * Integrations (keys saved there, or the old environment variables). "Other courier" (the team's
+ * own records) has its switch there too; the test courier runs only off the live site.
+ *
+ *  - configured: its keys are there. Parcels already out keep updating (webhooks, polls, labels)
+ *    even after it is switched off.
+ *  - enabled: it is offered for new parcels.
  */
 
-export function pathaoConfig(): PathaoConfig | null {
-  const c = {
-    clientId: env("PATHAO_CLIENT_ID"),
-    clientSecret: env("PATHAO_CLIENT_SECRET"),
-    username: env("PATHAO_USERNAME"),
-    password: env("PATHAO_PASSWORD"),
-    storeId: env("PATHAO_STORE_ID"),
-  };
-  if (!c.clientId || !c.clientSecret || !c.username || !c.password || !c.storeId) return null;
-  return {
-    ...(c as Required<{ [K in keyof typeof c]: string }>),
-    live: env("PATHAO_IS_LIVE") === "true",
-    webhookSecret: env("PATHAO_WEBHOOK_SECRET") ?? null,
-  };
+export const pathaoConfigOf = (r: Resolved): PathaoConfig => ({
+  clientId: r.values.clientId!,
+  clientSecret: r.values.clientSecret!,
+  username: r.values.username!,
+  password: r.values.password!,
+  storeId: r.values.storeId!,
+  live: r.mode === "live",
+  webhookSecret: r.webhookToken,
+});
+
+export const steadfastConfigOf = (r: Resolved): SteadfastConfig => ({
+  apiKey: r.values.apiKey!,
+  secretKey: r.values.secretKey!,
+  webhookToken: r.webhookToken,
+});
+
+export const redxConfigOf = (r: Resolved): RedxConfig => ({
+  accessToken: r.values.accessToken!,
+  pickupStoreId: r.values.pickupStoreId!,
+  live: r.mode === "live",
+  webhookToken: r.webhookToken,
+});
+
+/** Where each courier's switch lives in the integrations table */
+const INTEGRATION = {
+  pathao: "pathao",
+  steadfast: "steadfast",
+  redx: "redx",
+  mock: "test-courier",
+} as const;
+
+/** "Other courier" needs no keys; its switch is a shipping setting */
+async function manualEnabled(exec: Executor) {
+  return (await getSettings("shipping", exec)).manualCourierEnabled;
 }
 
-export function steadfastConfig(): SteadfastConfig | null {
-  const apiKey = env("STEADFAST_API_KEY");
-  const secretKey = env("STEADFAST_SECRET_KEY");
-  if (!apiKey || !secretKey) return null;
-  return { apiKey, secretKey, webhookToken: env("STEADFAST_WEBHOOK_TOKEN") ?? null };
+type Found = { provider: CourierProvider; enabled: boolean; mode: string };
+
+async function find(name: CourierName, exec: Executor): Promise<Found | null> {
+  if (name === "manual")
+    return { provider: manualCourier, enabled: await manualEnabled(exec), mode: "manual" };
+  const r = await getIntegration(INTEGRATION[name], exec);
+  if (!r.configured) return null;
+  const provider =
+    name === "pathao"
+      ? pathao(pathaoConfigOf(r))
+      : name === "steadfast"
+        ? steadfast(steadfastConfigOf(r))
+        : name === "redx"
+          ? redx(redxConfigOf(r))
+          : testProvidersAllowed()
+            ? mockCourier
+            : null;
+  return provider ? { provider, enabled: r.enabled, mode: provider.mode } : null;
 }
 
-export function courier(name: string): CourierProvider | null {
-  if (name === "mock") return testProvidersAllowed() ? mockCourier : null;
-  if (name === "pathao") {
-    const c = pathaoConfig();
-    return c ? pathao(c) : null;
-  }
-  if (name === "steadfast") {
-    const c = steadfastConfig();
-    return c ? steadfast(c) : null;
-  }
-  return null;
+/** A courier for parcels already out (configured is enough), or null */
+export async function courier(name: string, exec: Executor = poolDb()) {
+  if (!(COURIER_NAMES as readonly string[]).includes(name)) return null;
+  return (await find(name as CourierName, exec))?.provider ?? null;
 }
 
-export const pathaoCourier = () => courier("pathao") as PathaoProvider | null;
+/** A courier for a new parcel: configured and switched on, or null */
+export async function courierForNew(name: CourierName, exec: Executor = poolDb()) {
+  const f = await find(name, exec);
+  return f?.enabled ? f.provider : null;
+}
+
+export const pathaoCourier = async () => (await courier("pathao")) as PathaoProvider | null;
+export const steadfastCourier = async () =>
+  (await courier("steadfast")) as SteadfastProvider | null;
+export const redxCourier = async () => (await courier("redx")) as RedxProvider | null;
 
 export type CourierOption = { name: CourierName; label: string; mode: string };
 
-/** The couriers an admin can send with right now */
-export function availableCouriers(): CourierOption[] {
-  return (["pathao", "steadfast", "mock"] as const).flatMap((n) => {
-    const c = courier(n);
-    return c ? [{ name: n, label: COURIER_LABELS[n], mode: c.mode }] : [];
-  });
+/** The couriers an admin can send new parcels with right now */
+export async function availableCouriers(exec: Executor = poolDb()): Promise<CourierOption[]> {
+  const out: CourierOption[] = [];
+  for (const name of COURIER_NAMES) {
+    const f = await find(name, exec);
+    if (f?.enabled) out.push({ name, label: COURIER_LABELS[name], mode: f.mode });
+  }
+  return out;
+}
+
+export type CourierChoice = { name: CourierName; label: string; ready: boolean };
+
+/** Every courier, and whether it takes new parcels: for the default-courier choice in Settings */
+export async function courierChoices(exec: Executor = poolDb()): Promise<CourierChoice[]> {
+  const out: CourierChoice[] = [];
+  for (const name of COURIER_NAMES) {
+    if (name === "mock" && !testProvidersAllowed()) continue;
+    const f = await find(name, exec);
+    out.push({ name, label: COURIER_LABELS[name], ready: !!f?.enabled });
+  }
+  return out;
 }
 
 export { trackingUrl } from "./tracking";
-
-export type CourierStatus = {
-  name: CourierName;
-  label: string;
-  /** "live", "sandbox", "test", or null when it can't take parcels */
-  mode: string | null;
-  note: string;
-  /** Where the courier posts its updates (null for the test courier, which needs none) */
-  webhookPath: string | null;
-  webhookReady: boolean;
-};
-
-/** Each courier's set-up, in plain words, for Settings → Shipping */
-export function courierStatuses(): CourierStatus[] {
-  const p = pathaoConfig();
-  const s = steadfastConfig();
-  const test = testProvidersAllowed();
-  return [
-    {
-      name: "pathao",
-      label: COURIER_LABELS.pathao,
-      mode: p ? (p.live ? "live" : "sandbox") : null,
-      note: p
-        ? p.live
-          ? "Live: real pickups and deliveries."
-          : "Sandbox: test parcels only. Set PATHAO_IS_LIVE=true to go live."
-        : "Keys not set (PATHAO_CLIENT_ID, PATHAO_CLIENT_SECRET, PATHAO_USERNAME, PATHAO_PASSWORD, PATHAO_STORE_ID).",
-      webhookPath: "/api/couriers/webhook/pathao",
-      webhookReady: !!p?.webhookSecret,
-    },
-    {
-      name: "steadfast",
-      label: COURIER_LABELS.steadfast,
-      mode: s ? "live" : null,
-      note: s
-        ? "Live: real pickups and deliveries."
-        : "Keys not set (STEADFAST_API_KEY, STEADFAST_SECRET_KEY).",
-      webhookPath: "/api/couriers/webhook/steadfast",
-      webhookReady: !!s?.webhookToken,
-    },
-    {
-      name: "mock",
-      label: COURIER_LABELS.mock,
-      mode: test ? "test" : null,
-      note: test
-        ? "No real parcels. You play the courier from the order page."
-        : "Off on the live site.",
-      webhookPath: null,
-      webhookReady: true,
-    },
-  ];
-}

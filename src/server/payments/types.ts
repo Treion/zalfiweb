@@ -1,15 +1,20 @@
 /**
- * Taking money online, behind one interface. Two providers implement it:
+ * Taking money online, behind one interface. Three providers implement it:
+ *  - sslcommerz: SSLCommerz, sandbox or live.
+ *  - aamarpay: aamarPay, sandbox or live.
  *  - mock: a test gateway inside this site (Succeed / Fail / Cancel), for development and
  *    previews. No money moves. Refused on the live site.
- *  - sslcommerz: SSLCommerz, sandbox or live (env SSLCOMMERZ_*).
+ * Each is set up and switched on in Admin → Integrations. Checkout tries them in the owner's order
+ * and falls back to the next if one can't open a payment page.
  *
  * The rule that matters: an order is paid only after the server has validated the payment with
  * the provider (status, amount, currency and transaction ID all match). The browser coming back
  * to the success page proves nothing on its own.
  */
 
-export type ProviderName = "mock" | "sslcommerz";
+export const GATEWAYS = ["sslcommerz", "aamarpay"] as const;
+export type GatewayName = (typeof GATEWAYS)[number];
+export type ProviderName = GatewayName | "mock";
 
 /** What the customer's order looks like to a payment page */
 export type SessionInput = {
@@ -37,7 +42,10 @@ export type ParsedNotice = {
   valId: string | null;
   /** The provider's word for what happened */
   status: "valid" | "failed" | "cancelled" | "expired" | "unattempted" | "unknown";
-  /** Whether the notice's signature checks out (where the provider signs notices) */
+  /**
+   * Whether the notice's signature checks out (where the provider signs notices). An unsigned
+   * failure is recorded only once the provider's own transaction check confirms it.
+   */
   authentic: boolean;
 };
 
@@ -72,6 +80,8 @@ export interface PaymentProvider {
   readonly name: ProviderName;
   /** "test" (mock), "sandbox" or "live" */
   readonly mode: "test" | "sandbox" | "live";
+  /** "api": refunds go through the provider. "panel": made in its merchant panel, recorded here. */
+  readonly refunds: "api" | "panel";
   createSession(input: SessionInput): Promise<Session>;
   /** Reads (and authenticates) a posted notice. Doesn't change anything. */
   handleIpn(notice: Notice): ParsedNotice;
@@ -94,3 +104,13 @@ export const toTaka = (poisha: number) => (poisha / 100).toFixed(2);
 /** The provider's decimal taka → poisha: "4570.00" → 457000 (NaN stays NaN) */
 export const fromTaka = (taka: string | number | undefined | null) =>
   Math.round(Number(taka) * 100);
+
+/** Why a validation doesn't prove this payment, or null when it does (every provider) */
+export function mismatch(v: Validation, expected: { tranId: string; amount: number }) {
+  if (!v.valid) return `the provider says ${v.status || "no such payment"}`;
+  if (v.tranId !== expected.tranId) return `transaction ${v.tranId} isn't ${expected.tranId}`;
+  if (v.currency !== "BDT") return `currency ${v.currency || "missing"} isn't BDT`;
+  if (!Number.isFinite(v.amount) || v.amount !== expected.amount)
+    return `amount ${toTaka(v.amount)} isn't ${toTaka(expected.amount)}`;
+  return null;
+}

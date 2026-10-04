@@ -144,7 +144,7 @@ export async function issueRefund(
 
   if (!prep.payment) return prep.refund;
 
-  const provider = providerByName(prep.payment.provider);
+  const provider = await providerByName(prep.payment.provider);
   let result: RefundResult;
   if (!provider) {
     result = {
@@ -218,7 +218,7 @@ export async function refreshRefund(refundId: number, admin?: Actor) {
   if (!row) throw new UserFacingError("That refund no longer exists.");
   const { refund, provider: name } = row;
   if (refund.status !== "pending" || !refund.providerRef || !name) return refund;
-  const provider = providerByName(name);
+  const provider = await providerByName(name);
   if (!provider) throw new UserFacingError("The payment gateway isn't configured.");
   const r = await provider.refundStatus(refund.providerRef);
   // A status check that can't be read leaves it processing

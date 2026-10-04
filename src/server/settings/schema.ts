@@ -2,11 +2,13 @@ import { z } from "zod";
 import { DHAKA_CITY_THANAS } from "@/lib/bd-geo";
 import { CONTACT } from "@/lib/contact";
 import { DEFAULT_TOGGLES } from "@/server/auth/permissions";
+import { COURIER_NAMES } from "@/server/shipping/types";
 
 /**
  * Every setting the dashboard can edit, one Zod schema per section. Each field has a default, so a
  * fresh database (or a section added later) always reads as a complete, valid value. Money is in
- * poisha. Secrets never live here: they are environment variables (see .env.example).
+ * poisha. Provider keys never live here: they are sealed in the integrations table (Admin →
+ * Integrations), or come from environment variables.
  */
 const poisha = z.number().int().min(0).max(100_000_00);
 
@@ -38,7 +40,9 @@ export const SETTINGS_SCHEMAS = {
       .default([...DHAKA_CITY_THANAS]),
     /** Orders at or above this subtotal ship free. Null: off. */
     freeShippingThreshold: poisha.nullable().default(null),
-    defaultCourier: z.enum(["mock", "pathao", "steadfast"]).default("mock"),
+    defaultCourier: z.enum(COURIER_NAMES).default("mock"),
+    /** "Other courier": parcels sent another way, recorded and moved along by the team */
+    manualCourierEnabled: z.boolean().default(true),
   }),
   payments: z.object({
     sslcommerzEnabled: z.boolean().default(true),
@@ -61,13 +65,16 @@ export const SETTINGS_SCHEMAS = {
     managersSeeRevenue: z.boolean().default(DEFAULT_TOGGLES.managersSeeRevenue),
   }),
   /**
-   * Which provider each integration uses. "mock"/"dev" run everything locally; a live provider is
-   * used only when its keys are in the environment too (see docs/guides/deploy-vercel.md).
+   * Providers are set up and switched on in Admin → Integrations (src/server/integrations). This
+   * section keeps only the choices that aren't a provider's own: which online gateway checkout
+   * tries first, and where photos are stored.
    */
   integrations: z.object({
-    payments: z.enum(["mock", "sslcommerz"]).default("mock"),
-    sms: z.enum(["dev", "bulksmsbd"]).default("dev"),
-    email: z.enum(["dev", "resend"]).default("dev"),
+    gatewayOrder: z
+      .array(z.enum(["sslcommerz", "aamarpay"]))
+      .length(2)
+      .refine((a) => new Set(a).size === 2, "Each gateway once")
+      .default(["sslcommerz", "aamarpay"]),
     storage: z.enum(["local", "blob"]).default("local"),
   }),
 };

@@ -59,7 +59,7 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
     orderShipments(o.id),
     getSettings("shipping"),
   ]);
-  const couriers = availableCouriers();
+  const couriers = await availableCouriers();
   // The newest "needs attention" note, until an admin acts on it (moves the order or refunds it,
   // events being newest first) or the order is closed
   const flagged = events.findIndex((e) => e.type === "attention");

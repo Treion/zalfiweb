@@ -1,14 +1,14 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { env } from "@/lib/env";
+import { poolDb, type Executor } from "@/server/db/pool";
+import { getIntegration, noteFailure, noteWorking } from "@/server/integrations";
 
 /**
  * Sending email, behind one interface. ZALFI sends only the e-receipt to customers (and invitation
  * links to its own team).
  *  - dev (default): prints to the console and saves each email as an HTML file in .data/outbox,
  *    previewable in the admin (Dev outbox) while developing
- *  - resend: the Resend HTTP API, used when RESEND_API_KEY is set and Settings → Integrations
- *    selects it
+ *  - resend: the Resend HTTP API, set up and switched on in Admin → Integrations
  */
 export type EmailMessage = {
   to: string;
@@ -78,10 +78,18 @@ export function resendEmail(apiKey: string, from: string): EmailProvider {
   };
 }
 
-/** The provider to use now: Resend only when selected in settings AND its key is present */
-export function emailProvider(selected: "dev" | "resend"): EmailProvider {
-  const key = env("RESEND_API_KEY");
-  if (selected === "resend" && key)
-    return resendEmail(key, env("EMAIL_FROM") ?? "ZALFI <receipts@zalfi.com>");
-  return devEmail;
+/** The provider to use now: Resend when it is set up and switched on, else the stand-in */
+export async function emailProvider(exec: Executor = poolDb()): Promise<EmailProvider> {
+  const r = await getIntegration("resend", exec);
+  if (!r.enabled) return devEmail;
+  const real = resendEmail(r.values.apiKey!, r.values.from!);
+  return {
+    name: real.name,
+    async send(msg) {
+      const res = await real.send(msg);
+      if (res.ok) void noteWorking(r);
+      else void noteFailure("resend", `An email didn't send: ${res.error}`);
+      return res;
+    },
+  };
 }

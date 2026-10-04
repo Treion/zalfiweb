@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import { Controller, useForm, type FieldValues, type UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
-import { Badge } from "@/components/admin/ui/badge";
 import { Button } from "@/components/admin/ui/button";
 import {
   Card,
@@ -29,8 +28,9 @@ import { Textarea } from "@/components/admin/ui/textarea";
 import { DHAKA_AREAS, DHAKA_CITY_THANAS } from "@/lib/bd-geo";
 import { poishaToTaka, takaToPoisha } from "@/lib/money";
 import { SETTINGS_SCHEMAS, type Settings, type SettingsKey } from "@/server/settings/schema";
-import type { CourierStatus } from "@/server/shipping/couriers";
-import { saveSettingsAction, setPaymentGatewayAction } from "./actions";
+import type { CourierChoice } from "@/server/shipping/couriers";
+import Link from "next/link";
+import { saveSettingsAction } from "./actions";
 
 type All = { [K in SettingsKey]: Settings<K> };
 
@@ -278,7 +278,7 @@ function ShippingSection({
 }: {
   v: Settings<"shipping">;
   canEdit: boolean;
-  couriers: CourierStatus[];
+  couriers: CourierChoice[];
 }) {
   const s = useSection<"shipping", ShippingForm>(
     "shipping",
@@ -299,6 +299,8 @@ function ShippingSection({
           : takaToPoisha(Number(f.freeShippingThreshold)),
       defaultCourier: f.defaultCourier,
       insideDhakaAreas: f.insideDhakaAreas,
+      // Switched on Admin → Integrations; carried through unchanged
+      manualCourierEnabled: v.manualCourierEnabled,
     }),
     v,
   );
@@ -342,8 +344,8 @@ function ShippingSection({
         label="Default courier"
         htmlFor="ship-courier"
         hint={
-          chosen && !chosen.mode
-            ? `${chosen.label} can't take parcels yet: ${chosen.note}`
+          chosen && !chosen.ready
+            ? `${chosen.label} is off or not set up (Admin → Integrations).`
             : "Each order can still be sent with another courier."
         }
       >
@@ -359,7 +361,7 @@ function ShippingSection({
                 {couriers.map((c) => (
                   <SelectItem key={c.name} value={c.name}>
                     {c.name === "mock" ? "Test courier (no real deliveries)" : c.label}
-                    {c.mode ? "" : " (not set up)"}
+                    {c.ready ? "" : " (off)"}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -439,8 +441,8 @@ function PaymentsForm({ v, canEdit }: { v: Settings<"payments">; canEdit: boolea
         <SwitchRow
           form={s.form as never}
           name="sslcommerzEnabled"
-          label="Online payment (SSLCommerz)"
-          hint="Cards, bKash, Nagad, Rocket and more."
+          label="Online payment"
+          hint="Cards, bKash, Nagad, Rocket and more, through the gateways switched on in Integrations."
           disabled={!canEdit}
         />
         <SwitchRow
@@ -534,107 +536,20 @@ function PermissionsForm({ v }: { v: Settings<"permissions"> }) {
   );
 }
 
-export type GatewayInfo = {
-  selected: "mock" | "sslcommerz";
-  note: string;
-  /** Whether SSLCommerz keys are set, and which mode they are for */
-  sslcommerz: "sandbox" | "live" | null;
-  mockAllowed: boolean;
-  canChange: boolean;
-};
-
-/** Each courier's keys and webhook, as the server sees them. Keys live in the environment only. */
-function CouriersCard({ couriers }: { couriers: CourierStatus[] }) {
+/** Gateways and couriers are set up on their own page; this points the way */
+function IntegrationsLink({ what }: { what: string }) {
   return (
     <Card className="mt-6">
       <CardHeader>
-        <CardTitle>Couriers</CardTitle>
+        <CardTitle>{what}</CardTitle>
         <CardDescription>
-          Keys are set in the environment (see docs/guides/deploy-vercel.md). Updates arrive by
-          webhook, and every parcel is checked every 30 minutes too.
+          Keys, sandbox or live, the on/off switch and a connection test for each, in one place.
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col divide-y text-sm">
-        {couriers.map((c) => (
-          <div key={c.name} className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0">
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-medium">{c.label}</span>
-              <Badge variant={c.mode === "live" ? "success" : c.mode ? "info" : "neutral"}>
-                {c.mode === "live"
-                  ? "Live"
-                  : c.mode === "sandbox"
-                    ? "Sandbox"
-                    : c.mode === "test"
-                      ? "Test"
-                      : "Not set up"}
-              </Badge>
-            </div>
-            <p className="text-muted-foreground text-xs">{c.note}</p>
-            {c.webhookPath && c.mode && (
-              <p className="text-muted-foreground text-xs">
-                {"Webhook: "}
-                <code className="font-mono">{c.webhookPath}</code>
-                {c.webhookReady
-                  ? " (secret set)"
-                  : ` (set ${c.name === "pathao" ? "PATHAO_WEBHOOK_SECRET" : "STEADFAST_WEBHOOK_TOKEN"} to accept updates)`}
-              </p>
-            )}
-          </div>
-        ))}
-      </CardContent>
-    </Card>
-  );
-}
-
-/** Which gateway takes online payments. Only the owner changes it; keys stay in the environment. */
-function GatewayCard({ g }: { g: GatewayInfo }) {
-  const [selected, setSelected] = useState(g.selected);
-  const [note, setNote] = useState(g.note);
-  const [pending, start] = useTransition();
-  return (
-    <Card className="mt-6">
-      <CardHeader>
-        <CardTitle>Payment gateway</CardTitle>
-        <CardDescription>Where &ldquo;Pay online&rdquo; takes the customer.</CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-5 md:grid-cols-2">
-        <Field label="Gateway" htmlFor="gateway">
-          <Select
-            value={selected}
-            disabled={!g.canChange || pending}
-            onValueChange={(v) => {
-              const next = v as GatewayInfo["selected"];
-              setSelected(next);
-              start(async () => {
-                const r = await setPaymentGatewayAction({ payments: next });
-                if (!r.ok) {
-                  setSelected(g.selected);
-                  return void toast.error(r.error);
-                }
-                setNote(r.data);
-                toast.success("Saved");
-              });
-            }}
-          >
-            <SelectTrigger id="gateway" className="w-full">
-              <SelectValue>{selected === "mock" ? "Test gateway" : "SSLCommerz"}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="mock">Test gateway</SelectItem>
-              <SelectItem value="sslcommerz">SSLCommerz</SelectItem>
-            </SelectContent>
-          </Select>
-        </Field>
-        <div className="flex flex-col gap-2 text-sm">
-          <p>{note}</p>
-          <p className="text-muted-foreground text-xs">
-            {g.sslcommerz
-              ? `SSLCommerz keys are set (${g.sslcommerz}).`
-              : "SSLCommerz keys aren't set yet (SSLCOMMERZ_STORE_ID and SSLCOMMERZ_STORE_PASSWORD)."}
-            {!g.mockAllowed && " The test gateway is off on the live site."}
-            {!g.canChange && " Only the owner can change this."}
-          </p>
-        </div>
+      <CardContent>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/admin/integrations">Open Integrations</Link>
+        </Button>
       </CardContent>
     </Card>
   );
@@ -644,14 +559,12 @@ export function SettingsTabs({
   settings,
   canEdit,
   isOwner,
-  gateway,
   couriers,
 }: {
   settings: All;
   canEdit: boolean;
   isOwner: boolean;
-  gateway: GatewayInfo;
-  couriers: CourierStatus[];
+  couriers: CourierChoice[];
 }) {
   return (
     <Tabs defaultValue="store">
@@ -671,11 +584,11 @@ export function SettingsTabs({
       </TabsContent>
       <TabsContent value="shipping">
         <ShippingSection v={settings.shipping} canEdit={canEdit} couriers={couriers} />
-        <CouriersCard couriers={couriers} />
+        <IntegrationsLink what="Couriers" />
       </TabsContent>
       <TabsContent value="payments">
         <PaymentsForm v={settings.payments} canEdit={canEdit} />
-        <GatewayCard g={gateway} />
+        <IntegrationsLink what="Payment gateways" />
       </TabsContent>
       <TabsContent value="inventory">
         <InventoryForm v={settings.inventory} canEdit={canEdit} />

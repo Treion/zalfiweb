@@ -6,7 +6,6 @@ import { UserFacingError } from "@/server/errors";
 import { hit } from "@/server/rate-limit";
 import { maskPhone } from "@/server/request";
 import { appSecret } from "@/server/secret";
-import { getSettings } from "@/server/settings";
 import { smsProvider } from "@/server/providers/sms";
 
 /**
@@ -119,8 +118,7 @@ export async function sendCode(phone: string, ip: string | null, exec: Executor 
     ip,
   });
 
-  const { sms } = await getSettings("integrations", exec);
-  const provider = smsProvider(sms);
+  const provider = await smsProvider(exec);
   const sent = await provider.send(
     phone,
     `Your ZALFI code is ${code}. It expires in 5 minutes. Never share it.`,

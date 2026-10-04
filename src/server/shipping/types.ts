@@ -35,8 +35,14 @@ export type ShipmentInput = {
   /** Poisha. Zero for an order already paid online. */
   codAmount: number;
   items: { name: string; qty: number }[];
+  /** What the parcel is worth (poisha): the order total. Some couriers ask, for insurance. */
+  declaredValue: number;
   /** Pathao only: the city and zone chosen (or matched) for the address */
   pathao?: { cityId: number; zoneId: number; areaId?: number | null };
+  /** RedX only: the delivery area chosen (or matched) for the address */
+  redx?: { areaId: number; areaName: string };
+  /** Another courier, or the team's own rider: what the team typed in */
+  manual?: { courierName: string; trackingCode: string | null; trackingUrl: string | null };
   note?: string;
 };
 
@@ -80,8 +86,11 @@ export interface CourierProvider {
   /** The courier's current status for a parcel, or null when it can't say */
   getStatus(consignmentId: string, trackingCode: string | null): Promise<string | null>;
   cancelShipment(consignmentId: string): Promise<{ ok: boolean; message: string }>;
-  /** Checks a webhook's authenticity and reads it. Null when it isn't authentic or isn't ours. */
-  handleWebhook(headers: Headers, body: unknown): CourierEvent | null;
+  /**
+   * Checks a webhook's authenticity and reads it. Null when it isn't authentic or isn't ours.
+   * `url` is the address it was posted to (RedX proves itself with a token in it).
+   */
+  handleWebhook(headers: Headers, body: unknown, url?: URL): CourierEvent | null;
   /** A public tracking page for the customer, or null */
   getTrackingUrl(trackingCode: string, phone: string): string | null;
   map(status: string): MappedStatus;

@@ -1,16 +1,16 @@
 import { appendFile, mkdir } from "node:fs/promises";
 import path from "node:path";
-import { env } from "@/lib/env";
 import { internationalPhone } from "@/lib/phone";
+import { poolDb, type Executor } from "@/server/db/pool";
+import { getIntegration, noteFailure, noteWorking } from "@/server/integrations";
 import { maskPhone } from "@/server/request";
 
 /**
  * Sending SMS, behind one interface. ZALFI sends one kind: the checkout's verification code.
  *  - dev (default): prints the message (code included) to the console and .data/sms.log
- *  - bulksmsbd: BulkSMSBD's HTTP API, used when its keys are set and Settings → Integrations
- *    selects it
- * Another gateway (SSL Wireless, Alpha SMS) is one more object with a `send`, plus its name in
- * the settings enum.
+ *  - bulksmsbd: BulkSMSBD's HTTP API, set up and switched on in Admin → Integrations
+ * Another gateway (SSL Wireless, Alpha SMS) is one more object with a `send`, plus an entry in the
+ * integrations catalogue.
  */
 export type SmsResult = { ok: true; id?: string } | { ok: false; error: string };
 
@@ -70,10 +70,18 @@ export function bulkSmsBd(apiKey: string, senderId: string): SmsProvider {
   };
 }
 
-/** The provider to use now: BulkSMSBD only when selected in settings AND its keys are present */
-export function smsProvider(selected: "dev" | "bulksmsbd"): SmsProvider {
-  const key = env("BULKSMSBD_API_KEY");
-  const sender = env("BULKSMSBD_SENDER_ID");
-  if (selected === "bulksmsbd" && key && sender) return bulkSmsBd(key, sender);
-  return devSms;
+/** The provider to use now: BulkSMSBD when it is set up and switched on, else the stand-in */
+export async function smsProvider(exec: Executor = poolDb()): Promise<SmsProvider> {
+  const r = await getIntegration("bulksmsbd", exec);
+  if (!r.enabled) return devSms;
+  const real = bulkSmsBd(r.values.apiKey!, r.values.senderId!);
+  return {
+    name: real.name,
+    async send(to, text) {
+      const res = await real.send(to, text);
+      if (res.ok) void noteWorking(r);
+      else void noteFailure("bulksmsbd", `An SMS didn't send: ${res.error}`);
+      return res;
+    },
+  };
 }

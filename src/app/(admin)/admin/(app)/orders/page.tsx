@@ -66,7 +66,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
           total={total}
           page={p.page}
           pageSize={p.pageSize}
-          couriers={availableCouriers()}
+          couriers={await availableCouriers()}
           defaultCourier={shipping.defaultCourier}
           canShip={admin.can("shipping.manage")}
         />

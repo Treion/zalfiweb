@@ -5,7 +5,7 @@ import type { PaymentMethod, Quote, quoteSchema } from "@/lib/checkout";
 import { poolDb, type Executor } from "@/server/db/pool";
 import { getSettings, type Settings } from "@/server/settings";
 import { availableOf, reservedBy } from "@/server/catalog/stock";
-import { currentGateway } from "@/server/payments/providers";
+import { onlineGateways } from "@/server/payments/providers";
 import {
   evaluateCoupon,
   shippingZone,
@@ -174,8 +174,8 @@ export function enabledMethods(p: Settings<"payments">, onlineReady = true): Pay
 }
 
 export async function checkoutMethods(exec: Executor = poolDb()) {
-  const [pay, gateway] = await Promise.all([getSettings("payments", exec), currentGateway(exec)]);
-  return { pay, methods: enabledMethods(pay, !!gateway.provider) };
+  const [pay, gateways] = await Promise.all([getSettings("payments", exec), onlineGateways(exec)]);
+  return { pay, methods: enabledMethods(pay, gateways.length > 0) };
 }
 
 /** The full quote for the checkout page */

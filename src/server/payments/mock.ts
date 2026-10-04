@@ -36,6 +36,7 @@ export function mockNotice(tranId: string, amount: number, outcome: MockOutcome)
 export const mockProvider: PaymentProvider = {
   name: "mock",
   mode: "test",
+  refunds: "api",
 
   async createSession(input) {
     return { url: `/checkout/pay/mock?t=${encodeURIComponent(input.tranId)}`, raw: { mock: true } };

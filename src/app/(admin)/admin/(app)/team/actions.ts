@@ -12,7 +12,6 @@ import {
 } from "@/server/admin/team";
 import { runAction } from "@/server/auth/session";
 import { emailProvider } from "@/server/providers/email";
-import { getSettings } from "@/server/settings";
 import { ROLES } from "@/server/auth/permissions";
 import { env } from "@/lib/env";
 
@@ -35,8 +34,9 @@ export async function inviteAction(input: unknown) {
     input,
     async (d, admin) => {
       const inv = await createInvitation(d, admin.actor, await siteUrl());
-      const { email } = await getSettings("integrations");
-      const sent = await emailProvider(email).send({
+      const sent = await (
+        await emailProvider()
+      ).send({
         to: inv.email,
         tag: "invitation",
         subject: "You're invited to the ZALFI admin",

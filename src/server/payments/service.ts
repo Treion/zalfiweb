@@ -11,20 +11,27 @@ import { addEvent } from "@/server/orders/events";
 import { transitionOrder } from "@/server/orders/manage";
 import { sendReceipt } from "@/server/orders/receipt";
 import { maskPhone } from "@/server/request";
-import { currentGateway, providerByName } from "./providers";
-import { mismatch } from "./sslcommerz";
-import type { Notice, ProviderName, Validation } from "./types";
+import { noteFailure, noteWorking, getIntegration } from "@/server/integrations";
+import { onlineGateways, providerByName } from "./providers";
+import {
+  mismatch,
+  type Notice,
+  type PaymentProvider,
+  type ProviderName,
+  type Validation,
+} from "./types";
 
 /**
  * The payment flow, the same for every provider:
- *  1. startPayment: a `payments` row (initiated) and a session at the provider; the customer goes
- *     to its payment page.
+ *  1. startPayment: a `payments` row (initiated) and a session at the first gateway that opens one
+ *     (the owner's order, Admin → Integrations); the customer goes to its payment page.
  *  2. The provider tells us what happened twice: an IPN to the server, and the customer's browser
  *     coming back. Both go through settleNotice; whichever arrives first settles, and the other
  *     finds it done.
  *  3. A "valid" notice is checked with the provider's validation API. Only a validation that
  *     matches our transaction ID, amount and currency marks the payment paid. Then the held
- *     bottles become a sale, the order is confirmed, and the e-receipt goes out.
+ *     bottles become a sale, the order is confirmed, and the e-receipt goes out. A failure is
+ *     recorded only from a signed notice, or once the provider's transaction check confirms it.
  *  4. reconcilePayments (cron) asks the provider about payments still open, in case both notices
  *     were lost.
  */
@@ -38,16 +45,29 @@ function newTranId(orderNumber: string) {
   return `${orderNumber}-${tail}`;
 }
 
-function callbackUrls(name: ProviderName) {
+/**
+ * Where the provider sends the customer back, and its server-to-server notice. The transaction ID
+ * rides along, because some gateways (aamarPay's cancel address) send nothing back at all.
+ */
+function callbackUrls(name: ProviderName, tranId: string) {
   const base = siteUrl().replace(/\/$/, "");
   const ret = `${base}/api/payments/return/${name}`;
+  const t = `&tran=${encodeURIComponent(tranId)}`;
   return {
-    success: `${ret}?outcome=success`,
-    fail: `${ret}?outcome=fail`,
-    cancel: `${ret}?outcome=cancel`,
+    success: `${ret}?outcome=success${t}`,
+    fail: `${ret}?outcome=fail${t}`,
+    cancel: `${ret}?outcome=cancel${t}`,
     ipn: `${base}/api/payments/ipn/${name}`,
   };
 }
+
+const GATEWAY_LABEL: Record<ProviderName, string> = {
+  sslcommerz: "SSLCommerz",
+  aamarpay: "aamarPay",
+  mock: "The test gateway",
+};
+
+const integrationOf = (name: ProviderName) => (name === "mock" ? "test-gateway" : name);
 
 /** Appends one payload to a payment's audit trail (owner-only in the admin) */
 const withRaw = (prev: unknown, source: string, data: unknown) => [
@@ -57,38 +77,66 @@ const withRaw = (prev: unknown, source: string, data: unknown) => [
 
 /**
  * Opens a payment for an unpaid online order and returns the payment page's URL. Each call is a
- * new attempt with its own transaction ID (a customer can retry after a failure).
+ * new attempt with its own transaction ID (a customer can retry after a failure). The switched-on
+ * gateways are tried in the owner's order: one that can't open a page is recorded as a failed
+ * attempt, and the next takes over, so the customer still sees a payment page.
  */
 export async function startPayment(orderId: number): Promise<string> {
-  const gateway = await currentGateway();
-  const provider = gateway.provider;
-  if (!provider) throw new UserFacingError("Online payment isn't available right now.");
+  const gateways = await onlineGateways();
+  if (!gateways.length) throw new UserFacingError("Online payment isn't available right now.");
 
-  const prep = await withTx(async (tx) => {
+  const order = await withTx(async (tx) => {
     const [o] = await tx.select().from(orders).where(eq(orders.id, orderId)).for("update");
     if (!o) throw new UserFacingError("That order no longer exists.");
     if (o.paymentStatus === "paid") return { done: o.accessToken } as const;
     if (o.paymentMethod !== "sslcommerz")
-      throw new UserFacingError("This order is paid on delivery.");
+      throw new UserFacingError(
+        o.paymentMethod === "cod"
+          ? "This order is paid on delivery."
+          : "This order is paid by bKash or Nagad.",
+      );
     if (o.status !== "pending_payment")
       throw new UserFacingError("This order can no longer be paid online.");
     if (o.expiresAt && o.expiresAt <= new Date())
       throw new UserFacingError("This order waited too long and has expired. Place it again.");
-    const tranId = newTranId(o.number);
-    const [p] = await tx
-      .insert(payments)
-      .values({ orderId, provider: provider.name, tranId, amount: o.total, status: "initiated" })
-      .returning({ id: payments.id });
-    return { order: o, tranId, paymentId: p!.id } as const;
+    return { order: o } as const;
   });
-  if ("done" in prep) return confirmationUrl(prep.done!);
-  const { order: o, tranId, paymentId } = prep;
+  if ("done" in order) return confirmationUrl(order.done!);
+  const o = order.order;
 
   const items = await poolDb()
     .select({ name: orderItems.name, qty: orderItems.qty })
     .from(orderItems)
     .where(eq(orderItems.orderId, orderId))
     .orderBy(asc(orderItems.id));
+
+  const failed: string[] = [];
+  for (const provider of gateways) {
+    const url = await openSession(provider, o, items, failed);
+    if (url) return url;
+  }
+  throw new UserFacingError("We couldn't open the payment page. Try again in a moment.");
+}
+
+/** One attempt at one gateway: the payment page's URL, or null (recorded) when it won't open */
+async function openSession(
+  provider: PaymentProvider,
+  o: typeof orders.$inferSelect,
+  items: { name: string; qty: number }[],
+  failed: string[],
+): Promise<string | null> {
+  const tranId = newTranId(o.number);
+  const [p] = await poolDb()
+    .insert(payments)
+    .values({
+      orderId: o.id,
+      provider: provider.name,
+      tranId,
+      amount: o.total,
+      status: "initiated",
+    })
+    .returning({ id: payments.id });
+  const label = GATEWAY_LABEL[provider.name];
   try {
     const session = await provider.createSession({
       tranId,
@@ -102,16 +150,25 @@ export async function startPayment(orderId: number): Promise<string> {
         district: o.addressDistrict,
       },
       items,
-      urls: callbackUrls(provider.name),
+      urls: callbackUrls(provider.name, tranId),
     });
-    await poolDb()
-      .update(payments)
-      .set({ raw: withRaw(null, "session", session.raw), updatedAt: new Date() })
-      .where(eq(payments.id, paymentId));
+    await withTx(async (tx) => {
+      await tx
+        .update(payments)
+        .set({ raw: withRaw(null, "session", session.raw), updatedAt: new Date() })
+        .where(eq(payments.id, p!.id));
+      if (failed.length)
+        await addEvent(tx, o.id, {
+          type: "payment",
+          actor: "payment",
+          message: `${failed.join(" and ")} couldn't open a payment page, so ${label} took over.`,
+        });
+    });
+    void getIntegration(integrationOf(provider.name)).then(noteWorking, () => {});
     return session.url;
   } catch (e) {
     const reason = e instanceof Error ? e.message : String(e);
-    console.error(`[payments] session failed order=${o.number}: ${reason}`);
+    console.error(`[payments] ${provider.name} session failed order=${o.number}: ${reason}`);
     await withTx(async (tx) => {
       await tx
         .update(payments)
@@ -120,14 +177,17 @@ export async function startPayment(orderId: number): Promise<string> {
           raw: withRaw(null, "session-error", { reason }),
           updatedAt: new Date(),
         })
-        .where(eq(payments.id, paymentId));
-      await addEvent(tx, orderId, {
+        .where(eq(payments.id, p!.id));
+      await addEvent(tx, o.id, {
         type: "payment",
         actor: "payment",
-        message: `The payment page couldn't be opened: ${reason}`,
+        message: `${label} couldn't open the payment page: ${reason}`,
       });
     });
-    throw new UserFacingError("We couldn't open the payment page. Try again in a moment.");
+    if (provider.name !== "mock")
+      await noteFailure(provider.name, `Couldn't open a payment page: ${reason}`);
+    failed.push(label);
+    return null;
   }
 }
 
@@ -156,7 +216,7 @@ export async function settleNotice(
   notice: Notice,
   source: "ipn" | "return",
 ): Promise<SettleResult> {
-  const provider = providerByName(name);
+  const provider = await providerByName(name);
   if (!provider) return { outcome: "unknown", token: null };
   const n = provider.handleIpn(notice);
   if (!n.tranId) return { outcome: "unknown", token: null };
@@ -184,13 +244,41 @@ export async function settleNotice(
 
   const outcome =
     n.status === "cancelled" ? "cancelled" : n.status === "valid" ? "pending" : "failed";
-  // Only a signed notice may mark a payment failed; an unsigned one changes nothing
-  if (n.authentic && outcome !== "pending")
+  if (outcome === "pending" || row.status !== "initiated") return { outcome, token };
+  // A signed notice may mark a payment failed. An unsigned one (aamarPay signs nothing) is checked
+  // with the provider first: only its own word ends the attempt, and a payment that did go through
+  // is settled instead
+  if (n.authentic) {
     await markUnpaid(row.id, n.status, { notice: redactNotice(notice) }, source);
+    return { outcome, token };
+  }
+  let v: Validation | null = null;
+  try {
+    v = await provider.getTransaction(n.tranId);
+  } catch (e) {
+    console.error(
+      `[payments] transaction check unreachable tran=${n.tranId}:`,
+      (e as Error).message,
+    );
+  }
+  if (v?.valid) return { outcome: await applyValidation(row.id, v, source), token };
+  if (v && UNPAID_STATUSES.includes(v.status)) {
+    await markUnpaid(
+      row.id,
+      outcome === "cancelled" ? "cancelled" : v.status.toLowerCase(),
+      { query: v.raw },
+      source,
+    );
+    return { outcome, token };
+  }
+  // Nothing confirmed yet: the attempt stays open, and reconcilePayments asks again later
   return { outcome, token };
 }
 
-const SECRET_FIELDS = new Set(["store_passwd", "mock_sig"]);
+/** The providers' words for a payment that didn't go through */
+const UNPAID_STATUSES = ["FAILED", "CANCELLED", "CANCEL", "EXPIRED", "INVALID"];
+
+const SECRET_FIELDS = new Set(["store_passwd", "signature_key", "mock_sig"]);
 const redactNotice = (n: Notice) =>
   Object.fromEntries(Object.entries(n).filter(([k]) => !SECRET_FIELDS.has(k)));
 
@@ -397,7 +485,7 @@ export async function reconcilePayments() {
     .limit(100);
   let settled = 0;
   for (const p of open) {
-    const provider = providerByName(p.provider);
+    const provider = await providerByName(p.provider);
     let v: Validation | null = null;
     try {
       v = provider ? await provider.getTransaction(p.tranId) : null;
@@ -411,7 +499,7 @@ export async function reconcilePayments() {
     if (v?.valid) {
       await applyValidation(p.id, v, "reconcile");
       settled++;
-    } else if (v && ["FAILED", "CANCELLED", "EXPIRED"].includes(v.status)) {
+    } else if (v && UNPAID_STATUSES.includes(v.status)) {
       await markUnpaid(p.id, v.status.toLowerCase(), { query: v.raw }, "reconcile");
       settled++;
     } else if (p.orderStatus !== "pending_payment") {

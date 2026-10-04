@@ -131,15 +131,7 @@ export function parseValidation(body: Record<string, unknown>): Validation {
   };
 }
 
-/** Why a validation doesn't prove this payment, or null when it does */
-export function mismatch(v: Validation, expected: { tranId: string; amount: number }) {
-  if (!v.valid) return `the provider says ${v.status || "no such payment"}`;
-  if (v.tranId !== expected.tranId) return `transaction ${v.tranId} isn't ${expected.tranId}`;
-  if (v.currency !== "BDT") return `currency ${v.currency || "missing"} isn't BDT`;
-  if (!Number.isFinite(v.amount) || v.amount !== expected.amount)
-    return `amount ${toTaka(v.amount)} isn't ${toTaka(expected.amount)}`;
-  return null;
-}
+export { mismatch } from "./types";
 
 const REFUND_STATUS: Record<string, RefundResult["status"]> = {
   success: "pending",
@@ -179,6 +171,7 @@ export function sslcommerz(cfg: SslConfig): PaymentProvider {
   return {
     name: "sslcommerz",
     mode: cfg.live ? "live" : "sandbox",
+    refunds: "api",
 
     async createSession(input) {
       const res = await fetch(`${base}/gwprocess/v4/api.php`, {
