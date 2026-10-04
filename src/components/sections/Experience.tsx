@@ -276,7 +276,6 @@ export function Experience({ fragrances, noteAvail }: Props) {
             key={f.slug}
             fragrance={f}
             index={i}
-            count={fragrances.length}
             noteAvail={noteAvail}
             mounted={active === -1 ? i === 0 : Math.abs(active - i) <= 1}
           />

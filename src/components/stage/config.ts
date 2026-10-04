@@ -19,7 +19,8 @@ export const EXP = {
     enter: [-20, 70],
     world: [-45, 45],
     masthead: [15, 85],
-    eyebrow: [5, 55],
+    // The chapter's layer fades in from here
+    open: [5, 55],
     tagline: [35, 95],
     top: [75, 130],
     heart: [145, 200],

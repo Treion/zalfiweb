@@ -25,7 +25,6 @@ import { NOTE_SLOTS } from "./note-slots";
 type Props = {
   fragrance: Fragrance;
   index: number;
-  count: number;
   noteAvail: Record<string, boolean>;
   /** Only chapters near the viewport mount their note images (preloads the next chapter) */
   mounted: boolean;
@@ -63,10 +62,9 @@ function useAddToBag(f: Fragrance) {
     });
 }
 
-function MotionChapter({ fragrance: f, index, count, noteAvail, mounted }: Props) {
+function MotionChapter({ fragrance: f, index, noteAvail, mounted }: Props) {
   const addToBag = useAddToBag(f);
   const from = f.variants[0];
-  const num = String(index + 1).padStart(2, "0");
   return (
     <article
       data-chapter
@@ -75,20 +73,6 @@ function MotionChapter({ fragrance: f, index, count, noteAvail, mounted }: Props
       className="text-world-ink static:hidden pointer-events-none absolute inset-0"
       style={worldVars(f)}
     >
-      {/* Eyebrow */}
-      <div
-        data-a="text"
-        className="left-gutter absolute top-[13svh] overflow-hidden md:top-[15svh]"
-      >
-        <p data-a="eyebrow" data-reveal className="eyebrow">
-          <span className="tabular-nums">
-            {num} / {String(count).padStart(2, "0")}
-          </span>
-          <span className="mx-3 inline-block h-px w-8 bg-current align-middle opacity-50" />
-          {f.mood}
-        </p>
-      </div>
-
       {/* Name: the stage sets it huge behind the bottle; this DOM copy is the accessible heading
           and the visible fallback until the stage has painted */}
       <div
@@ -267,7 +251,7 @@ function FloatingNote({
   );
 }
 
-function StaticSpread({ fragrance: f, index, count, noteAvail }: Props) {
+function StaticSpread({ fragrance: f, noteAvail }: Props) {
   const addToBag = useAddToBag(f);
   const from = f.variants[0];
   return (
@@ -278,10 +262,7 @@ function StaticSpread({ fragrance: f, index, count, noteAvail }: Props) {
     >
       <div className="grid grid-cols-12 gap-x-4 gap-y-12">
         <div className="col-span-12 md:col-span-5">
-          <p className="eyebrow opacity-70">
-            {String(index + 1).padStart(2, "0")} / {String(count).padStart(2, "0")} · {f.mood}
-          </p>
-          <h2 id={`st-${f.slug}`} className="font-display text-display mt-6">
+          <h2 id={`st-${f.slug}`} className="font-display text-display">
             {f.name}
           </h2>
           <p className="display-italic mt-5 text-3xl leading-snug">{f.tagline}</p>
@@ -340,15 +321,9 @@ export function buildChapterTimeline(
 
   // Visibility window (autoAlpha keeps hidden chapters out of the tab order). It closes only once
   // the outro fade has finished, so nothing is ever cut mid-fade.
-  tl.fromTo(el, { autoAlpha: 0 }, { autoAlpha: 1, duration: 8 * k }, at(C.eyebrow[0] - 8));
+  tl.fromTo(el, { autoAlpha: 0 }, { autoAlpha: 1, duration: 8 * k }, at(C.open[0] - 8));
   tl.to(el, { autoAlpha: 0, duration: 6 * k }, at(C.textOut[1]));
 
-  tl.fromTo(
-    q('[data-a="eyebrow"]'),
-    { yPercent: 110, opacity: 1 },
-    { yPercent: 0, duration: len(C.eyebrow), ease: GSAP_EASE.soft },
-    at(C.eyebrow[0]),
-  );
   tl.fromTo(
     q('[data-a="name"] [data-w]'),
     { yPercent: 105, opacity: 1 },

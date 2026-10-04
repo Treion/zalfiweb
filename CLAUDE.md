@@ -88,7 +88,7 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
   - Inside the experience, a rig's source is always the experience anchor, so this never triggers a page-to-page glide.
   - The static layout shows the logo as a first screen, then the same line-up as a normal section. Its bottles rise into view with a scroll-driven `view()` timeline. With reduced motion, nothing moves.
 - **Chapter names** (the WebGL masthead) sit just above the bottle, like a magazine masthead, with only the foot of the letters behind the cap, so they always read (`MASTHEAD_*` in `stage/director.ts`). Keep floating notes clear of that band.
-- **Few words, straight to buying:** chapters show eyebrow, name, tagline and notes, plus Discover / Add to bag from the start of the chapter (`ch.cta`). No story paragraphs on the home page or the product page (`story` stays in the data for SEO).
+- **Few words, straight to buying:** chapters show name, tagline and notes, plus Discover / Add to bag from the start of the chapter (`ch.cta`). No story paragraphs on the home page or the product page (`story` stays in the data for SEO).
 - `data-reveal` elements are hidden until their timeline runs, but only with JS and motion allowed (`html.js`, set before paint).
 - `ChapterIndex` (desktop) lists every chapter. A jump never scrolls through the worlds in between:
   1. A `WorldVeil` in the destination's colour fades in.
