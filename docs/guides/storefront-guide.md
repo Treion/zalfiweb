@@ -88,7 +88,7 @@ The design rules (type, colour, motion, what never to do) are in `CLAUDE.md`. Ke
 
 **Bottles:** never crop, recolour or retouch them; the site shows them whole and relights them itself.
 
-**Note photos aren't in yet.** Until they are, each note shows a fine frame with its file name (e.g. `apple.png`), never a drawing or an icon. They must look like real photographs. `npm run notes:fetch` downloads openly licensed real photos from Wikimedia Commons, cuts them out, and writes their credits to `CREDITS.md` (keep that file). Review every one before publishing. The list of notes, and prompts for studio photography, are in `docs/content/note-images.md`.
+**Note photos:** 22 of the 26 are in (yours, from the `trans` upload). The other four (`mint.png`, `apple.png`, `precious-woods.png`, `white-oud.png`) show a fine frame with their file name until they arrive, never a drawing or an icon. To add or replace photos, put them in a folder (transparent PNG or WebP, named however you like, e.g. `white oud.png`) and run `npm run notes:ingest -- <folder>` (add `--force` to replace ones already there). It renames them, trims and centres them, and saves them to `public/images/notes/`. They must look like real photographs. For notes you have no photo of, `npm run notes:fetch` downloads openly licensed real photos from Wikimedia Commons, cuts them out, and writes their credits to `CREDITS.md` (keep that file). Review every one before publishing. The list of notes, and prompts for studio photography, are in `docs/content/note-images.md`.
 
 ## Motion, and the static version
 

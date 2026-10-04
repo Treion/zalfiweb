@@ -10,33 +10,33 @@ export type Slot = { x: number; y: number; size: number; depth: number; far?: bo
 export const NOTE_SLOTS: Record<"desktop" | "mobile", Record<NoteLayer, Slot[]>> = {
   desktop: {
     top: [
-      { x: -26, y: -23, size: 11, depth: 1 },
-      { x: 24, y: -27, size: 9, depth: 0.6 },
-      { x: 38, y: -35, size: 6, depth: 0.25, far: true },
+      { x: -26, y: -23, size: 12.5, depth: 1 },
+      { x: 24, y: -27, size: 10.5, depth: 0.6 },
+      { x: 38, y: -35, size: 7, depth: 0.25, far: true },
     ],
     heart: [
-      { x: 30, y: -3, size: 11.5, depth: 1 },
-      { x: -33, y: -4, size: 9, depth: 0.6 },
-      { x: -40, y: -17, size: 6, depth: 0.25, far: true },
+      { x: 30, y: -3, size: 13, depth: 1 },
+      { x: -33, y: -4, size: 10.5, depth: 0.6 },
+      { x: -40, y: -17, size: 7, depth: 0.25, far: true },
     ],
     base: [
-      { x: -25, y: 12, size: 10, depth: 1 },
-      { x: 27, y: 17, size: 9, depth: 0.6 },
-      { x: 40, y: -21, size: 6, depth: 0.25, far: true },
+      { x: -25, y: 13, size: 11.5, depth: 1 },
+      { x: 27, y: 17, size: 10.5, depth: 0.6 },
+      { x: 40, y: -21, size: 7, depth: 0.25, far: true },
     ],
   },
   mobile: {
     top: [
-      { x: -36, y: -21, size: 19, depth: 1 },
-      { x: 37, y: -26, size: 17, depth: 0.6 },
+      { x: -36, y: -23, size: 22, depth: 1 },
+      { x: 37, y: -27, size: 20, depth: 0.6 },
     ],
     heart: [
-      { x: 37, y: -3, size: 19, depth: 1 },
-      { x: -37, y: 1, size: 17, depth: 0.6 },
+      { x: 37, y: -3, size: 22, depth: 1 },
+      { x: -37, y: 0, size: 20, depth: 0.6 },
     ],
     base: [
-      { x: -36, y: 16, size: 18, depth: 1 },
-      { x: 36, y: 15, size: 17, depth: 0.6 },
+      { x: -36, y: 18, size: 21, depth: 1 },
+      { x: 36, y: 16, size: 20, depth: 0.6 },
     ],
   },
 };

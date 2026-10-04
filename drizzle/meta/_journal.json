@@ -78,6 +78,13 @@
       "when": 1791133529092,
       "tag": "0010_carrybee",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791135493480,
+      "tag": "0011_note_photo_alts",
+      "breakpoints": true
     }
   ]
 }

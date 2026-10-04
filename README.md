@@ -99,6 +99,7 @@ Search everything from the top bar (or press `/`).
 | `npm test` / `npm run test:db` | Unit tests / database tests (need PostgreSQL) |
 | `npm run stock:check` | Proves every bottle's stock matches its history |
 | `npm run assets:logo` / `assets:bottles` | Rebuilds the logo and the bottle lighting maps from the photos |
+| `npm run notes:ingest -- <folder>` | Brings in note photos you supply (transparent PNG or WebP, any file names) |
 | `npm run notes:fetch` | Fetches openly licensed note photographs (see the storefront guide) |
 | `npm run format` | Formats every file (Prettier) |
 

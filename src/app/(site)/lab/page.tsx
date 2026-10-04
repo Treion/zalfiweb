@@ -138,7 +138,7 @@ export default function LabPage() {
         </h2>
         <p className="text-bone-dim mb-12 max-w-xl text-sm">
           Missing images render as an empty frame with the exact filename expected in
-          public/images/notes/. See docs/content/note-images.md.
+          public/images/notes/. Add them with npm run notes:ingest. See docs/content/note-images.md.
         </p>
         <ul className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-7">
           {NOTES.map((n) => (

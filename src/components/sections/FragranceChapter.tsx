@@ -248,7 +248,7 @@ function FloatingNote({
                         note={note}
                         available={available}
                         frameLabel={false}
-                        sizes="(min-width: 768px) 12vw, 25vw"
+                        sizes="(min-width: 768px) 13vw, 22vw"
                         className={clsx(!available && "text-world-ink")}
                       />
                     ) : (

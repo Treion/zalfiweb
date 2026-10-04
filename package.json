@@ -20,6 +20,7 @@
     "db:proxy": "tsx scripts/db/neon-local-proxy.ts",
     "db:studio": "drizzle-kit studio",
     "notes:fetch": "tsx scripts/assets/fetch-note-images.ts",
+    "notes:ingest": "tsx scripts/assets/ingest-note-images.ts",
     "models:ingest": "tsx scripts/assets/ingest-models.ts",
     "test": "vitest run",
     "test:watch": "vitest",
