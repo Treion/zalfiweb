@@ -9,7 +9,7 @@ Status: **approved 2026-09-22, revision 2.** M0–M9 built. Waiting on the note 
 | **Real rendered bottles.** You asked for shaders, clear reflections and real lighting | New WebGL rendering layer: three.js + React Three Fiber + custom GLSL. New milestone **M2: WebGL stage**. See §2 |
 | **Bottle photos received** (`REVA.png` … `Oudor.png`, 2000×2000 transparent cutouts) | They move to `public/images/bottles/{slug}.png` in lowercase. The M0 asset pipeline also derives the lighting maps from them |
 | **`logo.png` received.** Use the real logo for the intro instead of typed letters | The logo is traced to SVG, keeping its exact letterforms, and split into emblem + Z·A·L·F·I so each piece can animate. **The ZALFI wordmark is never typeset in a font again**; it is always the logo |
-| **Note images may be AI-generated** (your permission) | This session has no image-generation tool, and the sandbox network blocks image sources. Instead, `NOTES_IMAGES_CHECKLIST.md` now has a **ready-to-use prompt pack** so you can generate all 26 in one consistent style. Until they arrive, empty frames show. See §8 |
+| **Note images may be AI-generated** (your permission) | This session has no image-generation tool, and the sandbox network blocks image sources. Instead, `docs/content/note-images.md` now has a **ready-to-use prompt pack** so you can generate all 26 in one consistent style. Until they arrive, empty frames show. See §8 |
 | Observed: **all six bottles are black smoked glass**, and only the caps differ (silver ribbed, gunmetal ribbed, gold ribbed, chrome sphere, black sphere, gold sphere) | Dark bottles on dark worlds (Bond, Oudor) would disappear. The shader adds a palette-tinted rim light and back glow so the silhouette always reads. The caps reflect each world's colours |
 
 ---
@@ -54,7 +54,7 @@ PostgreSQL + Drizzle ORM
 The bottles are photographs, not 3D models. To get live shaders and reflections without losing a single pixel of the real product, each photo is **relit on the GPU**. In other words, the photo is rendered as a lit surface instead of a flat image.
 
 ### 2a. Asset baking (Node script, build time, runs once per bottle)
-From each cutout, `scripts/bake-bottle-maps.ts` (using `sharp`) produces:
+From each cutout, `scripts/assets/bake-bottle-maps.ts` (using `sharp`) produces:
 - **Normal map.** A distance field from the alpha edge gives the rounded glass edges and shoulders their volume, and fine detail from the photo's luminance (for example the ribs on the caps) is added on top. This tells the shader which way each pixel faces.
 - **Material mask.** It separates **cap metal**, **glass**, and **label print**, found automatically from the width profile of the alpha channel (the cap is narrower than the cube). Cap tint (silver, gunmetal, gold, chrome, black) is measured from the photo.
 - **Thickness map.** Used for the smoked-glass edge glow.
@@ -189,7 +189,7 @@ Each milestone ends with lint, typecheck, `next build` and `next dev`, then Play
 
 ## 8. Note images: status and options
 
-1. **Recommended: you generate them** with the prompt pack in `NOTES_IMAGES_CHECKLIST.md` (one shared style block plus one line per note) in any image tool. Then upload them to the repo root or `public/images/notes/`, as you did with the bottles. I'll handle renaming, trimming and optimisation.
+1. **Recommended: you generate them** with the prompt pack in `docs/content/note-images.md` (one shared style block plus one line per note) in any image tool. Then upload them to the repo root or `public/images/notes/`, as you did with the bottles. I'll handle renaming, trimming and optimisation.
 2. **Alternative:** allow `commons.wikimedia.org` and `upload.wikimedia.org` in this environment's network policy. I can then source openly licensed real photographs, cut them out, and record the credits in `CREDITS.md`.
 3. Either way, the site shows a tasteful empty frame with the filename wherever an image is missing. It never falls back to a cartoon or stand-in.
 

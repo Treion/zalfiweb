@@ -4,12 +4,12 @@
 
 ZALFI is a niche perfume house. This site must feel like an Awwwards Site of the Day, not a template.
 Audience: 18–30. Goal: make them fall in love with the brand and buy. Every scroll is a reveal.
-The build plan lives in `PLAN.md`, and the note photo list and prompts in `NOTES_IMAGES_CHECKLIST.md`.
+The build plan lives in `docs/reference/storefront-plan.md`, and the note photo list and prompts in `docs/content/note-images.md`.
 
 ## Stack (do not swap)
 
 - Next.js 16 App Router, React Server Components, TypeScript strict. **Next 16 differs from older versions.** Read `node_modules/next/dist/docs/` before using an API you are unsure of (for example, `next/image` uses `preload`, not the deprecated `priority`, and `images.qualities` must allowlist every quality used).
-- Tailwind CSS v4. Tokens are in `src/app/globals.css` (`@theme`).
+- Tailwind CSS v4. Tokens are in `src/app/(site)/globals.css` (`@theme`); the admin has its own in `src/app/(admin)/admin.css`.
 - Route handlers for `/api/*`, written to be edge-portable (Web APIs + Neon's fetch driver only). Next 16 deprecates `runtime = "edge"`, so it is not exported; add it back per route to pin a handler to the Edge. Exceptions run on Node: checkout (`/api/checkout/*`: transactions, `node:crypto`), admin, cron and invoice PDFs.
 - PostgreSQL + Drizzle ORM. The Neon HTTP driver is used everywhere. In dev, `npm run db:proxy` serves Neon's HTTP protocol against local Postgres 16. `src/db/seed-data.ts` is the typed catalogue source and the fallback when `DATABASE_URL` is missing. The seed never overwrites owner edits unless `--reset` is passed.
 - GSAP + ScrollTrigger for scroll-scrubbed sequences. **Import from `@/components/motion/gsap`**, never from `gsap` directly.
@@ -127,13 +127,13 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
 - **ZALFI sells one size: 50 ml.** The size chooser appears only if a fragrance ever has more than one variant. Migration `0002` retired the 100 ml rows.
 - **House pages** (`/about`, `/faq`, `/contact`, `/refunds`, `/payment-policy`, `/privacy`, `/terms`):
   - They are one route, `app/(info)/[slug]`, fed by `src/content/pages.ts`. The nav and footer list them from `src/content/info-nav.ts` (light, so the copy stays on the server).
-  - **The copy is the owner's** (`all-policies.md`), rewritten in the house voice at the owner's request: the same facts and terms. Never invent policy, and change the substance only with the owner.
+  - **The copy is the owner's** (`docs/content/policies-original.md`), rewritten in the house voice at the owner's request: the same facts and terms. Never invent policy, and change the substance only with the owner.
   - Each page is a list of blocks (`InfoBlock`): a lead line, "in short" points, sections that open (`<details>`, with "Open all"), the FAQ with a search, the refund case chooser, the About timeline and three words, the 50/50 preorder split. They are rendered by `src/components/info`. Opened text fades in (`.info-reveal`); nothing slides. A page with no blocks shows a short "being written" note with the contact details.
 - **Contact details and socials** live in `src/lib/contact.ts`, used by the footer, `/contact` and `<ContactIcons />`. The icons are hairline marks drawn in-house.
 
 ## Backend and admin
 
-- The full spec is `ZALFI_BACKEND_SPEC.md`. The plan and progress are in `docs/BACKEND_PLAN.md`, judgement calls in `docs/DECISIONS.md`, and local setup in `docs/SETUP.md`. Work happens on `claude/zalfi-backend`, one phase at a time, stopping at each checkpoint.
+- The full spec is `docs/reference/backend-spec.md`. The plan and progress are in `docs/reference/backend-plan.md`, judgement calls in `docs/reference/decisions.md`, and local setup in `docs/guides/local-setup.md`. Work happens on `claude/zalfi-backend`, one phase at a time, stopping at each checkpoint.
 - **Money is integer poisha, BDT only** (`formatPrice` → `৳1,250`). Store UTC; show and group by Asia/Dhaka (`src/lib/time.ts`).
 - **Two root layouts:** `app/(site)` is the storefront (unchanged); `app/(admin)/admin` is the admin, with its own `admin.css`, shadcn/ui components (`src/components/admin/ui`), light and dark themes (`next-themes`), and no GSAP, Lenis or three.js.
 - **Writes that touch money or stock go through `withTx()`** (`src/server/db/pool.ts`, Neon's WebSocket Pool). Storefront reads stay on the HTTP driver. Every stock change is a `stock_movements` row, through `adjustStock()` and friends in `src/server/catalog/stock.ts`; `npm run stock:check` proves stock equals the ledger. Available = stock − active reservations. Catalogue edits call `revalidateStorefront()`.
@@ -168,14 +168,16 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
   - `src/components/{motion,ui,media,brand,sections,stage,product,cart,finder}`
   - `src/db` (schema, client, queries, seed)
   - `src/lib` (domain types, helpers)
-  - `scripts/` (asset pipeline)
+  - `src/server/*` (domain and infrastructure, no React), `src/content` (house-page copy)
+  - `scripts/admin.ts`, `scripts/db/` (local database bridge, dev wrapper, stock check), `scripts/assets/` (logo, bottle bake, note photos, 3D models)
+- Docs live in `docs/`: `guides/` (local setup, Vercel, the admin guide, the storefront guide), `reference/` (architecture, decisions, specs and plans), `content/` (source copy, note photo list). Keep the README and the guides true when behaviour changes: a guide that describes a screen must match it.
 - Chapters are data-driven: one `<FragranceChapter fragrance={...} />`, no duplicated sections.
 - Server components by default. Add `"use client"` only for interactivity and animation.
 - `/lab` is the internal review page, hidden when `VERCEL_ENV === "production"`.
 
 ## Workflow
 
-- Work one milestone at a time (see `PLAN.md`). After each one:
+- Work one milestone at a time (see `docs/reference/storefront-plan.md`). After each one:
   1. Run `npm run check` (lint + typecheck + build).
   2. Run the dev server and take Playwright screenshots at 1440px and 375px, plus one with reduced motion.
   3. Calm check, with `?stage=force`, once frames have settled:

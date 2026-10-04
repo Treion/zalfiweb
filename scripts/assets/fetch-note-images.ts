@@ -20,9 +20,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
-import { NOTES } from "../src/db/seed-data";
+import { NOTES } from "../../src/db/seed-data";
 
-const ROOT = path.resolve(__dirname, "..");
+const ROOT = path.resolve(__dirname, "../..");
 const OUT = path.join(ROOT, "public/images/notes");
 const CREDITS_JSON = path.join(ROOT, "public/images/notes/credits.json");
 const UA = "ZALFI-site-builder/1.0 (asset sourcing script; contact via repository owner)";

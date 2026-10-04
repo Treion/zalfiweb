@@ -76,7 +76,7 @@ const server = http.createServer(async (req, res) => {
     const code = err.code ?? err.errors?.[0]?.code;
     console.error(
       code === "ECONNREFUSED"
-        ? "[proxy] Can't reach PostgreSQL on localhost:5432. Is it running? (see docs/SETUP.md)"
+        ? "[proxy] Can't reach PostgreSQL on localhost:5432. Is it running? (see docs/guides/local-setup.md)"
         : `[proxy] Can't connect to PostgreSQL: ${err.message}`,
     );
     return res.writeHead(503, cors).end(JSON.stringify({ message: "database unreachable", code }));

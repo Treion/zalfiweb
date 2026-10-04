@@ -9,7 +9,7 @@ import { env } from "@/lib/env";
  * money or stock (and by the admin's auth). The storefront's reads stay on the HTTP driver
  * (src/db/client.ts), which is edge-portable but cannot run interactive transactions.
  *
- * Node runtime only. Locally, scripts/neon-local-proxy.ts bridges these WebSockets to Postgres 16,
+ * Node runtime only. Locally, scripts/db/neon-local-proxy.ts bridges these WebSockets to Postgres 16,
  * so development runs the same driver code as production.
  */
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "db.localtest.me"]);

@@ -1,6 +1,6 @@
 # ZALFI backend: discovery and plan (Phase 1)
 
-This is my reading of the repo against `ZALFI_BACKEND_SPEC.md`, the schema changes I plan, and where the spec conflicts with what exists. Judgement calls are recorded in `docs/DECISIONS.md`.
+This is my reading of the repo against `docs/reference/backend-spec.md`, the schema changes I plan, and where the spec conflicts with what exists. Judgement calls are recorded in `docs/reference/decisions.md`.
 
 ---
 
@@ -18,7 +18,7 @@ This is my reading of the repo against `ZALFI_BACKEND_SPEC.md`, the schema chang
 
 - Migration `0002_only_50ml` deleted every non-50 ml variant. Today there are six variants, one per fragrance.
 - **Prices are USD placeholders** (`$145`–`$185`, stored as cents).
-- **The driver is Neon's HTTP driver** everywhere (`src/db/client.ts`). In development, `scripts/neon-local-proxy.ts` speaks Neon's HTTP protocol to local Postgres 16.
+- **The driver is Neon's HTTP driver** everywhere (`src/db/client.ts`). In development, `scripts/db/neon-local-proxy.ts` speaks Neon's HTTP protocol to local Postgres 16.
   - The HTTP driver **cannot run interactive transactions**: `db.transaction()` throws. It can only send a fixed batch of statements.
   - The seed script uses node-postgres (`pg`) directly, which can.
 - `src/db/seed-data.ts` is the typed catalogue. `getFragrances()` falls back to it when there is no `DATABASE_URL`, so builds never break.
@@ -153,7 +153,7 @@ adapters (src/server/providers/*): Payment (mock | SSLCommerz) · Courier (mock 
 5. ✅ **Payments:** mock provider, SSLCommerz (sandbox-ready), IPN and validation, refunds, the payments page, the COD toggle.
 6. ✅ **Shipping:** mock courier, Pathao and Steadfast, labels, bulk actions, webhooks, cron polling, failed deliveries and returns.
 7. ✅ **Dashboard & reports:** overview charts, needs-attention list, customers, reports and CSV, global search.
-8. **Hardening & docs:** the security pass, the full test suite, integration status with test buttons, `SETUP`, `GO_LIVE`, `DECISIONS` and `ADMIN_GUIDE`.
+8. **Hardening & docs:** the security pass, the full test suite, integration status with test buttons, the guides in `docs/guides` (local setup, deploying, the admin guide) and the decisions in `docs/reference`.
 
 ## 6. What I need from you (no rush, nothing blocks Phase 2)
 

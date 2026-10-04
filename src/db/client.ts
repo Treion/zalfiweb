@@ -5,7 +5,7 @@ import * as schema from "./schema";
 /**
  * One driver everywhere: Neon's HTTP driver works in Edge functions, Node server components and
  * scripts alike. In local development the connection string points at localhost, and requests go
- * to scripts/neon-local-proxy.ts, which speaks the same HTTP protocol against local Postgres 16.
+ * to scripts/db/neon-local-proxy.ts, which speaks the same HTTP protocol against local Postgres 16.
  */
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "db.localtest.me"]);
 

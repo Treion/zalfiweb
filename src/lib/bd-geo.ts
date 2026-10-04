@@ -1,7 +1,7 @@
 /**
  * Bangladesh delivery geography: the 64 districts, and Dhaka district's areas.
  * "Inside Dhaka" (the lower shipping fee) is decided by Settings → Shipping, whose default list is
- * DHAKA_CITY_THANAS. Other districts take a free-text area (see docs/DECISIONS.md).
+ * DHAKA_CITY_THANAS. Other districts take a free-text area (see docs/reference/decisions.md).
  */
 
 export const DISTRICTS = [

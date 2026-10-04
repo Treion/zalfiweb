@@ -550,8 +550,8 @@ function CouriersCard({ couriers }: { couriers: CourierStatus[] }) {
       <CardHeader>
         <CardTitle>Couriers</CardTitle>
         <CardDescription>
-          Keys are set in the environment (Go-live guide). Updates arrive by webhook, and every
-          parcel is checked every 30 minutes too.
+          Keys are set in the environment (see docs/guides/deploy-vercel.md). Updates arrive by
+          webhook, and every parcel is checked every 30 minutes too.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col divide-y text-sm">

@@ -1,7 +1,7 @@
 import { INFO_NAV, type InfoGroup, type InfoSlug } from "./info-nav";
 
 /**
- * The house's information pages. The copy is the owner's (all-policies.md), rewritten in the
+ * The house's information pages. The copy is the owner's (docs/content/policies-original.md), rewritten in the
  * house voice at the owner's request: the same facts and terms, in plainer, warmer words. Change
  * the substance only with the owner.
  *

@@ -106,7 +106,7 @@ export function SendToCourier({
   if (!couriers.length)
     return (
       <p className="text-muted-foreground text-xs">
-        No courier is set up yet. Add Pathao or Steadfast keys (see GO_LIVE).
+        No courier is set up yet. Add Pathao or Steadfast keys (see docs/guides/deploy-vercel.md).
       </p>
     );
 

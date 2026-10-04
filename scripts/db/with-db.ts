@@ -1,7 +1,7 @@
 /**
- * Runs a command with the local database ready: `tsx scripts/with-db.ts <command> [args…]`.
+ * Runs a command with the local database ready: `tsx scripts/db/with-db.ts <command> [args…]`.
  *  - checks PostgreSQL is reachable and says plainly if it isn't
- *  - starts the local Neon stand-in (scripts/neon-local-proxy.ts) when the database is local and it
+ *  - starts the local Neon stand-in (scripts/db/neon-local-proxy.ts) when the database is local and it
  *    isn't already running
  *  - runs the command (`npm run dev` is `next dev` through this; extra arguments pass on, e.g.
  *    `npm run dev -- -p 3001`)
@@ -77,7 +77,7 @@ async function main() {
   if (isLocal && !(await portInUse(proxyPort))) {
     console.log(dim(`Starting the local database bridge on :${proxyPort}`));
     children.push(
-      spawn(bin("tsx"), ["scripts/neon-local-proxy.ts"], {
+      spawn(bin("tsx"), ["scripts/db/neon-local-proxy.ts"], {
         stdio: "inherit",
         shell: process.platform === "win32",
       }),
@@ -86,7 +86,7 @@ async function main() {
     await new Promise((r) => setTimeout(r, 800));
   }
   const [cmd, ...args] = process.argv.slice(2);
-  if (!cmd) throw new Error("Usage: tsx scripts/with-db.ts <command> [args…]");
+  if (!cmd) throw new Error("Usage: tsx scripts/db/with-db.ts <command> [args…]");
   const next = spawn(bin(cmd), args, {
     stdio: "inherit",
     shell: process.platform === "win32",

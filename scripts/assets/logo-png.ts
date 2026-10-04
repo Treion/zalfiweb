@@ -4,7 +4,7 @@
  */
 import path from "node:path";
 import sharp from "sharp";
-import { LOGO_PARTS, LOGO_VIEWBOX } from "../src/components/brand/logo-paths";
+import { LOGO_PARTS, LOGO_VIEWBOX } from "../../src/components/brand/logo-paths";
 
 const INK = "#1A1816";
 const WIDTH = 480;

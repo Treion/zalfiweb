@@ -62,7 +62,7 @@ export const SETTINGS_SCHEMAS = {
   }),
   /**
    * Which provider each integration uses. "mock"/"dev" run everything locally; a live provider is
-   * used only when its keys are in the environment too (see docs/GO_LIVE.md).
+   * used only when its keys are in the environment too (see docs/guides/deploy-vercel.md).
    */
   integrations: z.object({
     payments: z.enum(["mock", "sslcommerz"]).default("mock"),

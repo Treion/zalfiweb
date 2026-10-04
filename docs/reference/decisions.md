@@ -54,7 +54,7 @@ Judgement calls made while building the backend and admin, newest last. Each one
 ## After phase 2
 
 32. **`npm run admin`** replaces `admin:create-owner` (kept as an alias). It's a guided terminal tool: create an owner or manager, list admins, reset a password, switch someone off/on. Press Enter at the password prompt to get a generated one (`xxxx-xxxx-xxxx-xxxx`, no look-alike characters), shown once. It talks to PostgreSQL directly with Better Auth's own password hashing, so it works without `db:proxy` or the website running, and each change is written to the activity log as "terminal".
-33. **`npm run dev` is one terminal.** `scripts/dev.ts` checks the database, starts the local Neon stand-in when needed, then `next dev`. Blank `.env` values (as copied from `.env.example`) count as unset (`src/lib/env.ts`). In development, sign-in accepts `localhost` and `127.0.0.1` on any port. The login page names the real problem: wrong password (401), switched off, too many attempts, or the database unreachable (5xx).
+33. **`npm run dev` is one terminal.** `scripts/db/with-db.ts` checks the database, starts the local Neon stand-in when needed, then `next dev`. Blank `.env` values (as copied from `.env.example`) count as unset (`src/lib/env.ts`). In development, sign-in accepts `localhost` and `127.0.0.1` on any port. The login page names the real problem: wrong password (401), switched off, too many attempts, or the database unreachable (5xx).
 34. **Password fields have a show/hide (eye) button** (`PasswordInput`) on sign-in and on accepting an invitation.
 
 ## Phase 3: Products & inventory
@@ -102,7 +102,7 @@ Judgement calls made while building the backend and admin, newest last. Each one
 
 64. **The newsletter section is gone** (the form and `/api/newsletter`). The signups already stored stay in `newsletter_signups`, untouched. This settles the open question from phase 1: the e-receipt is the only email ZALFI sends.
 65. **The nav outlines where you are**, with a hairline box that fades in and out: Fragrances while the line-up is open, Find yours on the finder, Info on a house page. "The House" (a link to the story section) is replaced by **Info**, a small menu of the house pages, which also shows on phones.
-66. **House pages** use the owner's `all-policies.md`, rewritten at the owner's request in shorter, warmer sentences, with the same facts. Where the owner's documents disagreed, I chose as follows (the owner should confirm):
+66. **House pages** use the owner's `docs/content/policies-original.md`, rewritten at the owner's request in shorter, warmer sentences, with the same facts. Where the owner's documents disagreed, I chose as follows (the owner should confirm):
     - **Returns.** The Terms said returns were accepted within a window, with refunds. The Refund policy and the Privacy policy both say all sales are final. The Terms' returns and damaged-item sections now point to the Refund policy.
     - **Payment methods.** The owner's text (bank transfer, bKash, Nagad with a transaction reference, cash on delivery, preorders at 50/50) is kept as written. The checkout's online payment (SSLCommerz: cards, bKash, Nagad, Rocket) arrives in phase 5. The two should be brought in line then.
     - **The domain.** The owner's text says www.zalfii.com (two i's). The pages say "this website", so a typo can't mislead.
@@ -128,7 +128,7 @@ Judgement calls made while building the backend and admin, newest last. Each one
 78. **Placing an order locks its sizes first.** Inserting order lines takes a key-share lock on each size. Two checkouts that both did that, then locked the size to change its stock, could deadlock. The database test caught it when the timing shifted. The sizes are now locked up front, in id order.
 79. **The demo seed no longer writes payment rows for cash on delivery.** The shop never creates them (delivery marks the order paid). Rows from older seeds are ignored when working out refunds.
 80. **Cron frequency.** The jobs run every 10 and every 30 minutes. Vercel's free (Hobby) plan limits cron jobs (at the time of writing, to once a day), so check the plan before going live: Pro runs these schedules as written. With fewer runs, unpaid orders still stop holding stock on time (availability ignores lapsed holds). Only the tidying, the missed-notice checks and the refund status checks wait longer.
-81. **The SSLCommerz sandbox couldn't be reached from the build environment** (network policy). The provider is written to SSLCommerz's documented API and tested with payloads in its documented shapes: session, validation, signature, transaction query, refund and refund status. The first real sandbox payment happens once the keys are added (see GO_LIVE in phase 8).
+81. **The SSLCommerz sandbox couldn't be reached from the build environment** (network policy). The provider is written to SSLCommerz's documented API and tested with payloads in its documented shapes: session, validation, signature, transaction query, refund and refund status. The first real sandbox payment happens once the keys are added (see `docs/guides/deploy-vercel.md`).
 
 ## Phase 6: Shipping
 
@@ -155,7 +155,7 @@ Judgement calls made while building the backend and admin, newest last. Each one
 90. **The label is ZALFI's own,** a 4 × 6 inch PDF (one per page, for thermal or ordinary printers). It has the order number, the recipient, the cash to collect (or "Paid online: collect nothing"), the courier's consignment ID and a QR code of the tracking code. The courier's own sticker carries its barcode. The sender is the logo at the top, with "If undelivered, return to" and the store's phone and address. Labels print one at a time from the order, or in bulk from Orders or Shipping.
 91. **Cash on delivery per courier** (Shipping page): "Collected" is the cash on parcels delivered in the last 30 days, which is what the courier owes before its payout. "Still to collect" is the cash on parcels under way. Couriers' payouts aren't recorded (the spec doesn't ask), so the page says to check the figure against each courier's statement.
 92. **Tracking links** for Pathao and Steadfast parcels appear on the confirmation page and in receipts sent after dispatch. The test courier has no public tracking.
-93. **Pathao and Steadfast weren't tried live:** no keys exist yet. Both are written to their documented merchant APIs and tested with payloads in those shapes (create, status, webhooks, errors). The first real parcel goes once the keys are added (see GO_LIVE in phase 8). Start with Pathao's sandbox (`PATHAO_IS_LIVE=false`).
+93. **Pathao and Steadfast weren't tried live:** no keys exist yet. Both are written to their documented merchant APIs and tested with payloads in those shapes (create, status, webhooks, errors). The first real parcel goes once the keys are added (see `docs/guides/deploy-vercel.md`). Start with Pathao's sandbox (`PATHAO_IS_LIVE=false`).
 94. **The demo seed** now writes each courier's own statuses (Pathao's `in_transit`, Steadfast's `pending`…), so demo parcels read like real ones.
 
 ## Phase 7: Dashboard, customers, reports and search
