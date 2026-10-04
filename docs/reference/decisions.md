@@ -210,7 +210,7 @@ Judgement calls made while building the backend and admin, newest last. Each one
     | Solea | `#3A2511` | `#211003` | `#E9BE57` | `#F6EBD8` | 12.3:1 |
 
     - Bond and Oudor are unchanged.
-    - Migration `0006` changes a palette only if it still holds its launch colours, so a world recoloured in the admin keeps the owner's choice. The old colours are listed in `docs/reference/storefront-plan.md` and can be put back in **Products → World and cap**.
+    - Migrations `0006` and `0007` change a palette only if it still holds its launch colours, in any letter case (the admin saves colours in lower case), so a world recoloured in the admin keeps the owner's choice. The old colours are listed in `docs/reference/storefront-plan.md` and can be put back in **Products → World and cap**.
     - Product pages, the finder, the share images and the static layout follow, since they read the same palette.
 106. **Chapters are 240 vh long** (from 260), and the hand-over between two worlds is a dissolve:
     - the outgoing words and name leave first;
