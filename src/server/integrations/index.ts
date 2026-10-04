@@ -3,6 +3,7 @@ import { integrations } from "@/db/schema";
 import { env } from "@/lib/env";
 import { audit, type Actor } from "@/server/audit";
 import { poolDb, type Executor } from "@/server/db/pool";
+import { isMissingTable } from "@/server/db/errors";
 import { UserFacingError } from "@/server/errors";
 import { testProvidersAllowed } from "@/server/test-mode";
 import {
@@ -117,6 +118,27 @@ const CACHE_MS = 15_000;
 const cache = new Map<IntegrationName, { at: number; value: Resolved }>();
 const caching = () => !process.env.VITEST;
 
+/**
+ * A database that hasn't had this update's migration yet has no integrations table. Rather than
+ * break the shop and the admin, read it as empty (every provider falls back to its environment
+ * variables) and say plainly what to run.
+ */
+let warned = false;
+async function behind<T>(query: Promise<T[]>): Promise<T[]> {
+  try {
+    return await query;
+  } catch (e) {
+    if (!isMissingTable(e)) throw e;
+    if (!warned) {
+      warned = true;
+      console.warn(
+        "[integrations] The database is behind the code: run `npm run db:migrate`. Using the environment's keys until then.",
+      );
+    }
+    return [];
+  }
+}
+
 export function clearIntegrationCache() {
   cache.clear();
 }
@@ -127,18 +149,16 @@ export async function getIntegration(
 ): Promise<Resolved> {
   const hit = cache.get(name);
   if (caching() && hit && Date.now() - hit.at < CACHE_MS) return hit.value;
-  const [row] = await exec
-    .select()
-    .from(integrations)
-    .where(eq(integrations.provider, name))
-    .limit(1);
+  const [row] = await behind(
+    exec.select().from(integrations).where(eq(integrations.provider, name)).limit(1),
+  );
   const value = resolve(CATALOG[name], row);
   if (caching()) cache.set(name, { at: Date.now(), value });
   return value;
 }
 
 export async function getIntegrations(exec: Executor = poolDb()): Promise<Resolved[]> {
-  const rows = await exec.select().from(integrations);
+  const rows = await behind(exec.select().from(integrations));
   const byName = new Map(rows.map((r) => [r.provider, r]));
   return INTEGRATIONS.map((n) => resolve(CATALOG[n], byName.get(n)));
 }

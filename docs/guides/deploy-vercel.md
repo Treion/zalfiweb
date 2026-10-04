@@ -227,7 +227,7 @@ Also listed, with comments, in [`.env.example`](../../.env.example).
 ## Updating the site later
 
 - **Code:** every push to the production branch deploys by itself. Pushes to other branches make previews.
-- **Database changes:** when an update adds a migration (a new file in `drizzle/`), run `npm run db:migrate` against Neon as in Part 1, step 5, **before or right after** the deploy.
+- **Database changes:** when an update adds a migration (a new file in `drizzle/`), run `npm run db:migrate` against Neon as in Part 1, step 5, **before or right after** the deploy. Until it runs, the admin keeps working on the keys in Vercel's environment, and Admin → Integrations asks for the migration.
 - **Content:** prices, stock, fragrances, photos, coupons and settings are edited in the admin and show on the shop at once, with no deploy.
 
 ## When something goes wrong

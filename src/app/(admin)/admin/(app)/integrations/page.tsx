@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { PageHeader } from "@/components/admin/shell/PageHeader";
 import { env } from "@/lib/env";
+import { isMissingTable } from "@/server/db/errors";
 import { requireAdmin } from "@/server/auth/session";
 import { getIntegrations, shownValues, webhookToken } from "@/server/integrations";
 import { getAllSettings } from "@/server/settings";
@@ -21,8 +22,23 @@ export default async function IntegrationsPage() {
   const admin = await requireAdmin("settings.view");
   const canManage = admin.can("integrations.manage");
   // The owner gets a webhook token for each courier that needs one, made the first time
-  if (canManage)
-    for (const n of ["pathao", "steadfast", "redx"] as const) await webhookToken(n, admin.actor);
+  try {
+    if (canManage)
+      for (const n of ["pathao", "steadfast", "redx"] as const) await webhookToken(n, admin.actor);
+  } catch (e) {
+    if (!isMissingTable(e)) throw e;
+    return (
+      <>
+        <PageHeader title="Integrations" />
+        <p className="max-w-xl rounded-md bg-[var(--tone-warning-bg)] px-4 py-3 text-sm text-[var(--tone-warning-fg)]">
+          The database needs an update before this page can work. On your computer, run{" "}
+          <code className="font-mono">npm run db:migrate</code> (or restart{" "}
+          <code className="font-mono">npm run dev</code>, which does it for you). For the live site,
+          see &ldquo;Updating the site later&rdquo; in the deploy guide.
+        </p>
+      </>
+    );
+  }
   const [list, settings, site] = await Promise.all([
     getIntegrations(),
     getAllSettings(),

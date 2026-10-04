@@ -114,7 +114,7 @@ npm run dev
 - The shop: **http://localhost:3000**
 - The admin: **http://localhost:3000/admin**, signed in with the account from step 4
 
-`npm run dev` first checks that PostgreSQL answers (and tells you plainly if it doesn't). It then starts a small local bridge the site uses to reach the database, then the site itself. `Ctrl+C` stops all of it. To use another port: `npm run dev -- -p 3001`.
+`npm run dev` first checks that PostgreSQL answers (and tells you plainly if it doesn't), and applies any new migrations a `git pull` brought. It then starts a small local bridge the site uses to reach the database, then the site itself. `Ctrl+C` stops all of it. To use another port: `npm run dev -- -p 3001`.
 
 **Seeing the 3D stage.** The bottles are relit in WebGL on computers with a graphics card. A computer without one (or a browser with hardware acceleration off) gets the calm static version of the same pages. To force the 3D stage, add `?stage=force` to the address once. `?stage=off` undoes it.
 
@@ -184,8 +184,8 @@ The password in `DATABASE_URL` doesn't match. Fix the line in `.env`, or set the
 **`database "zalfi" does not exist`**
 Run `createdb zalfi` (step 3).
 
-**"The database has no admin tables yet" / `relation … does not exist`**
-Run `npm run db:migrate`. Run it again after any `git pull` that brings new migrations.
+**`relation … does not exist`** (for example `relation "integrations" does not exist`)
+Run `npm run db:migrate`. `npm run dev` also does this by itself for a database on your computer, so restarting it is enough after a `git pull`.
 
 **I can't sign in to the admin**
 - Check the account exists: `npm run admin -- list`.
