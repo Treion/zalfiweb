@@ -37,9 +37,13 @@ What customers see, how they buy, and where each piece of the shop is changed: i
 3. **The code:** a 6-digit code by SMS to their mobile. It's valid for 5 minutes, with 5 tries; a new one can be sent after 60 seconds. Once verified, the number stays verified on that device for 24 hours.
 4. **Delivery:** district (all 64), area or thana, and house, road and street. The shipping fee follows: inside Dhaka (the areas listed in Settings → Shipping) or outside.
 5. **A coupon**, if they have one.
-6. **Payment:** **Pay online** (cards, bKash, Nagad and Rocket through SSLCommerz) and/or **Cash on delivery**, whichever is switched on in Settings → Payments.
+6. **Payment:** whichever is switched on:
+   - **Pay online:** cards, bKash, Nagad and Rocket through SSLCommerz or aamarPay (whichever the owner puts first; the other takes over if it can't open);
+   - **bKash or Nagad (Send Money):** the customer sends the money themselves and gives the transaction ID on their order's page; the team confirms it;
+   - **Cash on delivery.**
 7. **Place order:** the price, stock and fees are checked again on the server, never trusted from the browser.
    - **Online:** they go to SSLCommerz and come back to the confirmation page. If the payment fails, the order waits 30 minutes for them to try again (**Pay now**), holding their bottles.
+   - **bKash or Nagad:** to the order's page, which shows the number to send to, the amount and the reference, and takes the transaction ID. The bottles are held for 24 hours, and as long as the team needs to check a transaction ID.
    - **Cash on delivery:** straight to the confirmation page.
 8. **The confirmation page** shows the order number, and a tracking link once the parcel is with the courier. The **e-receipt** (with the PDF invoice) arrives by email.
 
@@ -53,6 +57,7 @@ These show on the shop at once, with no deploy:
 - **Prices, sizes and stock** (**Products**, **Inventory**). "Sold out" shows by itself when available stock reaches 0.
 - **Photos:** the bottle photo and gallery images (**Products**).
 - **Shipping fees**, Dhaka areas, free shipping, payment methods (**Settings**).
+- **Payment gateways, couriers, SMS and email:** keys, sandbox or live, on or off (**Integrations**).
 - **Coupons** (**Coupons**).
 
 The [admin guide](admin-guide.md) explains each screen.

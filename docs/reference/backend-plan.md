@@ -140,7 +140,7 @@ adapters (src/server/providers/*): Payment (mock | SSLCommerz) · Courier (mock 
 
 - Business rules live in plain TypeScript modules with no framework imports, so Vitest can test them directly.
 - Route handlers and server actions stay thin: validate with Zod, check permissions, call the domain, write audit and event rows.
-- Each provider is picked from environment variables **and** a switch on the Integrations page. With no keys, the mock or dev provider runs, so the whole flow works locally today.
+- Each provider is set up, tested and switched on in Admin → Integrations (keys sealed in the database), with its environment variables as a fallback (decisions 111–120). With no keys, the mock or dev provider runs, so the whole flow works locally today.
 
 ---
 
@@ -153,7 +153,7 @@ adapters (src/server/providers/*): Payment (mock | SSLCommerz) · Courier (mock 
 5. ✅ **Payments:** mock provider, SSLCommerz (sandbox-ready), IPN and validation, refunds, the payments page, the COD toggle.
 6. ✅ **Shipping:** mock courier, Pathao and Steadfast, labels, bulk actions, webhooks, cron polling, failed deliveries and returns.
 7. ✅ **Dashboard & reports:** overview charts, needs-attention list, customers, reports and CSV, global search.
-8. **Hardening & docs:** the security pass, the full test suite, integration status with test buttons, the guides in `docs/guides` (local setup, deploying, the admin guide) and the decisions in `docs/reference`.
+8. **Hardening & docs:** the security pass, the full test suite, the guides in `docs/guides` (local setup, deploying, the admin guide) and the decisions in `docs/reference`. *The Integrations page with test buttons was built ahead of it, at the owner's request (decisions 111–120): keys in the admin, aamarPay, RedX, bKash and Nagad by hand, and "other courier".*
 
 ## 6. What I need from you (no rush, nothing blocks Phase 2)
 

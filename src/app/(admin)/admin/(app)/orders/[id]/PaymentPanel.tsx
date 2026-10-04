@@ -49,6 +49,10 @@ export function PaymentPanel({
   const paidWith = data.payments.find((p) => p.status === "paid")?.provider ?? null;
   const unpaid = ["unpaid", "failed"].includes(o.paymentStatus);
   const open = !["cancelled", "returned"].includes(o.status);
+  // A bKash or Nagad transaction ID waiting to be checked: that comes first
+  const claimWaiting = data.payments.some(
+    (p) => p.provider === "manual" && p.status === "initiated",
+  );
   return (
     <Card>
       <CardHeader>
@@ -63,7 +67,7 @@ export function PaymentPanel({
             />
           </CardAction>
         )}
-        {canManage && unpaid && open && sum.left === 0 && (
+        {canManage && unpaid && open && sum.left === 0 && !claimWaiting && (
           <CardAction>
             <RecordPayment orderId={o.id} number={o.number} total={o.total} />
           </CardAction>

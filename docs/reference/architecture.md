@@ -7,8 +7,9 @@ A map for anyone changing the site. The rules for each part (design, motion, mon
 ```
 Browser ── the shop (app/(site))  ─┐
         └─ the admin (app/(admin)) ─┤── server actions and /api routes ── src/server/* ── PostgreSQL (Neon)
-                                    │                                       └── providers: SSLCommerz, BulkSMSBD,
-Couriers and SSLCommerz ── webhooks ┘                                           Resend, Pathao, Steadfast, Vercel Blob
+                                    │                                       └── providers: SSLCommerz, aamarPay,
+Couriers and gateways ── webhooks ──┘                                           BulkSMSBD, Resend, Pathao, Steadfast,
+                                                                                RedX, Vercel Blob (keys: integrations)
 Vercel Cron ── /api/cron/* (every 10 and 30 minutes)
 ```
 
@@ -41,9 +42,10 @@ src/
     auth/                   Better Auth, the permission matrix (permissions.ts), session guards
     catalog/                fragrances, sizes, photos and their bake, the stock ledger and reservations
     checkout/               pricing (pure rules), OTP, quotes
+    integrations/           providers set up in the admin: the catalogue, the key vault (AES-256-GCM), connection tests
     orders/                 the order state machine (state.ts), placing orders, admin queries
-    payments/               the PaymentProvider interface, SSLCommerz, the test gateway, refunds
-    shipping/               the CourierProvider interface, Pathao, Steadfast, the test courier, labels
+    payments/               the PaymentProvider interface, SSLCommerz, aamarPay, the test gateway, bKash/Nagad by hand, refunds
+    shipping/               the CourierProvider interface, Pathao, Steadfast, RedX, "other courier", the test courier, labels
     reports/                periods in Dhaka time, the sales rule, the reports
     customers/, coupons/, settings/, invoice/, admin/, providers/ (SMS, email, storage)
   db/
@@ -80,11 +82,13 @@ Every paid service sits behind an interface with a local stand-in, so the whole 
 
 | Service | Interface | Stand-in | Real |
 |---|---|---|---|
-| Payments | `server/payments/types.ts` | test gateway (`mock.ts`) | SSLCommerz |
-| Couriers | `server/shipping/types.ts` | test courier (`mock.ts`) | Pathao, Steadfast |
+| Payments | `server/payments/types.ts` | test gateway (`mock.ts`) | SSLCommerz, aamarPay (tried in the owner's order, falling back to the next) |
+| Couriers | `server/shipping/types.ts` | test courier (`mock.ts`) | Pathao, Steadfast, RedX |
 | SMS | `server/providers/sms` | prints to the terminal and `.data/sms.log` | BulkSMSBD |
 | Email | `server/providers/email` | saves to `.data/outbox/` | Resend |
 | Photos | `server/providers/storage` | `.data/uploads/` | Vercel Blob |
+
+Every real provider is set up in **Admin → Integrations** (`server/integrations`): its keys are sealed in the `integrations` table, it can be tested and switched on or off, and the old environment variables still work as a fallback. Without any provider, two fallbacks need no keys at all: bKash or Nagad paid by hand (`server/payments/manual.ts`) and "other courier" (`server/shipping/manual.ts`).
 
 The test gateway and test courier refuse to run on the live site (`server/test-mode.ts`).
 

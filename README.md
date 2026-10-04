@@ -5,7 +5,7 @@ The website and back office of ZALFI, a niche perfume house in Bangladesh.
 - **The shop** (`/`): a scroll-driven home page where six real bottle photographs are relit live in WebGL, one "world" per fragrance; product pages; a scent finder; house pages; a guest checkout with phone verification, cash on delivery or online payment (SSLCommerz).
 - **The admin** (`/admin`): orders, payments and refunds, shipping with Pathao or Steadfast, products and stock, coupons, customers, reports, settings and the team, in light and dark.
 
-Everything runs on your computer without any paid account: a built-in **test gateway**, **test courier**, and local stand-ins for SMS and email let you place an order, pay, ship and deliver it end to end. Real providers switch on when their keys are added.
+Everything runs on your computer without any paid account: a built-in **test gateway**, **test courier**, and local stand-ins for SMS and email let you place an order, pay, ship and deliver it end to end. Real providers (SSLCommerz, aamarPay, Pathao, Steadfast, RedX, BulkSMSBD, Resend) are set up, tested and switched on in **Admin → Integrations**, with no code or redeploy. When they're down, bKash or Nagad paid by hand and "other courier" keep the shop running.
 
 | I want to… | Read |
 |---|---|
@@ -52,7 +52,7 @@ The step-by-step guide, including every key you will need to go live, is [`docs/
 4. **Set the environment variables** `NEXT_PUBLIC_SITE_URL`, `BETTER_AUTH_SECRET` and `CRON_SECRET` (Settings → Environment Variables).
 5. **Deploy**, then, once, from your computer against the Neon database: `npm run db:migrate`, `npm run db:seed`, `npm run admin`.
 6. **Sign in** at `https://your-domain/admin`, and work through Settings.
-7. **Go live** by adding the keys for SSLCommerz, BulkSMSBD, Resend, and Pathao or Steadfast, as the guide explains.
+7. **Go live** in **Admin → Integrations**: enter the keys for a gateway (SSLCommerz or aamarPay), SMS (BulkSMSBD), email (Resend) and a courier (Pathao, Steadfast or RedX), test each and switch it on, as the guide explains.
 
 On a **preview** deployment (any branch except production) the test gateway and test courier work, so you can try the whole flow online. On **production** they never run.
 

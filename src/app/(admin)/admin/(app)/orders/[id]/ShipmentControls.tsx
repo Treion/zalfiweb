@@ -154,7 +154,7 @@ export function SendToCourier({
             <DialogDescription>
               {cod
                 ? `The courier collects ${formatPrice(cod)} in cash on delivery.`
-                : "Paid online: the courier collects nothing."}
+                : "Paid already: the courier collects nothing."}
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4">

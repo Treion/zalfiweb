@@ -14,7 +14,6 @@ import { audit, type Actor } from "@/server/audit";
 import { poolDb, withTx, type Executor } from "@/server/db/pool";
 import { UserFacingError } from "@/server/errors";
 import { storageProvider } from "@/server/providers/storage";
-import { getSettings } from "@/server/settings";
 import { bakeBottle, checkBottlePhoto } from "./bake";
 import type {
   fragranceDetailsSchema,
@@ -44,7 +43,7 @@ export async function revalidateStorefront() {
 const hash8 = (b: Buffer) => createHash("sha256").update(b).digest("hex").slice(0, 10);
 
 async function storage() {
-  return storageProvider((await getSettings("integrations")).storage);
+  return storageProvider();
 }
 
 /* ---------------------------------------------------------------------------------------------- */

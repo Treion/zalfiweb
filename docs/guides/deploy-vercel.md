@@ -1,6 +1,6 @@
 # Put ZALFI online with Vercel
 
-This guide puts the shop and the admin on the internet, step by step, then switches each real service on (payments, SMS, email, couriers). It's written so you can follow it without being a developer. Where you need to type a command, it's given in full.
+This guide puts the shop and the admin on the internet, step by step, then switches each real service on (payments, SMS, email, couriers) from the admin's Integrations page. It's written so you can follow it without being a developer. Where you need to type a command, it's given in full.
 
 - [What you'll need](#what-youll-need)
 - [Part 1: the site online](#part-1-the-site-online) (about 30 minutes)
@@ -49,10 +49,10 @@ In **Settings → Environment Variables**, add these for **Production** and **Pr
 | Name | Value |
 |---|---|
 | `NEXT_PUBLIC_SITE_URL` | Your address, with `https://` and no slash at the end: `https://zalfi.com`, or `https://zalfiweb.vercel.app` for now |
-| `BETTER_AUTH_SECRET` | 32 or more random characters. Make one with `openssl rand -base64 32` in a terminal, or a password manager. Keep it secret, and never change it once the shop is open (it would sign everyone out and break pending checkout codes) |
+| `BETTER_AUTH_SECRET` | 32 or more random characters. Make one with `openssl rand -base64 32` in a terminal, or a password manager. Keep it secret, and never change it once the shop is open (it would sign everyone out, break pending checkout codes, and make the keys saved in Integrations unreadable) |
 | `CRON_SECRET` | Another random string, made the same way. Vercel sends it with the background jobs, and the site refuses jobs without it |
 
-Leave the rest empty for now. Part 3 adds them service by service. [The full list](#every-environment-variable) is at the end.
+That's all. Payment gateways, couriers, SMS and email are set up later in the admin (Part 3), with no more variables. [The full list](#every-environment-variable) is at the end.
 
 Then **Deployments → the latest → ⋯ → Redeploy**, so the site picks the variables up.
 
@@ -113,90 +113,82 @@ Previews use the same database as production unless you give them their own: in 
 
 ## Part 3: going live, one service at a time
 
-Each service has a free test mode. For each one: open the account, collect the details, put them in **Vercel → Settings → Environment Variables** (Production), redeploy, then switch it on in the admin. **Settings** in the admin always shows what's configured and what isn't, and never shows the secret values.
+Every service is set up in the admin, in **Integrations** (sidebar → Admin). No environment variables and no redeploys are needed. Each service has a card with:
+- its status (**Not set up**, **Sandbox**, **Live**, **Off**, or **Needs attention** when it's failing);
+- an **On/Off** switch;
+- **Set up**: sandbox or live, the keys (each with where to find it in that provider's panel), **Test connection**, and the exact address and secret to paste into the provider's panel.
 
-> **Coming in the next update (phase 8):** a **Settings → Integrations** page with a switch and a **Test connection** button for every service. Until it arrives, SMS, email and photo storage stay on the built-in stand-ins even with keys added. Payment and courier switches already work. The shop is ready to take real orders once that update is in.
+Keys are stored encrypted and never shown again, only their last four characters. If someone changes a key in the provider's panel, the next real call fails. The card then shows **Needs attention**, the **Overview** lists it, and you replace the key in **Set up**.
 
-### Payments: SSLCommerz (cards, bKash, Nagad, Rocket)
+Keys you already put in Vercel's environment variables keep working: the card says "Using the keys in the hosting settings", and **Move them into the admin** copies them in.
 
-1. **Sandbox first.** Register a test store at [developer.sslcommerz.com](https://developer.sslcommerz.com/registration/). You get a **Store ID** and a **Store Password** by email.
-2. Set the variables:
+### Payments
 
-   | Name | Value |
-   |---|---|
-   | `SSLCOMMERZ_STORE_ID` | your store ID |
-   | `SSLCOMMERZ_STORE_PASSWORD` | your store password |
-   | `SSLCOMMERZ_IS_LIVE` | `false` for the sandbox, `true` for real money |
+**SSLCommerz** (cards, bKash, Nagad, Rocket, internet banking)
+1. **Sandbox first.** Register a test store at [developer.sslcommerz.com](https://developer.sslcommerz.com/registration/). The **Store ID** and **Store password** arrive by email.
+2. In **Integrations → SSLCommerz → Set up**: choose **Sandbox**, enter both, **Save**, then **Test connection**. It opens a payment page and leaves it: no money moves.
+3. Copy the **IPN address** shown (`https://your-domain/api/payments/ipn/sslcommerz`) into the SSLCommerz panel (My Stores → IPN Settings).
+4. Switch it **On**. Place a sandbox order with an SSLCommerz test card: it should show **Paid** in the admin.
+5. **Live:** apply at [sslcommerz.com](https://sslcommerz.com) (trade licence and bank details). Enter the live Store ID and password, choose **Live**, test, and set the IPN address in the live panel too.
 
-3. In the SSLCommerz panel, set the **IPN URL** to `https://your-domain/api/payments/ipn/sslcommerz`. That's how SSLCommerz confirms each payment to the site.
-4. Redeploy. In the admin, go to **Settings → Payments → Payment gateway** and choose **SSLCommerz**. Make sure **Online payment** is on.
-5. Place a sandbox order with one of SSLCommerz's test cards. The order should show **Paid** in the admin.
-6. **Going live:** apply for a live merchant account at [sslcommerz.com](https://sslcommerz.com). They'll ask for your trade licence and bank details. You get live credentials. Replace the two values, set `SSLCOMMERZ_IS_LIVE=true`, set the IPN URL in the live panel too, and redeploy.
+**aamarPay** (cards, bKash, Nagad, Rocket, Upay)
+1. In **Integrations → aamarPay → Set up**: choose **Sandbox** and press **Fill in aamarPay's public sandbox account** (store `aamarpaytest`), or enter your own. **Save**, **Test connection**, switch it **On**.
+2. **Live:** with your merchant account from [aamarpay.com](https://aamarpay.com), enter the live Store ID and Signature key, and choose **Live**.
+3. Optional: ask aamarPay to set the shown IPN address. Payments are confirmed either way: the site checks each one with aamarPay before marking it paid.
+4. aamarPay has no refund API. Refunds are made in the aamarPay merchant panel, then recorded on the order.
 
-A payment is only marked paid after the site checks it with SSLCommerz itself, never on the customer's word alone.
+**Both on:** **Checkout tries first** (top of Payments) picks which one checkout uses. If it can't open a payment page, the other takes over by itself, and the order's timeline says so. Customers always see a single **Pay online**.
 
-### Cash on delivery
+**bKash and Nagad by hand:** the fallback that needs no account. Switch it on in the **bKash and Nagad (by hand)** card and enter your numbers. See the [admin guide](admin-guide.md#bkash-and-nagad-paid-by-hand).
 
-No account needed. Switch it on in **Settings → Payments**. The courier collects the cash and pays you, and the admin's **Shipping** page shows what each courier owes.
+**Cash on delivery:** no account needed. Switch it on in **Settings → Payments**. The courier collects the cash, and the **Shipping** page shows what each courier owes.
 
-### Checkout codes: BulkSMSBD
+A payment is only marked paid after the site checks it with the gateway itself, never on the customer's word alone.
 
-Every customer verifies their phone with a 6-digit code before ordering.
+### Couriers
 
-1. Open an account at [bulksmsbd.net](https://bulksmsbd.net) and add credit.
-2. Ask them to approve a **sender ID** (the name the SMS comes from, e.g. `ZALFI`). Until it's approved they may give you a test one.
-3. Copy your **API key**.
-4. Set `BULKSMSBD_API_KEY` and `BULKSMSBD_SENDER_ID`, and redeploy.
-5. Switch SMS to BulkSMSBD in **Settings → Integrations** (next update).
-
-### The e-receipt: Resend
-
-ZALFI sends one email: the receipt, with the invoice PDF attached, when an order is placed.
-
-1. Open an account at [resend.com](https://resend.com).
-2. **Domains → Add Domain**: your domain. Add the DNS records Resend shows at your registrar, and wait until it says **Verified**.
-3. **API Keys → Create** (sending access).
-4. Set the variables:
-
-   | Name | Value |
-   |---|---|
-   | `RESEND_API_KEY` | the key (starts with `re_`) |
-   | `EMAIL_FROM` | the sender, on your verified domain: `ZALFI <receipts@zalfi.com>` |
-
-5. Redeploy, and switch email to Resend in **Settings → Integrations** (next update). Team invitations go out by email from then on too.
-
-### Couriers: Pathao and Steadfast
-
-Use one or both. The default courier is chosen in **Settings → Shipping**, and each order can go with either.
+Use any. The default is chosen in **Settings → Shipping**, and each order can go with any courier that's on. A courier switched off keeps updating the parcels it already has.
 
 **Pathao**
-
-1. Open a merchant account at [merchant.pathao.com](https://merchant.pathao.com) and create a **store** (your pickup address). Note its **store ID**.
-2. Ask Pathao for **API access** (Merchant API). You get a **client ID** and **client secret**, for the sandbox first.
-3. Set the variables:
-
-   | Name | Value |
-   |---|---|
-   | `PATHAO_CLIENT_ID` / `PATHAO_CLIENT_SECRET` | from Pathao |
-   | `PATHAO_USERNAME` / `PATHAO_PASSWORD` | your merchant login |
-   | `PATHAO_STORE_ID` | your store's ID |
-   | `PATHAO_IS_LIVE` | `false` for the sandbox, `true` for real parcels |
-
-4. **Status updates:** in Pathao's panel, set the webhook (callback) URL to `https://your-domain/api/couriers/webhook/pathao`, with a secret you make up. Put that secret in `PATHAO_WEBHOOK_SECRET`. Pathao then shows an **integration secret**: put it in `PATHAO_WEBHOOK_INTEGRATION_SECRET`.
-5. Redeploy. **Settings → Shipping → Couriers** shows Pathao as Sandbox or Live.
+1. Open a merchant account at [merchant.pathao.com](https://merchant.pathao.com) and create a store (your pickup address). Under **Developer's API**, get the **Client ID** and **Client secret**.
+2. In **Integrations → Pathao → Set up**: choose **Sandbox** (or **Fill in Pathao's public sandbox account**). Enter the Client ID, Client secret, and your Pathao login email and password. **Save**, then **Test connection**, and choose your **pickup store** from the list it shows.
+3. **Updates:** in Pathao's panel → Developer's API → Webhook, paste the **address** and **webhook secret** shown on the card, and tick the order events. Pathao then shows an **integration secret**: paste it into its field on the card and save.
+4. Switch it **On**. For live, enter your live keys and choose **Live**.
 
 **Steadfast**
+1. In the Steadfast portal ([portal.packzy.com](https://portal.packzy.com)) → API, generate the **API key** and **Secret key**.
+2. In **Integrations → Steadfast → Set up**: enter both, **Save**, **Test connection** (it reads your balance).
+3. **Updates:** in the portal's webhook settings, paste the **address** and **auth token** shown.
+4. Switch it **On**. Steadfast has no sandbox: a test parcel is real, so cancel it in their portal before pickup.
 
-1. Open a merchant account at [steadfast.com.bd](https://steadfast.com.bd). In the portal, under **API**, generate the **API key** and **secret key**.
-2. Set `STEADFAST_API_KEY` and `STEADFAST_SECRET_KEY`.
-3. **Status updates:** in the portal's webhook settings, set the callback URL to `https://your-domain/api/couriers/webhook/steadfast` and an auth token you make up. Put the token in `STEADFAST_WEBHOOK_TOKEN`.
-4. Redeploy. **Settings → Shipping → Couriers** shows Steadfast as Live. Steadfast has no separate test mode: a test parcel is a real one, so cancel it in their portal before pickup.
+**RedX**
+1. In the RedX merchant panel ([redx.com.bd](https://redx.com.bd)) → Developer API, generate an **API access token**. A sandbox token comes from RedX support.
+2. In **Integrations → RedX → Set up**: choose Sandbox or Live, enter the token, **Save**, **Test connection**, and choose your **pickup store**.
+3. **Updates:** give RedX the whole **address** shown (it carries a token, which is how the site knows the update is from RedX).
+4. Switch it **On**. Sending an order picks the RedX delivery area from the address; you can change it in the send dialog.
 
-Without webhooks, parcels still update: the site asks each courier every 30 minutes, and **Check** on an order asks at once.
+**Other courier or own rider:** for any courier without a connection (Sundarban, Paperfly, your own rider), or when the others are down. It's on by default. See the [admin guide](admin-guide.md#sending-with-another-courier-or-your-own-rider).
+
+Without webhooks, parcels still update: the site asks each connected courier every 30 minutes, and **Check** on an order asks at once.
+
+### Checkout codes: SMS (BulkSMSBD)
+
+Every customer verifies their phone with a 6-digit code before ordering.
+1. Open an account at [bulksmsbd.net](https://bulksmsbd.net), add credit, and have a **sender ID** approved.
+2. In **Integrations → SMS → Set up**: enter the **API key** and **Sender ID**, **Save**, then **Test connection** with your own number: a test SMS arrives.
+3. Switch it **On**. Until it's on, codes are only written to the server's log, so real customers can't check out.
+
+### The e-receipt: email (Resend)
+
+ZALFI sends one email to customers: the receipt, with the invoice PDF attached. Team invitations go by email too.
+1. Open an account at [resend.com](https://resend.com). **Domains → Add Domain**: add the DNS records Resend shows at your registrar, and wait for **Verified**.
+2. **API Keys → Create** (sending access).
+3. In **Integrations → Email → Set up**: enter the key and the **Send from** address on your domain (`ZALFI <receipts@zalfi.com>`). **Save**, then **Test connection**: a test email arrives in your inbox.
+4. Switch it **On**.
 
 ### Photo storage: Vercel Blob
 
-Done in Part 1, step 3. Switch storage to Blob in **Settings → Integrations** (next update) before uploading product photos on the live site.
+Done in Part 1, step 3. Photos go to Blob whenever its token is there, with no switch.
 
 ## Part 4: the go-live checklist
 
@@ -205,11 +197,12 @@ Done in Part 1, step 3. Switch storage to Blob in **Settings → Integrations** 
 - [ ] The database is migrated and seeded, and you can sign in as the owner.
 - [ ] **Store** and **Invoice details** are filled in. **Shipping** fees and Dhaka areas are right.
 - [ ] Real **prices and stock** are set in Products and Inventory.
-- [ ] At least one way to pay works: **SSLCommerz live** (gateway set to SSLCommerz, IPN URL set), or **cash on delivery** switched on.
-- [ ] **SMS** sends real codes (BulkSMSBD, switched on).
-- [ ] **Email** sends the receipt (Resend, domain verified, switched on).
-- [ ] At least one **courier** is live, its webhook set, and chosen as the default.
-- [ ] **Blob** storage is switched on before uploading photos.
+- [ ] At least one way to pay works: **SSLCommerz** or **aamarPay** live (tested, switched on, IPN address set), or **cash on delivery**, or **bKash and Nagad by hand**.
+- [ ] **SMS** sends real codes (Integrations → SMS: tested, on).
+- [ ] **Email** sends the receipt (Integrations → Email: domain verified, tested, on).
+- [ ] At least one **courier** is live, tested, its webhook set, and chosen as the default.
+- [ ] **Integrations** shows no card as **Needs attention**.
+- [ ] **Blob** storage is connected (Part 1, step 3) before uploading photos.
 - [ ] Your **managers** are invited, and **Settings → Permissions** says what they may do (refunds, revenue figures).
 - [ ] One real order end to end: pay, receive the code and the receipt, send it to the courier, see it delivered.
 - [ ] The house pages say what you want (see the [storefront guide](storefront-guide.md)).
@@ -226,13 +219,8 @@ Also listed, with comments, in [`.env.example`](../../.env.example).
 | `BETTER_AUTH_URL` | Rarely | The admin's address, only if it differs from the site's |
 | `CRON_SECRET` | Always | Lets Vercel's background jobs in |
 | `BLOB_READ_WRITE_TOKEN` | For photo uploads (set by the Blob integration) | Vercel Blob |
-| `SSLCOMMERZ_STORE_ID`, `SSLCOMMERZ_STORE_PASSWORD`, `SSLCOMMERZ_IS_LIVE` | For online payment | SSLCommerz |
-| `BULKSMSBD_API_KEY`, `BULKSMSBD_SENDER_ID` | For checkout codes | BulkSMSBD |
-| `RESEND_API_KEY`, `EMAIL_FROM` | For receipts and invitations | Resend |
-| `PATHAO_CLIENT_ID`, `PATHAO_CLIENT_SECRET`, `PATHAO_USERNAME`, `PATHAO_PASSWORD`, `PATHAO_STORE_ID`, `PATHAO_IS_LIVE` | For Pathao | Pathao Merchant API |
-| `PATHAO_WEBHOOK_SECRET`, `PATHAO_WEBHOOK_INTEGRATION_SECRET` | For Pathao updates | Pathao webhook |
-| `STEADFAST_API_KEY`, `STEADFAST_SECRET_KEY` | For Steadfast | Steadfast API |
-| `STEADFAST_WEBHOOK_TOKEN` | For Steadfast updates | Steadfast webhook |
+| `CREDENTIALS_KEY` | Optional | Encrypts the keys saved in Integrations. Without it, a key derived from `BETTER_AUTH_SECRET` is used |
+| `SSLCOMMERZ_*`, `AAMARPAY_*`, `PATHAO_*`, `STEADFAST_*`, `REDX_*`, `BULKSMSBD_*`, `RESEND_API_KEY`, `EMAIL_FROM` | No (set them up in Integrations) | Fallbacks for a site set up before the Integrations page. Keys saved in the admin win. The full list with comments is in `.env.example` |
 | `ALLOW_TEST_PROVIDERS` | Never on the live site | `true` lets the test gateway and courier run on a non-Vercel production build (a staging server) |
 | `NEON_LOCAL_PROXY_PORT`, `ADMIN_OWNER_PASSWORD` | Your computer only | The local database bridge; scripted owner creation |
 
@@ -256,8 +244,14 @@ Add it (Part 1, step 4) and redeploy.
 **I can't sign in to the admin**
 The owner account is created against the online database by `npm run admin` with its `DATABASE_URL` (Part 1, step 5). An account made on your computer only exists on your computer. Reset a password the same way: `DATABASE_URL="…" npm run admin -- reset-password you@example.com`.
 
+**A card in Integrations says "Needs attention"**
+The provider refused a real call (a key changed in its panel, or it was down). The card and the Overview show the provider's own words. Open **Set up**, replace the key, **Test connection**. A gateway that can't open a page is skipped for the other one meanwhile.
+
+**"Saved keys can't be read"**
+`BETTER_AUTH_SECRET` (or `CREDENTIALS_KEY`) changed since the keys were saved. Enter them again in **Set up**.
+
 **Payments stay "waiting" after paying**
-The IPN URL isn't set in SSLCommerz's panel, or `NEXT_PUBLIC_SITE_URL` is wrong. The site also checks open payments every 30 minutes, so they settle eventually. Fix the URL for instant confirmation.
+The IPN address isn't set in SSLCommerz's panel, or `NEXT_PUBLIC_SITE_URL` is wrong. The site also checks open payments every 30 minutes, so they settle eventually. Fix the URL for instant confirmation.
 
 **Courier statuses don't update**
 Check the webhook URL and secret in the courier's panel match `PATHAO_WEBHOOK_SECRET` or `STEADFAST_WEBHOOK_TOKEN`. **Check** on the order asks the courier directly.

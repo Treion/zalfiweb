@@ -144,19 +144,27 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
   - Permissions live in one matrix (`src/server/auth/permissions.ts`).
   - Pages call `requireAdmin(permission)`. Mutations are server actions through `runAction(permission, strictZodSchema, input, fn)`. Route handlers check `getAdmin()` and `can()`.
   - Important actions write `audit()` in the same transaction.
-- **Settings** are typed per section (`src/server/settings/schema.ts`), with defaults for every field. Secrets are environment variables only (`.env.example`).
-- **Every paid integration sits behind an adapter with a local dev or mock provider**, so the whole flow runs without keys.
+- **Settings** are typed per section (`src/server/settings/schema.ts`), with defaults for every field. Provider keys never go in settings.
+- **Integrations** (`src/server/integrations`, Admin → Integrations): every provider is set up there: keys, sandbox or live, an on/off switch, **Test connection**, and its webhook address and secret.
+  - One catalogue (`catalog.ts`) describes each provider's fields, where to find them in its panel, and its environment fallback. Add a provider there first.
+  - Secrets are sealed with AES-256-GCM (`vault.ts`, `CREDENTIALS_KEY` or derived from `BETTER_AUTH_SECRET`). Never return a secret to the browser (`shownValues()` masks it), and never audit a value: only which fields changed.
+  - Read a provider with `getIntegration()`. **configured** (keys present) keeps work already under way going: settling payments, updating parcels. **enabled** (the owner's switch) decides new work. Environment variables are a fallback for sites set up the old way.
+  - A real call that fails goes through `noteFailure()`, which shows on the card and in Overview → Needs attention; `noteWorking()` clears it.
+- **Every paid integration sits behind an adapter with a local dev or mock provider**, so the whole flow runs without keys. Two fallbacks need no provider at all: bKash or Nagad paid by hand (`payments/manual.ts`) and "other courier" (`shipping/manual.ts`).
 - **Checkout** (`src/server/checkout`, `src/server/orders`):
   - Money rules are pure functions in `checkout/pricing.ts` (zone, fee, coupon, totals). The quote and the placed order both go through `checkout/quote.ts`, so they never disagree.
   - The order lifecycle is `orders/state.ts`. Move orders only with `transitionOrder()` (in a transaction), which writes the timeline event and the stock side effects.
   - The e-receipt (React Email) and the invoice PDF (React PDF) both render one `InvoiceData` (`invoice/data.ts`). Change them together.
   - The storefront checkout reuses the site's tokens and type; errors use `text-alert`.
-- **Payments** (`src/server/payments`): one `PaymentProvider` interface (`types.ts`), the test gateway (`mock.ts`, signed notices, off on the live site) and SSLCommerz (`sslcommerz.ts`).
+- **Payments** (`src/server/payments`): one `PaymentProvider` interface (`types.ts`), the test gateway (`mock.ts`, signed notices, off on the live site), SSLCommerz (`sslcommerz.ts`) and aamarPay (`aamarpay.ts`).
+  - `startPayment()` tries the switched-on gateways in the owner's order (`onlineGateways()`, `integrations.gatewayOrder`); one that can't open a page is recorded and the next takes over. Customers see one "Pay online".
   - An order is paid **only** after the provider's validation API matches our transaction ID, amount and currency (`mismatch()`). The IPN and the customer's return both go through `settleNotice()`, which is idempotent.
-  - Failures change state only when the notice is signed. `reconcilePayments()` (cron) asks the provider about attempts still open.
-  - Refunds go through the provider (or are recorded by hand for cash on delivery) in `refunds.ts`. The order's payment status follows the completed refunds.
+  - Failures change state only when the notice is signed, **or the provider's own transaction check confirms it** (aamarPay signs nothing). `reconcilePayments()` (cron) asks the provider about attempts still open.
+  - bKash or Nagad by hand (`manual.ts`): the customer gives the TrxID on the order's page, the team confirms it, and it goes through the same `applyValidation()` as a gateway. `recordPaymentByHand()` does the same for any unpaid order.
+  - Refunds go through SSLCommerz's API, or are recorded (aamarPay's panel, cash on delivery, hand payments: `refundModeOf()`) in `refunds.ts`. The order's payment status follows the completed refunds.
   - Placing an order locks its sizes first (`priceBag(tx, items, true)`), so concurrent checkouts can't deadlock.
-- **Shipping** (`src/server/shipping`): one `CourierProvider` interface (`types.ts`), the test courier (`mock.ts`, signed webhooks, off on the live site), Pathao (`pathao.ts`) and Steadfast (`steadfast.ts`).
+- **Shipping** (`src/server/shipping`): one `CourierProvider` interface (`types.ts`, with the single `COURIER_NAMES` list), the test courier (`mock.ts`, signed webhooks, off on the live site), Pathao (`pathao.ts`), Steadfast (`steadfast.ts`), RedX (`redx.ts`, token in the webhook address) and "other courier" (`manual.ts`, recorded by hand with `recordManualStatus()`).
+  - `courier()` returns a configured courier (for parcels already out); `courierForNew()` only one switched on.
   - Each courier's statuses map to order states in its own `status-*.ts`. `applyCourierStatus()` moves the order along the state machine (`pathTo()`) and ignores repeats and stale updates. Webhooks, the cron poll and the test courier all go through it.
   - `sendToCourier()` sends the cash to collect (`codAmountFor()`: unpaid COD only). Returns go through `recordReturn()` (reason, condition, restock).
   - The label PDF is `label.tsx` (React PDF, the invoice's fonts and logo).

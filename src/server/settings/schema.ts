@@ -98,8 +98,8 @@ export const SETTINGS_SCHEMAS = {
   }),
   /**
    * Providers are set up and switched on in Admin → Integrations (src/server/integrations). This
-   * section keeps only the choices that aren't a provider's own: which online gateway checkout
-   * tries first, and where photos are stored.
+   * section keeps only the choice that isn't a provider's own: which online gateway checkout
+   * tries first. (Photos go to Vercel Blob whenever its token is set.)
    */
   integrations: z.object({
     gatewayOrder: z
@@ -107,7 +107,6 @@ export const SETTINGS_SCHEMAS = {
       .length(2)
       .refine((a) => new Set(a).size === 2, "Each gateway once")
       .default(["sslcommerz", "aamarpay"]),
-    storage: z.enum(["local", "blob"]).default("local"),
   }),
 };
 

@@ -5,7 +5,7 @@ import { env } from "@/lib/env";
 /**
  * Where uploaded files (product photos, bottle maps) live, behind one interface:
  *  - local (default): .data/uploads on this machine, served at /media/… (development)
- *  - blob: Vercel Blob, used when BLOB_READ_WRITE_TOKEN is set and Settings → Integrations picks it
+ *  - blob: Vercel Blob, used whenever BLOB_READ_WRITE_TOKEN is set (Vercel adds it with its Blob storage)
  * Keys always contain a content hash, so a URL never changes meaning and can be cached forever.
  */
 export interface StorageProvider {
@@ -64,7 +64,11 @@ function blobStorage(token: string): StorageProvider {
   };
 }
 
-export function storageProvider(selected: "local" | "blob"): StorageProvider {
+/**
+ * Vercel Blob whenever its token is there (Vercel's Blob integration adds it), else local files.
+ * No switch: a deployed site can't keep local files, and a computer has no Blob token.
+ */
+export function storageProvider(): StorageProvider {
   const token = env("BLOB_READ_WRITE_TOKEN");
-  return selected === "blob" && token ? blobStorage(token) : localStorage;
+  return token ? blobStorage(token) : localStorage;
 }

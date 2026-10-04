@@ -46,7 +46,7 @@ Judgement calls made while building the backend and admin, newest last. Each one
 25. **List pages keep their state in the URL** (search, filters, sort, page), and the server renders that page. Column visibility is remembered per table in the browser. Below `md`, rows become stacked cards.
 26. **CSV exports** are route handlers that check the permission, prefix any cell starting with `= + - @` with an apostrophe (spreadsheet formula injection), add a UTF-8 BOM for Excel, and write an `export.*` audit row.
 27. **Settings** are one JSON row per section, each validated by its own Zod schema with a default for every field. A section never saved reads as its defaults; a stored field that no longer validates falls back to its default, and the rest is kept.
-28. **Email in development** goes to the console and to `.data/outbox` (git-ignored). Resend is used only when `RESEND_API_KEY` is set *and* Settings → Integrations selects it.
+28. **Email in development** goes to the console and to `.data/outbox` (git-ignored). Resend is used only when it is set up and switched on in Admin → Integrations (see 111).
 29. **The demo seed** (`npm run db:seed:demo`) refuses `NODE_ENV`/`VERCEL_ENV=production` and any non-local database unless `--allow-remote` is passed. Its records are tagged (`demo-` idempotency keys, `@demo.zalfi.test` emails, `[demo]` coupons), so `--clear` removes exactly them and puts stock back to the ledger sum.
 30. **The admin icon** is `public/admin-icon.svg`, a copy of the storefront icon, because files inside a route group get hashed URLs.
 31. **Lighthouse** is measured on an idle machine. With the dev server compiling in parallel, total blocking time rose to 280 ms and performance read 88; on an idle machine the home page scores 100/100/100/100 (LCP 0.8s, CLS 0), as before.
@@ -124,7 +124,7 @@ Judgement calls made while building the backend and admin, newest last. Each one
     - Cash-on-delivery orders are refunded by hand (cash or a mobile transfer) and recorded, once delivered.
     - The order's payment status follows the completed refunds: partly refunded, then refunded.
 76. **The Payments page** lists every online attempt, paid or not, with totals for the current filters: collected, refunded, net, paid and failed. Money figures follow the "managers see revenue" toggle.
-77. **The gateway** is chosen in Settings → Payments, by the owner only. The keys stay in the environment. SSLCommerz selected without keys falls back to the test gateway in development, and turns online payment off on the live site.
+77. **The gateway** was chosen in Settings → Payments, by the owner only, with the keys in the environment. Superseded by 111 and 112: gateways are set up and ordered in Admin → Integrations.
 78. **Placing an order locks its sizes first.** Inserting order lines takes a key-share lock on each size. Two checkouts that both did that, then locked the size to change its stock, could deadlock. The database test caught it when the timing shifted. The sizes are now locked up front, in id order.
 79. **The demo seed no longer writes payment rows for cash on delivery.** The shop never creates them (delivery marks the order paid). Rows from older seeds are ignored when working out refunds.
 80. **Cron frequency.** The jobs run every 10 and every 30 minutes. Vercel's free (Hobby) plan limits cron jobs (at the time of writing, to once a day), so check the plan before going live: Pro runs these schedules as written. With fewer runs, unpaid orders still stop holding stock on time (availability ignores lapsed holds). Only the tidying, the missed-notice checks and the refund status checks wait longer.
@@ -222,3 +222,37 @@ Judgement calls made while building the backend and admin, newest last. Each one
 108. **The bottle in a chapter opens its page.** Pointing at it lifts it a touch (as in the line-up) and the cursor reads "Discover". Keyboard users get the same lift from the Discover link. The halo behind each bottle is softened towards the world's ink, so no world glows louder than another.
 109. **Line-up hover follows the bottle, not its photo's margins.** A trimmed photo overflows its slot with transparent space, which used to catch the pointer beside the bottle and fill the room.
 110. **The fonts are self-hosted.** `next/font/google` downloaded Bodoni Moda and Hanken Grotesk from Google on every build and dev start, and a network that couldn't reach `fonts.gstatic.com` stopped the build ("Can't resolve '@vercel/turbopack-next/internal/font/google/font'"). The same variable Latin files now live in `src/app/fonts` (SIL OFL) and load with `next/font/local` (`src/app/fonts.ts`), so the site looks the same and builds offline.
+
+## Integrations in the admin (owner's request)
+
+111. **Provider keys are entered in the admin**, not only in environment variables. The owner asked for no manual work: set up, rotate and switch each provider from **Admin → Integrations**. This changes the spec's "secrets live in environment variables only" (backend spec, Integrations status page) at the owner's request; the spec is kept as written.
+    - Keys are sealed with AES-256-GCM in the `integrations` table. The key is `CREDENTIALS_KEY` if set, otherwise derived (HKDF) from `BETTER_AUTH_SECRET`, so nothing new has to be configured. Changing that secret makes the saved keys unreadable, and the page asks for them again.
+    - A secret is write-only: the page shows its last four characters, and it never reaches the browser. The audit log records which fields changed, never their values.
+    - Only the owner (`integrations.manage`) can change them; managers can see the statuses.
+    - Environment variables still work as a fallback, so a site set up the old way keeps running. The first save copies them into the admin, so a key entered alone never leaves the provider half set up.
+    - Readers cache a provider's set-up for 15 seconds per server instance. A change shows at once on the instance that saved it, and within 15 seconds elsewhere.
+112. **Configured is kept apart from enabled.** A provider switched off takes no new payments or parcels, but payments already under way still settle, reconcile and refund, and parcels already out keep updating (webhooks, polls, labels).
+113. **Two gateways, one button.** With SSLCommerz and aamarPay both on, checkout shows a single **Pay online**. It tries the owner's first choice; if that can't open a payment page, the attempt is recorded as failed and the other opens instead, and the timeline says which took over. The failing gateway shows **Needs attention** in Integrations and on the Overview.
+114. **aamarPay** follows its documented API: the JSON session at `jsonpost.php`, and the transaction check at `api/v1/trxcheck/request.php`.
+    - Its callbacks carry no signature, so none is trusted alone. A payment is paid only when the transaction check says **Successful** for our transaction ID, amount and currency.
+    - The rule for failures becomes "signed, *or confirmed by the provider's own check*": an unsigned "failed" or "cancelled" changes nothing until the check agrees. This applies to every gateway.
+    - aamarPay's cancel address receives no fields, so our return addresses carry the transaction ID (`?tran=`); the provider's check still decides.
+    - aamarPay has no public refund API: its refunds are made in its merchant panel and recorded (`providerRef: "panel"`).
+    - The doc site and sandbox couldn't be reached from the build environment. The code is tested against the documented shapes, and **Test connection** is the first live check.
+115. **RedX** follows its open API (v1.0.0-beta): areas by district, pickup stores, parcel create/info, and cancel through `PATCH /parcels`.
+    - Its webhooks aren't signed, so the callback address carries a token we generate (`?token=`), compared in constant time. As with the others, the parcel's status is re-read from RedX's API.
+    - The delivery area is matched from the address (district, then area) and can be changed in the send dialog.
+    - RedX's own docs couldn't be reached from the build environment either; the same caveat as 114.
+116. **Webhook secrets are ours.** Pathao's webhook secret, Steadfast's bearer token and RedX's URL token are generated by the site, shown on the card with **Copy**, and can be replaced. Pathao's own integration secret (which it shows when the webhook is added) is a saved field. Pathao's signature is now compared in constant time, and its sign-in token is re-issued when its password or secret changes.
+117. **bKash and Nagad by hand** (the owner chose these two).
+    - The customer places the order, sends the total to the shop's number with the order number as reference, then gives the sender number and the TrxID on the order's page.
+    - The bottles are held for `payments.manual.holdHours` (24 by default). Once a TrxID is in, the order doesn't lapse while the team checks: its reservations are extended (14 days) and it waits.
+    - The team confirms it (the same code as a validated gateway payment: stock sold, order confirmed, receipt) or says it wasn't found (the customer can send it again; the hold restarts).
+    - A TrxID is unique across all payments (`BKASH-…`, `NAGAD-…` transaction IDs), so it can't pay twice.
+    - The confirmed amount must equal the order total; a different amount means talking to the customer first.
+118. **Record payment by hand** works on any unpaid order (a gateway outage, a phone order, a bank transfer), through the same confirmation code. A cash-on-delivery order paid that way isn't counted twice when it is delivered. Refunds of hand payments are recorded by hand.
+119. **Other courier** (`courier: "manual"`): any courier without a connection, or the team's own rider.
+    - The team types its name, tracking number and link, then records each step from the order page through the same status code the connected couriers use. Steps are audited with who recorded them.
+    - The customer's tracking button opens the saved link. It's on by default (`shipping.manualCourierEnabled`).
+120. **SMS and email moved onto the same page** (owner's choice), each with a test send to the owner. **Photo storage needs no switch:** Vercel Blob whenever its token is set, local files otherwise. The old `integrations.payments/sms/email/storage` settings are gone; `integrations.gatewayOrder` remains.
+
