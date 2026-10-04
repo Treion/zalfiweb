@@ -7,10 +7,11 @@ import { memo, type CSSProperties } from "react";
 import { EASE as GSAP_EASE, type gsap } from "@/components/motion/gsap";
 import { SplitWords } from "@/components/motion/SplitWords";
 import { useCart } from "@/components/cart/cart-store";
-import { BottleImage } from "@/components/media/BottleImage";
+import { BottleImage, bottleAspect } from "@/components/media/BottleImage";
 import { NoteImage } from "@/components/media/NoteImage";
 import { EXP, chapterStart } from "@/components/stage/config";
 import { StageAnchor } from "@/components/stage/StageAnchor";
+import { stageState } from "@/components/stage/stage-state";
 import {
   NOTE_LAYERS,
   notesByLayer,
@@ -62,6 +63,14 @@ function useAddToBag(f: Fragrance) {
     });
 }
 
+/** The chapter's bottle lifts a touch while it's pointed at (the stage reads chapterHover) */
+const liftBottle = (i: number) => {
+  stageState.chapterHover = i;
+};
+const settleBottle = (i: number) => {
+  if (stageState.chapterHover === i) stageState.chapterHover = -1;
+};
+
 function MotionChapter({ fragrance: f, index, noteAvail, mounted }: Props) {
   const addToBag = useAddToBag(f);
   const from = f.variants[0];
@@ -77,16 +86,29 @@ function MotionChapter({ fragrance: f, index, noteAvail, mounted }: Props) {
           and the visible fallback until the stage has painted */}
       <div
         data-a="text"
-        className="absolute top-[calc(43%-18svh)] left-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap md:top-[calc(48%-33svh)]"
+        className="absolute top-[calc(43%-18svh)] left-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap md:top-[calc(52%-30svh)]"
       >
         <h2
           id={`ch-${f.slug}`}
           data-a="name"
-          className="chapter-name font-display text-[19vw] leading-none md:text-[min(14.4vw,24.5svh)]"
+          className="chapter-name font-display text-[19vw] leading-none md:text-[min(14.4vw,22.2svh)]"
         >
           <SplitWords text={f.name} />
         </h2>
       </div>
+
+      {/* The bottle opens its page. The stage draws it at the experience anchor; this is the same
+          box, for the pointer (keyboard users have Discover, which lifts the bottle the same way) */}
+      <Link
+        href={`/fragrances/${f.slug}`}
+        aria-hidden
+        tabIndex={-1}
+        data-cursor="Discover"
+        onPointerEnter={(e) => e.pointerType !== "touch" && liftBottle(index)}
+        onPointerLeave={() => settleBottle(index)}
+        className="pointer-events-auto absolute top-[43%] left-1/2 h-[34svh] -translate-x-1/2 -translate-y-1/2 md:top-[52%] md:h-[56svh]"
+        style={{ aspectRatio: bottleAspect(f) }}
+      />
 
       {/* Floating notes */}
       <div className="absolute inset-0">
@@ -135,6 +157,10 @@ function MotionChapter({ fragrance: f, index, noteAvail, mounted }: Props) {
             <Link
               href={`/fragrances/${f.slug}`}
               data-cursor="Discover"
+              onPointerEnter={() => liftBottle(index)}
+              onPointerLeave={() => settleBottle(index)}
+              onFocus={() => liftBottle(index)}
+              onBlur={() => settleBottle(index)}
               className="eyebrow border-b border-current pb-1"
             >
               Discover {f.name}

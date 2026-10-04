@@ -9,6 +9,8 @@ export const stageState = {
   k: 1,
   /** Line-up slot index under the pointer / focus, or -1 */
   collectionHover: -1,
+  /** Chapter whose bottle is under the pointer (or whose Discover link has focus), or -1 */
+  chapterHover: -1,
   /** Product page: rotation (radians) the visitor has dragged the 3D bottle to */
   spin: 0,
   /** Ready flags set by the stage as textures load */

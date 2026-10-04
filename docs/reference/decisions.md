@@ -197,3 +197,27 @@ Judgement calls made while building the backend and admin, newest last. Each one
     - fragrances by name, slug or SKU.
     Each group appears only to those who may open it. A phone matches however it's typed (`+880 1712-345678`, `01712345678`, `1712345678`), and an exact order number comes first. Enter with nothing chosen opens the full results page.
 104. **The orders list gains a courier filter** (Pathao, Steadfast, test courier, not with a courier), as the spec asks.
+
+## Storefront changes after phase 7 (owner's requests)
+
+105. **The six worlds are one family of deep dusks.** Reva, Riven, Maree and Solea were near-white rooms with dark ink, and Bond and Oudor were dark rooms with light ink. Scrolling through the line-up and the chapters went dark, bright, then dark again, the text flipped colour, and the crossfades passed through grey. Each world now keeps its hue at Bond and Oudor's lightness (OKLCH L ≈ 0.275), with light ink:
+
+    | | Background | Deep | Accent | Ink | Contrast |
+    |---|---|---|---|---|---|
+    | Reva | `#2C213C` | `#160F22` | `#AEDDCB` | `#EDE9F6` | 12.7:1 |
+    | Riven | `#102E22` | `#041811` | `#C8DE63` | `#E2F1E8` | 12.5:1 |
+    | Maree | `#112C34` | `#04171D` | `#9DC9BC` | `#F1EDE2` | 12.5:1 |
+    | Solea | `#3A2511` | `#211003` | `#E9BE57` | `#F6EBD8` | 12.3:1 |
+
+    - Bond and Oudor are unchanged.
+    - Migration `0006` changes a palette only if it still holds its launch colours, so a world recoloured in the admin keeps the owner's choice. The old colours are listed in `docs/reference/storefront-plan.md` and can be put back in **Products → World and cap**.
+    - Product pages, the finder, the share images and the static layout follow, since they read the same palette.
+106. **Chapters are 240 vh long** (from 260), and the hand-over between two worlds is a dissolve:
+    - the outgoing words and name leave first;
+    - its bottle lifts 6% of the screen and is gone just before the next appears;
+    - the room washes to the next world;
+    - the next bottle rises 10% into place, then its name and words follow.
+    Bottles used to cross mid-screen at half opacity, which read as a ghost of one bottle over another.
+107. **The chapter bottle sits a little lower and smaller** (52% down, 56% of the screen high, from 48% and 62%), so the name above it clears the nav on a 1440 × 900 screen.
+108. **The bottle in a chapter opens its page.** Pointing at it lifts it a touch (as in the line-up) and the cursor reads "Discover". Keyboard users get the same lift from the Discover link. The halo behind each bottle is softened towards the world's ink, so no world glows louder than another.
+109. **Line-up hover follows the bottle, not its photo's margins.** A trimmed photo overflows its slot with transparent space, which used to catch the pointer beside the bottle and fill the room.

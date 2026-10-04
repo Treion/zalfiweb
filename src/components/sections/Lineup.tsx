@@ -145,7 +145,9 @@ function LineupItem({ fragrance: f, index }: { fragrance: Fragrance; index: numb
           className="relative mx-auto w-[68%] md:w-[80%]"
           style={{ aspectRatio: bottleAspect(f) }}
         >
-          <div data-stage-fallback={f.slug} className="absolute inset-0">
+          {/* The trimmed photo's transparent margins overflow the slot: only the slot takes the
+              pointer, so the room fills only when the bottle itself is hovered */}
+          <div data-stage-fallback={f.slug} className="pointer-events-none absolute inset-0">
             <motion.div
               className="absolute inset-0"
               animate={{ y: active ? -10 : 0 }}

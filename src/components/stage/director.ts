@@ -774,7 +774,7 @@ export class StageDirector {
         // Reva steps forward: from its place in the line-up into its world
         if (L.handoff <= 0) return { p: line, rect: exp, floor: false };
         rig.spin = damp(rig.spin, chapterSpin, 4, f.dt);
-        const world = this.fit(rig, exp, bottlePose(f.s, i, f.k, f.vw, f.vh));
+        const world = this.fit(rig, exp, bottlePose(f.s, i, f.k, f.vh));
         return { p: mixPlacement(line, world, L.handoff), rect: exp, floor: L.handoff > 0.5 };
       }
       // The others sink a little and dissolve; each returns in its own chapter
@@ -785,9 +785,18 @@ export class StageDirector {
       };
     }
 
-    rig.lift = damp(rig.lift, 0, 4, f.dt);
+    // Hovering the bottle in its chapter (or focusing Discover) lifts it a touch, as in the line-up
+    rig.lift = damp(rig.lift, stageState.chapterHover === i ? 1 : 0, 4, f.dt);
     rig.spin = chapterSpin;
-    return { p: this.fit(rig, exp, bottlePose(f.s, i, f.k, f.vw, f.vh)), rect: exp, floor: true };
+    const pose = bottlePose(f.s, i, f.k, f.vh);
+    const lifted: Pose = {
+      ...pose,
+      dy: pose.dy + rig.lift * exp.h * 0.025,
+      rotY: pose.rotY + rig.lift * 3 * DEG,
+      scale: pose.scale * (1 + rig.lift * 0.015),
+      grounded: pose.grounded * (1 - rig.lift * 0.4),
+    };
+    return { p: this.fit(rig, exp, lifted), rect: exp, floor: true };
   }
 
   /** Fits the photo inside an anchor (object-contain, never distorted) at a pose. */
@@ -850,7 +859,8 @@ export class StageDirector {
     rig.glow.position.set(p.cx, p.cy + ph * 0.04, -ph * 0.6);
     if (!rig.model) rig.glow.scale.set(pw * 2.4, ph * 1.45, 1);
     const glowU = rig.glow.material.uniforms;
-    glowU.uColor.value.copy(cur.accent).lerp(WHITE, 0.25);
+    // The halo takes the world's accent, softened towards its ink, so no world glows louder than another
+    glowU.uColor.value.copy(cur.accent).lerp(cur.ink, 0.4);
     glowU.uOpacity.value = p.opacity * p.glow * (0.03 + darkWorld * 0.12);
     rig.glow.visible = p.glow > 0.001;
 

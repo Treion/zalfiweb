@@ -11,29 +11,37 @@ export const EXP = {
   /** The six bottles lined up, then Reva steps forward into its world */
   lineup: 110,
   /**
-   * Each chapter's length. It was 360; at 260 the worlds come round sooner, and every step inside
-   * a chapter is scaled with it, so the pace stays even and the scrub as soft.
+   * Each chapter's length (it was 360, then 260). Every step inside a chapter is spaced to it, so
+   * the pace stays even and the scrub as soft.
    */
-  chapter: 260,
+  chapter: 240,
   outro: 80,
   /** Offsets within a chapter, relative to its start (may be negative = overlaps the previous one) */
   ch: {
-    // Bottles hand over in sequence with a short crossfade: the outgoing one lifts away and
-    // dissolves as the incoming one rises, while the world washes slowly from one to the next.
-    enter: [-14, 51],
-    world: [-32, 32],
-    masthead: [11, 61],
+    // The hand-over between two worlds, all within ~40vh around the chapter's start:
+    //  - the outgoing chapter's words and name leave first (textOut, mastheadOut, of the last one)
+    //  - its bottle lifts a little and dissolves (exit), gone just before the next one shows
+    //  - the room washes from one world to the next (world), both in the same deep tone
+    //  - the incoming bottle rises gently into the light (enter), then its name and words
+    // The bottles never overlap, so there is no ghost of one over the other.
+    enter: [-12, 40],
+    world: [-30, 14],
+    masthead: [10, 50],
     // The chapter's layer fades in from here
-    open: [4, 40],
-    tagline: [25, 69],
-    top: [54, 94],
-    heart: [105, 144],
-    base: [155, 195],
+    open: [2, 30],
+    tagline: [20, 56],
+    top: [44, 80],
+    heart: [88, 122],
+    base: [132, 166],
     // Discover + Add to bag are there from the start of the chapter, until it leaves
-    cta: [18, 54],
-    mastheadOut: [213, 246],
-    textOut: [217, 249],
-    exit: [217, 260],
+    cta: [16, 46],
+    mastheadOut: [194, 222],
+    textOut: [196, 224],
+    exit: [200, 240],
+    // The bottles' own fades within exit and enter: the outgoing one is gone (230 = 10 before the
+    // next chapter starts) just before the incoming one begins to show (-8)
+    exitFade: [208, 230],
+    enterFade: [-8, 18],
   },
   /** The landing logo leaving (absolute, from the top of the page) */
   intro_: {

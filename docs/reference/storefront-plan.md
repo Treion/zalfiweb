@@ -110,6 +110,8 @@ Placeholder prices (USD, editable in the `variants` table):
 
 ## 4. The six worlds
 
+> These are the launch palettes. Reva, Riven, Maree and Solea have since moved to deep dusk tones, so every world shares one lightness (see `decisions.md`, 105). The light versions are kept here in case the owner wants one back.
+
 | Fragrance | Cap | Mood | Palette (bg → deep → accent → ink) | One-liner (draft) |
 |---|---|---|---|---|
 | **Reva** | silver, ribbed | Frosted fougère | `#DCD8E8` → `#5E6B4A` → `#CFE3D8` → `#1F2420` | *Cold fruit and wild mint, laid over warm earth.* |

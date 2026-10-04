@@ -166,6 +166,8 @@ export function Experience({ fragrances, noteAvail }: Props) {
             if (c !== last) {
               last = c;
               setActive(c);
+              // A bottle lifted by the pointer settles when its chapter moves on
+              stageState.chapterHover = -1;
             }
             const open = lineupOpen(stageState.s, k) >= 0.5;
             // Scrolling away from the line-up takes its hover world with it
@@ -266,6 +268,7 @@ export function Experience({ fragrances, noteAvail }: Props) {
         cancelAnimationFrame(skip);
         mm.revert();
         setNavSection(null);
+        stageState.chapterHover = -1;
       };
     },
     { scope: root, dependencies: [reduced] },
@@ -295,7 +298,7 @@ export function Experience({ fragrances, noteAvail }: Props) {
         {/* Where each chapter's bottle stands on the stage */}
         <StageAnchor
           kind="experience"
-          className="static:hidden pointer-events-none absolute top-[43%] left-1/2 h-[34svh] -translate-x-1/2 -translate-y-1/2 md:top-[48%] md:h-[62svh]"
+          className="static:hidden pointer-events-none absolute top-[43%] left-1/2 h-[34svh] -translate-x-1/2 -translate-y-1/2 md:top-[52%] md:h-[56svh]"
           style={{ aspectRatio: bottleAspect(first) }}
         />
 

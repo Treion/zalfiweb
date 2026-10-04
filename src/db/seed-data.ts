@@ -119,7 +119,7 @@ export const FRAGRANCES: Fragrance[] = [
     "reva",
     "Reva",
     "silver",
-    { bg: "#DCD8E8", deep: "#5E6B4A", accent: "#CFE3D8", ink: "#1F2420" },
+    { bg: "#2C213C", deep: "#160F22", accent: "#AEDDCB", ink: "#EDE9F6" },
     {
       tagline: "Cold fruit and wild mint, laid over warm earth.",
       story:
@@ -154,7 +154,7 @@ export const FRAGRANCES: Fragrance[] = [
     "riven",
     "Riven",
     "gunmetal",
-    { bg: "#E3EEE9", deep: "#1E2B24", accent: "#C7D95A", ink: "#12201A" },
+    { bg: "#102E22", deep: "#041811", accent: "#C8DE63", ink: "#E2F1E8" },
     {
       tagline: "A green so cold it rings like glass.",
       story:
@@ -189,7 +189,7 @@ export const FRAGRANCES: Fragrance[] = [
     "maree",
     "Maree",
     "gold",
-    { bg: "#F1EEE6", deep: "#22302C", accent: "#9DB8AE", ink: "#1A2220" },
+    { bg: "#112C34", deep: "#04171D", accent: "#9DC9BC", ink: "#F1EDE2" },
     {
       tagline: "White flowers at low tide, cedar still warm from the sun.",
       story:
@@ -227,7 +227,7 @@ export const FRAGRANCES: Fragrance[] = [
     "solea",
     "Solea",
     "chrome",
-    { bg: "#F4EAD8", deep: "#5A3A22", accent: "#E3B64B", ink: "#2B1D12" },
+    { bg: "#3A2511", deep: "#211003", accent: "#E9BE57", ink: "#F6EBD8" },
     {
       tagline: "Skin, sun, and a slow vanilla afternoon.",
       story:

@@ -34,53 +34,47 @@ const DEG = Math.PI / 180;
 /**
  * Pose of fragrance i's bottle in its chapter of the home experience, at scroll position s (vh
  * units). Reva (i = 0) has no entrance of its own: it glides in from the line-up (lineupState).
+ *
+ * The hand-over is a dissolve, never a crossing: the outgoing bottle lifts a little and is gone
+ * before the incoming one shows, rising gently into the same place. Small, vertical moves only.
  */
-export function bottlePose(s: number, i: number, k: number, vw: number, vh: number): Pose {
-  const exitRange = chRange(i, EXP.ch.exit, k);
-  const xp = prog(s, ...exitRange);
+export function bottlePose(s: number, i: number, k: number, vh: number): Pose {
+  const C = EXP.ch;
+  const xp = prog(s, ...chRange(i, C.exit, k));
   const x = easeInOutSine(xp);
-  // Exit: lifts a little and dissolves before the next bottle settles. No swoop.
-  const exitDx = -x * vw * 0.03;
-  const exitDy = x * vh * 0.35;
-  const exitRotZ = -x * 1.5 * DEG;
-  const exitRotY = x * 6 * DEG;
+  const fadeOut = 1 - smooth(prog(s, ...chRange(i, C.exitFade, k)));
+  const exitDy = x * vh * 0.06;
+  const exitRotY = x * 4 * DEG;
   const chapterP = prog(s, ...chRange(i, [0, EXP.chapter], k));
-  const breathe = 1 + Math.sin(chapterP * Math.PI) * 0.018;
-  const fadeOut = 1 - smooth(prog(xp, 0.35, 1));
+  const breathe = 1 + Math.sin(chapterP * Math.PI) * 0.015;
 
   if (i === 0) {
-    if (xp >= 1) return HIDDEN;
+    if (fadeOut <= 0) return HIDDEN;
     return {
-      dx: exitDx,
+      dx: 0,
       dy: exitDy,
-      rotZ: exitRotZ,
+      rotZ: 0,
       rotY: exitRotY,
-      scale: breathe,
+      scale: breathe * (1 - x * 0.02),
       opacity: fadeOut,
-      grounded: 1 - Math.min(1, xp * 3),
+      grounded: 1 - Math.min(1, xp * 2.5),
     };
   }
 
-  const riseRange = chRange(i, EXP.ch.enter, k);
-  const e = easeOutCubic(prog(s, ...riseRange));
-  if (e <= 0 || xp >= 1) return HIDDEN;
+  const e = easeOutCubic(prog(s, ...chRange(i, C.enter, k)));
+  const fadeIn = smooth(prog(s, ...chRange(i, C.enterFade, k)));
+  if (fadeIn <= 0 || fadeOut <= 0) return HIDDEN;
 
+  // Enter: rises a little from below, barely turning
   const inv = 1 - e;
-  // Enter: rises gently from just below, barely turning
-  const enterDx = inv * vw * 0.04;
-  const enterDy = -inv * vh * 0.4;
-  const enterRotZ = inv * 2 * DEG;
-  const enterRotY = -inv * 8 * DEG;
-
-  const [rs, riseEnd] = riseRange;
   return {
-    dx: enterDx + exitDx,
-    dy: enterDy + exitDy,
-    rotZ: enterRotZ + exitRotZ,
-    rotY: enterRotY + exitRotY,
-    scale: (0.94 + 0.06 * e) * breathe,
-    opacity: smooth(prog(s, rs, rs + (riseEnd - rs) * 0.55)) * fadeOut,
-    grounded: e * (1 - Math.min(1, xp * 3)),
+    dx: 0,
+    dy: -inv * vh * 0.1 + exitDy,
+    rotZ: 0,
+    rotY: -inv * 5 * DEG + exitRotY,
+    scale: (0.96 + 0.04 * e) * breathe * (1 - x * 0.02),
+    opacity: fadeIn * fadeOut,
+    grounded: e * (1 - Math.min(1, xp * 2.5)),
   };
 }
 

@@ -91,7 +91,7 @@ function Scene({
       let visible = false;
       // A cheap fingerprint of everything the frame depends on
       let sig = vw * 7 + vh * 13 + stageState.s * 17 + stageState.k * 19;
-      sig += stageState.collectionHover * 23 + stageState.spin * 29;
+      sig += stageState.collectionHover * 23 + stageState.chapterHover * 31 + stageState.spin * 29;
       let n = 0;
       for (const a of anchors.values()) {
         const r = a.el.getBoundingClientRect();

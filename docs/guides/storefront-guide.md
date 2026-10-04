@@ -16,7 +16,7 @@ What customers see, how they buy, and where each piece of the shop is changed: i
 
 1. **The logo:** the ZALFI emblem and wordmark alone in the dark. They assemble once on arrival, then stay still.
 2. **The line-up:** scroll, and the logo sinks back as the six bottles rise into a row, each with its name, price and **Add**. Hovering a bottle fills the room with its world's colours.
-3. **The chapters:** scrolling on, Reva steps forward into its world, then each fragrance follows. Each chapter has its name above the bottle, a tagline, its top, heart and base notes, and **Discover** and **Add to bag**. The bottle is the real photograph, relit live (WebGL).
+3. **The chapters:** scrolling on, Reva steps forward into its world, then each fragrance follows. Each chapter has its name above the bottle, a tagline, its top, heart and base notes, and **Discover** and **Add to bag**. The bottle is the real photograph, relit live (WebGL). Pointing at it lifts it a touch, and clicking it opens its page. Every world is a deep dusk in its own colour, so the text stays light from the first chapter to the last.
 4. **The index** on the right (on a computer) lists the chapters. Click one to jump straight there: the screen washes to that world's colour, rather than scrolling through the others. The logo and **Fragrances** in the top bar jump the same way.
 5. The story, and the footer with the house pages, contact details and socials.
 

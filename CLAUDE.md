@@ -49,12 +49,14 @@ The build plan lives in `docs/reference/storefront-plan.md`, and the note photo 
 
 Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` / the DB. Components read the CSS variables `--world-bg|deep|accent|ink` (Tailwind: `bg-world-bg`, `text-world-ink`, …), set on a wrapper. **Never hard-code a world colour inside a component.** `ink` on `bg` must pass WCAG AA (all six currently pass AAA).
 
+**The worlds are one tonal family:** each is a deep dusk in its own hue, at about the same lightness (OKLCH L ≈ 0.275, like Bond and Oudor), with light ink. Scrolling through them never flashes from a light room to a dark one, the text never flips colour, and a crossfade between two worlds stays dark. A new or recoloured world should keep to that band. The hue carries the identity, and `accent` the bright note.
+
 | Fragrance | World |
 |---|---|
-| Reva | Frosted fougère: lavender haze, moss, frost mint |
-| Riven | Cool greens, glassy light, lime |
-| Maree | Seaside garden at dusk: ivory, sea glass, cedar |
-| Solea | Warm sand and cream, vanilla, pineapple gold |
+| Reva | Frosted fougère at dusk: deep lavender, frost mint |
+| Riven | Bottle-green glass, lime |
+| Maree | The sea at dusk: deep teal, sea glass, ivory |
+| Solea | Warm umber sand, cream, pineapple gold |
 | Bond | Tailored: graphite, iris ash, dark wood |
 | Oudor | Deep burgundy, smoke, saffron gold |
 
@@ -67,7 +69,8 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
   - **The light is still.** Nothing on the stage runs on a clock or follows the pointer: no light rays, caustics, sweeps, pointer tilt, pointer parallax or idle spins.
   - Things move only with scroll, hover or focus, drag, and navigation.
   - With no input, consecutive frames are pixel-identical. Check this with Playwright (see the calm check in Workflow).
-  - Keep scrubbed distances small: notes rise ≤ 14%, bottles travel ≤ 0.4vh with ≤ 8° of turn.
+  - Keep scrubbed distances small: notes rise ≤ 14%; in chapters, bottles rise or lift ≤ 10% of the screen height with ≤ 5° of turn.
+  - Bottles hand over as a dissolve, never a crossing: the outgoing one is gone (`ch.exitFade`) before the incoming one shows (`ch.enterFade`), so two bottles never overlap.
 - On SVG, never tween `xPercent`/`yPercent` on an element that another tween also transforms. GSAP folds SVG percentages into px when it re-reads the matrix (on ScrollTrigger refresh), so split the tweens across nested elements (see the intro logo).
 - Always clean up: use `useGSAP` with a scope ref.
 - `prefers-reduced-motion`: no pinning, no scrub, no canvas, no Lenis, no cursor. Show a complete static editorial layout. That layout is chosen by CSS (the `static:` variant), so SSR and hydration always agree. `useReducedMotion()` returns `true` on the server, so no animation code runs before the client has checked.
