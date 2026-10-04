@@ -29,7 +29,8 @@
     "admin": "tsx scripts/admin.ts",
     "admin:create-owner": "tsx scripts/admin.ts create",
     "dev:next": "next dev",
-    "test:db": "tsx scripts/db/with-db.ts vitest run --config vitest.db.config.mts"
+    "test:db": "tsx scripts/db/with-db.ts vitest run --config vitest.db.config.mts",
+    "test:e2e": "tsx scripts/db/with-db.ts playwright test"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
@@ -71,6 +72,7 @@
     "@gltf-transform/core": "^4.5.0",
     "@gltf-transform/extensions": "^4.5.0",
     "@gltf-transform/functions": "^4.5.0",
+    "@playwright/test": "1.56.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^22.20.5",
     "@types/nodemailer": "^8.0.2",

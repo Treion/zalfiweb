@@ -2,6 +2,7 @@
 
 This guide puts the shop and the admin on the internet, step by step, then switches each real service on (payments, SMS, email, couriers) from the admin's Integrations page. It's written so you can follow it without being a developer. Where you need to type a command, it's given in full.
 
+- [Have these ready](#have-these-ready)
 - [What you'll need](#what-youll-need)
 - [Part 1: the site online](#part-1-the-site-online) (about 30 minutes)
 - [Part 2: try it on a preview site](#part-2-try-it-on-a-preview-site)
@@ -10,6 +11,22 @@ This guide puts the shop and the admin on the internet, step by step, then switc
 - [Every environment variable](#every-environment-variable)
 - [Updating the site later](#updating-the-site-later)
 - [When something goes wrong](#when-something-goes-wrong)
+
+## Have these ready
+
+Everything the live shop needs, and where each one goes. Only the first four are typed into Vercel; everything else is entered in the admin (**Integrations**), where each card says exactly where to find the value in that company's panel, and **Test connection** proves it works.
+
+| What | Where it goes | Needed for |
+|---|---|---|
+| `DATABASE_URL` | Vercel (added for you when you connect Neon, Part 1, step 2) | Everything |
+| `BETTER_AUTH_SECRET` | Vercel (you make it, Part 1, step 4) | Admin sign-in, checkout codes, and sealing the keys below |
+| `CRON_SECRET` | Vercel (you make it) | The background jobs |
+| `NEXT_PUBLIC_SITE_URL` | Vercel: your address, e.g. `https://zalfi.com` | Links in emails, payment return pages |
+| `BLOB_READ_WRITE_TOKEN` | Vercel (added for you with Blob, Part 1, step 3) | Photos uploaded in the admin |
+| **One way to be paid online:** SSLCommerz **Store ID** and **Store password**, or aamarPay **Store ID** and **Signature key** | Admin → Integrations | Card, bKash and Nagad payments. Cash on delivery and bKash/Nagad by hand need no keys |
+| **One SMS gateway:** BulkSMSBD (API key, sender ID), SSL Wireless (API token, SID), Alpha SMS (API key) or MiMSMS (login email, API key, sender name) | Admin → Integrations → SMS | The checkout's phone code. **Without one, customers can't check out** |
+| **One email service:** Resend or Brevo (API key), Postmark (server token), or your mailbox (SMTP server, port, username, password), plus a verified **Send from** address | Admin → Integrations → Email | The e-receipt and team invitations |
+| **One courier, if you use one:** Pathao (client ID and secret, login email and password), Steadfast (API key, secret key), RedX (access token) or CarryBee (client ID, secret, context) | Admin → Integrations → Couriers | Sending parcels from the admin. "Other courier" needs no keys |
 
 ## What you'll need
 

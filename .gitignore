@@ -44,3 +44,7 @@ next-env.d.ts
 
 # Local dev data (email outbox, uploads)
 /.data/
+
+# Playwright end-to-end runs
+/test-results/
+/playwright-report/

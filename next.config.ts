@@ -1,6 +1,27 @@
 import type { NextConfig } from "next";
 
+/**
+ * Baseline security headers for every page and route. The admin adds stricter ones of its own
+ * (no framing at all, never cached, never indexed) in src/proxy.ts, which run after these.
+ */
+const SECURITY_HEADERS = [
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "X-Frame-Options", value: "SAMEORIGIN" },
+  // Payment is left on for the gateways' own pages, which customers are sent to
+  {
+    key: "Permissions-Policy",
+    value: "camera=(), microphone=(), geolocation=()",
+  },
+  ...(process.env.NODE_ENV === "production"
+    ? [{ key: "Strict-Transport-Security", value: "max-age=31536000" }]
+    : []),
+];
+
 const nextConfig: NextConfig = {
+  async headers() {
+    return [{ source: "/:path*", headers: SECURITY_HEADERS }];
+  },
   reactStrictMode: true,
   // Let the dev server be opened as 127.0.0.1 as well as localhost
   allowedDevOrigins: ["127.0.0.1"],

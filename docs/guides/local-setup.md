@@ -143,7 +143,8 @@ The test gateway and test courier exist only on your computer and on preview sit
 | `git pull` then `npm install` and `npm run db:migrate` | Gets the latest version, its packages and its database changes |
 | `npm run check` | Lint, typecheck, unit tests and a production build. Run it before you push |
 | `npm test` | Unit tests (`tests/unit`) |
-| `npm run test:db` | Database tests (`tests/db`): stock, orders, payments, shipping, reports. Needs PostgreSQL running |
+| `npm run test:db` | Database tests (`tests/db`): stock, orders, payments, shipping, reports, notes. Needs PostgreSQL running |
+| `npm run test:e2e` | Browser tests (`tests/e2e`, Playwright): an order paid online, a failed payment, cash on delivery, a cancellation, a refund, the manager's limits, and every admin page in light and dark on a desktop and a phone. Uses the test gateway and courier, so no keys. Starts `npm run dev` if it isn't running, and cleans up after itself. The first time on a new computer: `npx playwright install chromium`. Screenshots land in `test-results/screens` |
 | `npm run db:seed:demo -- --clear` | Removes the demo data only (your own orders stay) |
 | `npm run stock:check` | Proves every bottle's stock matches its history |
 | `npm run db:generate` | After changing the schema in `src/db/tables/`: writes a migration into `drizzle/` |

@@ -190,7 +190,7 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
 ## Workflow
 
 - Work one milestone at a time (see `docs/reference/storefront-plan.md`). After each one:
-  1. Run `npm run check` (lint + typecheck + build).
+  1. Run `npm run check` (lint + typecheck + build), `npm test` (it includes the security checklist, `tests/unit/security.test.ts`), `npm run test:db` and, for anything touching checkout or the admin, `npm run test:e2e` (Playwright, test providers).
   2. Run the dev server and take Playwright screenshots at 1440px and 375px, plus one with reduced motion.
   3. Calm check, with `?stage=force`, once frames have settled:
      - With no input, two screenshots 1.5s apart must be pixel-identical on the landing, the line-up, a chapter and a product page.

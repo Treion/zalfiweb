@@ -96,7 +96,7 @@ Search everything from the top bar (or press `/`).
 | `npm run db:seed` | Adds the six fragrances. Never overwrites your edits (`-- --reset` does) |
 | `npm run db:seed:demo` | Demo orders, customers and coupons (`-- --clear` removes them). Local only |
 | `npm run check` | Lint, typecheck, unit tests and a production build: run before you push |
-| `npm test` / `npm run test:db` | Unit tests / database tests (need PostgreSQL) |
+| `npm test` / `npm run test:db` / `npm run test:e2e` | Unit tests / database tests (need PostgreSQL) / browser tests (Playwright, test providers) |
 | `npm run stock:check` | Proves every bottle's stock matches its history |
 | `npm run assets:logo` / `assets:bottles` | Rebuilds the logo and the bottle lighting maps from the photos |
 | `npm run notes:ingest -- <folder>` | Brings in note photos you supply (transparent PNG or WebP, any file names) |

@@ -153,7 +153,7 @@ adapters (src/server/providers/*): Payment (mock | SSLCommerz) · Courier (mock 
 5. ✅ **Payments:** mock provider, SSLCommerz (sandbox-ready), IPN and validation, refunds, the payments page, the COD toggle.
 6. ✅ **Shipping:** mock courier, Pathao and Steadfast, labels, bulk actions, webhooks, cron polling, failed deliveries and returns.
 7. ✅ **Dashboard & reports:** overview charts, needs-attention list, customers, reports and CSV, global search.
-8. **Hardening & docs:** the security pass, the full test suite, the guides in `docs/guides` (local setup, deploying, the admin guide) and the decisions in `docs/reference`. *The Integrations page with test buttons was built ahead of it, at the owner's request (decisions 111–120): keys in the admin, aamarPay, RedX, bKash and Nagad by hand, and "other courier".*
+8. ✅ **Hardening & docs:** the security checklist checked in code (`tests/unit/security.test.ts`, decision 125), security headers on the whole site, the browser tests (`npm run test:e2e`, decision 126), the admin checked at phone width, and the guides (local setup, deploying with the go-live key list, the admin guide) and decisions. *The Integrations page with test buttons was built ahead of it, at the owner's request (decisions 111–123).*
 
 ## 6. What I need from you (no rush, nothing blocks Phase 2)
 
