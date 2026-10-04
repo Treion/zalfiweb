@@ -38,12 +38,19 @@
   --sidebar-border: #e5dfd6;
   --sidebar-accent: #e9e3da;
   /* Charts: distinct in hue and lightness, readable on both themes */
-  --chart-1: #8a6a3a;
-  --chart-2: #3f7d6e;
-  --chart-3: #6b5aa6;
-  --chart-4: #b5603d;
-  --chart-5: #4f6f9a;
-  --chart-6: #8a8178;
+  /* Charts: a categorical palette validated for colour-blind separation and contrast on the
+     card surface (docs/DECISIONS.md), plus the chart furniture */
+  --chart-1: #2a78d6;
+  --chart-2: #eb6834;
+  --chart-3: #1baf7a;
+  --chart-4: #eda100;
+  --chart-5: #e87ba4;
+  --chart-6: #008300;
+  --chart-7: #4a3aa7;
+  --chart-8: #e34948;
+  --chart-prev: #a8a29a;
+  --chart-grid: #ece7df;
+  --chart-axis: #d6cfc4;
   /* Status tones (badges) */
   --tone-neutral-bg: #eeeae4;
   --tone-neutral-fg: #4b4640;
@@ -84,12 +91,17 @@
   --sidebar-foreground: #efeae1;
   --sidebar-border: #24211e;
   --sidebar-accent: #201d1a;
-  --chart-1: #d2ae72;
-  --chart-2: #6fbfa9;
-  --chart-3: #a596e0;
-  --chart-4: #e38b66;
-  --chart-5: #86a8d6;
-  --chart-6: #b3aaa0;
+  --chart-1: #3987e5;
+  --chart-2: #d95926;
+  --chart-3: #199e70;
+  --chart-4: #c98500;
+  --chart-5: #d55181;
+  --chart-6: #008300;
+  --chart-7: #9085e9;
+  --chart-8: #e66767;
+  --chart-prev: #6f6a63;
+  --chart-grid: #26231f;
+  --chart-axis: #3a3530;
   --tone-neutral-bg: #26231f;
   --tone-neutral-fg: #c9c1b6;
   --tone-info-bg: #16263a;
@@ -135,6 +147,9 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
   --color-chart-6: var(--chart-6);
+  --color-chart-7: var(--chart-7);
+  --color-chart-8: var(--chart-8);
+  --color-chart-prev: var(--chart-prev);
 
   --radius-sm: calc(var(--radius) - 2px);
   --radius-md: var(--radius);

@@ -157,3 +157,43 @@ Judgement calls made while building the backend and admin, newest last. Each one
 92. **Tracking links** for Pathao and Steadfast parcels appear on the confirmation page and in receipts sent after dispatch. The test courier has no public tracking.
 93. **Pathao and Steadfast weren't tried live:** no keys exist yet. Both are written to their documented merchant APIs and tested with payloads in those shapes (create, status, webhooks, errors). The first real parcel goes once the keys are added (see GO_LIVE in phase 8). Start with Pathao's sandbox (`PATHAO_IS_LIVE=false`).
 94. **The demo seed** now writes each courier's own statuses (Pathao's `in_transit`, Steadfast's `pending`…), so demo parcels read like real ones.
+
+## Phase 7: Dashboard, customers, reports and search
+
+95. **One rule for what counts as a sale** (`src/server/reports/metrics.ts`), used by the overview, customers and reports:
+    - An order counts from the day it is placed (in Dhaka time), unless it is still waiting for payment, was cancelled, or came back (returned).
+    - Its revenue is its total (bottles after discounts, plus shipping) less completed refunds. A refund lowers its order's day, not the day it was paid back.
+    - Cash-on-delivery orders count the day they're placed, so today's numbers aren't empty until couriers deliver.
+    - "Item sales" by fragrance and size use bottle prices before order discounts, because a discount belongs to the whole order.
+    - Average order is order totals before refunds, divided by orders. A day with no orders has no average (a gap in the line), not ৳0.
+96. **Periods are Bangladesh days** (`range.ts`): today, the last 7, 30 or 90 days, this month, or a custom range of up to a year.
+    - Charts group by hour (a day or two), day (up to a month), week (from Monday, up to six months), then month. Every bucket shows, empty ones too.
+    - The comparison period is the same length just before. For "this month", it's the same days of last month (1–4 Oct against 1–4 Sept).
+97. **"Today so far" compares with this time yesterday,** not all of yesterday, so a morning isn't measured against a whole day.
+    - The queues (to pack, to send, failed deliveries) are rebuilt for yesterday from each order's status times.
+    - Yesterday's low stock comes from the stock ledger.
+98. **Charts.** Time series (revenue, orders, average order) use Recharts. Categories are plain bars, with the value at the end of each.
+    - Where the spec asks for pies and donuts, the overview shows bars or one part-to-whole bar instead. Orders by status has nine parts, which a pie can't show legibly. Payment method and zone have two parts each. Sizes is a single number while only 50 ml sells.
+    - The chart colours were replaced. The old ones failed a colour-blind and contrast check. The new palette is validated on the admin's own light and dark card surfaces (`--chart-*` in admin.css).
+    - Every chart has its numbers in a table under it ("Show the numbers"). Charts don't animate, and the previous period is a grey line.
+99. **Needs attention** lists:
+    - unpaid orders lapsing within the hour;
+    - online payments that failed in the last day, on orders still waiting;
+    - failed deliveries;
+    - return requests;
+    - sold-out sizes that are on sale.
+    Each links to what to open.
+100. **Customers.** "Spent" follows the sales rule. Orders that were unpaid, cancelled or returned show as "placed" beside the sales ("3 of 4"). A customer's district and addresses fall back to the addresses on their orders, since older checkouts (and the demo data) didn't save them.
+101. **Reports.** Sales (by day, week or month), fragrances, sizes, stock value, coupons, zones, refunds and returns. Each has a chart, its full table and a CSV.
+    - Stock is valued at shop prices, because cost prices aren't recorded.
+    - Refunds and returns are dated by when they happened.
+    - The coupon report ends with "No code" for comparison.
+    - Zone delivery time runs from pickup to delivery.
+    - CSV columns carry their unit (`_bdt`, `_pct`, `_utc`), and every export is audit-logged.
+102. **Revenue hidden for managers** (Settings → Team toggle off): every money figure goes. That covers tiles, charts, report columns, customer spend and CSV columns. Order totals stay on order lists and in search, because packing and cash on delivery need them.
+103. **Global search** (top bar, or press `/` or Ctrl/⌘ K) finds:
+    - orders by number, phone, name or email;
+    - customers by name, phone or email;
+    - fragrances by name, slug or SKU.
+    Each group appears only to those who may open it. A phone matches however it's typed (`+880 1712-345678`, `01712345678`, `1712345678`), and an exact order number comes first. Enter with nothing chosen opens the full results page.
+104. **The orders list gains a courier filter** (Pathao, Steadfast, test courier, not with a courier), as the spec asks.

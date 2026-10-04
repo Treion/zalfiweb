@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOutIcon, MenuIcon, SearchIcon, ShieldCheckIcon } from "lucide-react";
+import { LogOutIcon, MenuIcon, ShieldCheckIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Logo } from "@/components/brand/Logo";
@@ -19,6 +19,7 @@ import {
 } from "@/components/admin/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/admin/ui/sheet";
 import { NavList } from "./Sidebar";
+import { SearchBox } from "./SearchBox";
 
 type Me = { name: string; email: string; role: string };
 
@@ -67,17 +68,7 @@ export function Topbar({
         </SheetContent>
       </Sheet>
 
-      {/* Global search: orders by number, phone or name; products by name (Phase 7) */}
-      <form role="search" action="/admin/search" className="relative max-w-md flex-1">
-        <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-        <input
-          name="q"
-          type="search"
-          placeholder="Search orders, phones, products"
-          aria-label="Search"
-          className="bg-muted/60 placeholder:text-muted-foreground focus-visible:ring-ring/50 h-9 w-full rounded-md border border-transparent pr-3 pl-9 text-sm outline-none focus-visible:ring-[3px]"
-        />
-      </form>
+      <SearchBox />
 
       <div className="ml-auto flex items-center gap-1">
         <ThemeToggle />

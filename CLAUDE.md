@@ -157,6 +157,10 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
   - Each courier's statuses map to order states in its own `status-*.ts`. `applyCourierStatus()` moves the order along the state machine (`pathTo()`) and ignores repeats and stale updates. Webhooks, the cron poll and the test courier all go through it.
   - `sendToCourier()` sends the cash to collect (`codAmountFor()`: unpaid COD only). Returns go through `recordReturn()` (reason, condition, restock).
   - The label PDF is `label.tsx` (React PDF, the invoice's fonts and logo).
+- **Reports** (`src/server/reports`): one sales rule in `metrics.ts` (`SOLD`, `REFUNDED`), periods and buckets in Dhaka time in `range.ts`, and each report as one function in `reports.ts` that feeds both its page and its CSV.
+  - In correlated subqueries, refer to the order as `ORDER_ID` (`"orders"."id"`). Drizzle leaves the column bare, and inside `(select … from refunds r …)` a bare `"id"` means `r.id`.
+  - Charts live in `src/components/admin/charts` and use the validated `--chart-*` tokens (admin.css). Run the dataviz palette validator before changing a chart colour. Every chart has a table, and charts never animate.
+  - Money figures follow `revenue.view` (`forViewer()` strips report columns).
 
 ## Code conventions
 

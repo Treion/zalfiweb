@@ -19,7 +19,16 @@ import { poolDb, type Executor } from "@/server/db/pool";
 import { ORDER_STATUSES, PAYMENT_STATUSES, type OrderStatus } from "./state";
 
 /** Filters the Orders list supports (all in the URL) */
-export const ORDER_FILTER_KEYS = ["status", "payment", "method", "zone", "days", "coupon", "view"];
+export const ORDER_FILTER_KEYS = [
+  "status",
+  "payment",
+  "method",
+  "courier",
+  "zone",
+  "days",
+  "coupon",
+  "view",
+];
 
 /** Quick views over the list */
 export const ORDER_VIEWS = {
@@ -55,6 +64,9 @@ function orderWhere(p: ListParams): SQL | undefined {
     parts.push(eq(orders.paymentStatus, f.payment as (typeof PAYMENT_STATUSES)[number]));
   if (f.method === "cod" || f.method === "sslcommerz")
     parts.push(eq(orders.paymentMethod, f.method));
+  if (f.courier === "mock" || f.courier === "pathao" || f.courier === "steadfast")
+    parts.push(eq(orders.courier, f.courier));
+  if (f.courier === "none") parts.push(sql`${orders.courier} is null`);
   if (f.zone === "inside_dhaka" || f.zone === "outside_dhaka") parts.push(eq(orders.zone, f.zone));
   if (f.coupon === "any") parts.push(sql`${orders.couponCode} is not null`);
   else if (f.coupon) parts.push(sql`upper(${orders.couponCode}) = ${f.coupon.toUpperCase()}`);

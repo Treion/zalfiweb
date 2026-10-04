@@ -172,6 +172,16 @@ export function OrdersTable({
           ],
         },
         {
+          key: "courier",
+          label: "Couriers",
+          options: [
+            { value: "pathao", label: "Pathao" },
+            { value: "steadfast", label: "Steadfast" },
+            { value: "mock", label: "Test courier" },
+            { value: "none", label: "Not with a courier" },
+          ],
+        },
+        {
           key: "zone",
           label: "Zones",
           options: [
