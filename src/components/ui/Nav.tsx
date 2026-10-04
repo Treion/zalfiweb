@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Logo } from "@/components/brand/Logo";
 import { useCart } from "@/components/cart/cart-store";
 import { INFO_GROUP_LABELS, INFO_NAV, isInfoPath, type InfoGroup } from "@/content/info-nav";
+import { useHomeJump } from "@/components/sections/home-jump";
 import { useNavSection } from "./nav-section";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -26,6 +27,8 @@ export function Nav() {
   const pathname = usePathname();
   const home = pathname === "/";
   const section = useNavSection();
+  const jumpTop = useHomeJump("top");
+  const jumpCollection = useHomeJump("collection");
   const [infoOpen, setInfoOpen] = useState(false);
   const [lastPath, setLastPath] = useState(pathname);
   const menuId = useId();
@@ -53,6 +56,7 @@ export function Nav() {
         >
           <Link
             href="/"
+            onClick={jumpTop}
             aria-label="ZALFI, home"
             data-nav-logo
             data-reveal={home ? "" : undefined}
@@ -64,6 +68,7 @@ export function Nav() {
             <li className="hidden sm:block">
               <NavItem
                 href="/#collection"
+                onClick={jumpCollection}
                 active={home && section === "fragrances"}
                 current="location"
               >
@@ -89,9 +94,18 @@ export function Nav() {
               </button>
             </li>
             <li>
-              <button type="button" onClick={openBag} className="eyebrow flex items-center gap-2">
-                Bag
-                <span className="relative inline-block min-w-4 overflow-hidden text-center tabular-nums">
+              <button
+                type="button"
+                onClick={openBag}
+                aria-label={`Bag, ${count} ${count === 1 ? "item" : "items"}`}
+                className="-m-2 flex items-center gap-1.5 p-2"
+              >
+                <CartMark />
+                {/* The count, beside the cart, rolls when it changes */}
+                <span
+                  aria-hidden
+                  className="eyebrow relative inline-block min-w-3 overflow-hidden text-center tabular-nums"
+                >
                   <AnimatePresence mode="popLayout" initial={false}>
                     <motion.span
                       key={count}
@@ -105,7 +119,6 @@ export function Nav() {
                     </motion.span>
                   </AnimatePresence>
                 </span>
-                <span className="sr-only">items</span>
               </button>
             </li>
           </ul>
@@ -122,6 +135,26 @@ export function Nav() {
   );
 }
 
+/** A cart in the site's own hairline (no icon set), the nav's way into the bag */
+function CartMark() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden
+      className="size-5 md:size-[1.35rem]"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.1}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M2.5 4h2.6l2.3 10.6a1 1 0 0 0 1 .8h9.1a1 1 0 0 0 1-.8L20.5 7.5H6" />
+      <circle cx="9.5" cy="19" r="1.25" />
+      <circle cx="17" cy="19" r="1.25" />
+    </svg>
+  );
+}
+
 /** The hairline box that marks where you are. Fades in and out; nothing moves. */
 function Outline({ on }: { on: boolean }) {
   return (
@@ -135,11 +168,13 @@ function Outline({ on }: { on: boolean }) {
 
 function NavItem({
   href,
+  onClick,
   active,
   current,
   children,
 }: {
   href: string;
+  onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
   active: boolean;
   current: "page" | "location";
   children: ReactNode;
@@ -147,6 +182,7 @@ function NavItem({
   return (
     <Link
       href={href}
+      onClick={onClick}
       aria-current={active ? current : undefined}
       className="eyebrow relative block"
     >

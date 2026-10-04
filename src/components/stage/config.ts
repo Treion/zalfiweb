@@ -10,26 +10,30 @@ export const EXP = {
   intro: 90,
   /** The six bottles lined up, then Reva steps forward into its world */
   lineup: 110,
-  chapter: 360,
+  /**
+   * Each chapter's length. It was 360; at 260 the worlds come round sooner, and every step inside
+   * a chapter is scaled with it, so the pace stays even and the scrub as soft.
+   */
+  chapter: 260,
   outro: 80,
   /** Offsets within a chapter, relative to its start (may be negative = overlaps the previous one) */
   ch: {
     // Bottles hand over in sequence with a short crossfade: the outgoing one lifts away and
     // dissolves as the incoming one rises, while the world washes slowly from one to the next.
-    enter: [-20, 70],
-    world: [-45, 45],
-    masthead: [15, 85],
+    enter: [-14, 51],
+    world: [-32, 32],
+    masthead: [11, 61],
     // The chapter's layer fades in from here
-    open: [5, 55],
-    tagline: [35, 95],
-    top: [75, 130],
-    heart: [145, 200],
-    base: [215, 270],
+    open: [4, 40],
+    tagline: [25, 69],
+    top: [54, 94],
+    heart: [105, 144],
+    base: [155, 195],
     // Discover + Add to bag are there from the start of the chapter, until it leaves
-    cta: [25, 75],
-    mastheadOut: [295, 340],
-    textOut: [300, 345],
-    exit: [300, 360],
+    cta: [18, 54],
+    mastheadOut: [213, 246],
+    textOut: [217, 249],
+    exit: [217, 260],
   },
   /** The landing logo leaving (absolute, from the top of the page) */
   intro_: {

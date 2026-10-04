@@ -10,6 +10,7 @@ import { formatPrice } from "@/lib/money";
 import type { CheckoutResponse } from "@/app/api/checkout/route";
 import { useCart } from "./cart-store";
 import { countWord } from "@/lib/words";
+import { HomeLink } from "@/components/sections/HomeLink";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -132,13 +133,13 @@ export function CartDrawer({ worldCount = 6 }: { worldCount?: number }) {
                   <p className="text-smoke">
                     {`${countWord(worldCount, true)} worlds are waiting. Start with the one you can smell from here.`}
                   </p>
-                  <Link
-                    href="/#collection"
+                  <HomeLink
+                    to="collection"
                     onClick={cart.closeBag}
                     className="eyebrow border-noir self-start border-b pb-1"
                   >
                     Discover the collection
-                  </Link>
+                  </HomeLink>
                 </div>
               ) : (
                 <ul className="divide-noir/10 divide-y">

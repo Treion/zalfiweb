@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { gsap, useGSAP, EASE, ScrollTrigger } from "@/components/motion/gsap";
 import { useLenis } from "@/components/motion/SmoothScroll";
 import { useReducedMotion } from "@/components/motion/use-reduced-motion";
@@ -20,15 +20,16 @@ import { StageAnchor } from "@/components/stage/StageAnchor";
 import { stageState } from "@/components/stage/stage-state";
 import { canRunStage } from "@/components/stage/support";
 import type { Fragrance } from "@/lib/fragrance";
-import { ChapterIndex, WorldVeil } from "./ChapterIndex";
+import { ChapterIndex, WorldVeil, type Veil } from "./ChapterIndex";
+import { registerHomeJump, type HomeTarget } from "./home-jump";
 import { FragranceChapter, buildChapterTimeline } from "./FragranceChapter";
 import { Landing } from "./Landing";
 import { Lineup } from "./Lineup";
 import { closeRoom, roomOpen } from "./room";
 import { countWord } from "@/lib/words";
 
-/** Where a jump lands in a chapter: name, tagline and top notes are set (vh units) */
-const JUMP_TO = 130;
+/** Where a jump lands in a chapter: name, tagline and top notes are set */
+const JUMP_TO = EXP.ch.top[1];
 
 type Props = { fragrances: Fragrance[]; noteAvail: Record<string, boolean> };
 
@@ -49,31 +50,61 @@ export function Experience({ fragrances, noteAvail }: Props) {
   const reduced = useReducedMotion();
   const lenis = useLenis();
   const [active, setActive] = useState(-1);
-  const [veil, setVeil] = useState<number | null>(null);
+  const [veil, setVeil] = useState<Veil | null>(null);
   const first = fragrances[0];
   // One chapter per published fragrance: the shared timing helpers read this count
   const count = fragrances.length;
   setChapterCount(count);
 
   /**
-   * Jump to a chapter without rushing through the worlds in between: wash the screen in the
-   * destination world, move the scroll (and the scrubbed timeline) behind it, then lift the wash.
+   * Jump without rushing through the worlds in between: wash the screen (in the destination's
+   * world, or the house dark), move the scroll and the scrubbed timeline behind it, then lift the
+   * wash. A short way (under a screen) is just scrolled.
    */
-  function jumpTo(i: number) {
-    const st = master.current?.scrollTrigger;
-    if (!st || veil !== null) return;
-    setVeil(i);
+  const jumping = useRef(false);
+  function veiledJump(wash: Veil, y: number) {
+    if (jumping.current) return;
+    if (Math.abs(window.scrollY - y) < window.innerHeight && lenis) {
+      lenis.scrollTo(y);
+      return;
+    }
+    jumping.current = true;
+    setVeil(wash);
     gsap.delayedCall(0.5, () => {
-      const k = stageState.k;
-      const y = st.start + ((st.end - st.start) * (chapterStart(i, k) + JUMP_TO * k)) / expTotal(k);
       if (lenis) lenis.scrollTo(y, { immediate: true, force: true });
       else window.scrollTo(0, y);
       ScrollTrigger.update();
-      st.getTween()?.progress(1);
+      master.current?.scrollTrigger?.getTween()?.progress(1);
       // let the stage settle into the new world before the wash lifts
-      gsap.delayedCall(0.35, () => setVeil(null));
+      gsap.delayedCall(0.35, () => {
+        setVeil(null);
+        jumping.current = false;
+      });
     });
   }
+
+  function jumpTo(i: number) {
+    const st = master.current?.scrollTrigger;
+    if (!st) return;
+    const k = stageState.k;
+    veiledJump(
+      fragrances[i]!,
+      st.start + ((st.end - st.start) * (chapterStart(i, k) + JUMP_TO * k)) / expTotal(k),
+    );
+  }
+
+  // The logo and the collection links jump here too, instead of scrolling back through it all
+  const toHome = useRef<(to: HomeTarget) => boolean>(() => false);
+  useEffect(() => {
+    toHome.current = (to) => {
+      if (reduced) return false;
+      const marker = document.getElementById("collection");
+      const y = to === "top" || !marker ? 0 : marker.getBoundingClientRect().top + window.scrollY;
+      veiledJump("house", y);
+      return true;
+    };
+  });
+  useEffect(() => registerHomeJump((to) => toHome.current(to)), []);
 
   useGSAP(
     () => {
@@ -283,7 +314,7 @@ export function Experience({ fragrances, noteAvail }: Props) {
       </div>
 
       <ChapterIndex fragrances={fragrances} active={active} onJump={jumpTo} />
-      <WorldVeil fragrance={veil === null ? null : fragrances[veil]} />
+      <WorldVeil wash={veil} />
     </section>
   );
 }

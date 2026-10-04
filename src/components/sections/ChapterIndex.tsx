@@ -54,19 +54,22 @@ export function ChapterIndex({
   );
 }
 
+/** What a jump washes the screen with: the destination world, or the house dark */
+export type Veil = Pick<Fragrance, "palette"> | "house";
+
 /**
- * A wash of the destination world's colour. A jump fades it in, moves the scroll behind it, and
- * fades it out on the new chapter, so the visitor never sees the worlds in between rush past.
+ * A wash of the destination's colour. A jump fades it in, moves the scroll behind it, and fades it
+ * out at the new place, so the visitor never sees the worlds in between rush past.
  */
-export function WorldVeil({ fragrance }: { fragrance: Pick<Fragrance, "palette"> | null }) {
+export function WorldVeil({ wash }: { wash: Veil | null }) {
   return (
     <AnimatePresence>
-      {fragrance && (
+      {wash && (
         <motion.div
           key="veil"
           aria-hidden
-          className="bg-world-bg pointer-events-none fixed inset-0 z-[55]"
-          style={worldVars(fragrance)}
+          className={`pointer-events-none fixed inset-0 z-[55] ${wash === "house" ? "bg-noir" : "bg-world-bg"}`}
+          style={wash === "house" ? undefined : worldVars(wash)}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1, transition: { duration: 0.45, ease: SILK } }}
           exit={{ opacity: 0, transition: { duration: 0.9, ease: SILK } }}

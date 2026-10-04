@@ -1,6 +1,7 @@
 import Link from "next/link";
 import clsx from "clsx";
 import { Logo } from "@/components/brand/Logo";
+import { HomeLink } from "./HomeLink";
 import { ContactIcons } from "@/components/ui/ContactIcons";
 import { INFO_PAGES, type InfoPage } from "@/content/pages";
 import { CONTACT, MAPS_URL } from "@/lib/contact";
@@ -66,9 +67,15 @@ export function Footer({
             <ul className="mt-6 space-y-3 text-sm">
               {col.links.map((l) => (
                 <li key={l.href}>
-                  <Link href={l.href} className="underline-offset-4 hover:underline">
-                    {l.label}
-                  </Link>
+                  {l.href === "/#collection" ? (
+                    <HomeLink to="collection" className="underline-offset-4 hover:underline">
+                      {l.label}
+                    </HomeLink>
+                  ) : (
+                    <Link href={l.href} className="underline-offset-4 hover:underline">
+                      {l.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
