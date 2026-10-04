@@ -7,11 +7,17 @@ import { normalisePhone } from "@/lib/phone";
  * validates everything again and never trusts the browser's prices or totals).
  */
 
-export const PAYMENT_METHODS = ["sslcommerz", "cod"] as const;
+/**
+ * How a customer can pay. "sslcommerz" is the stored name of online payment through any gateway
+ * (SSLCommerz or aamarPay, whichever the owner puts first); "manual" is bKash or Nagad Send Money,
+ * confirmed by the team.
+ */
+export const PAYMENT_METHODS = ["sslcommerz", "manual", "cod"] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 export const PAYMENT_LABELS: Record<PaymentMethod, string> = {
   sslcommerz: "Pay online",
+  manual: "bKash or Nagad (Send Money)",
   cod: "Cash on delivery",
 };
 

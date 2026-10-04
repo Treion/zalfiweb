@@ -38,6 +38,7 @@ import {
   SelectValue,
 } from "@/components/admin/ui/select";
 import { formatPrice } from "@/lib/money";
+import type { CourierName } from "@/server/shipping/types";
 import {
   cancelShipmentAction,
   pathaoPlacesAction,
@@ -46,7 +47,7 @@ import {
   simulateCourierAction,
 } from "../../shipping/actions";
 
-type Option = { name: "mock" | "pathao" | "steadfast"; label: string; mode: string };
+type Option = { name: CourierName; label: string; mode: string };
 type Place = { id: number; name: string };
 
 /** "Send to courier": choose the courier (Pathao also needs its city and zone) and send */

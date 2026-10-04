@@ -43,9 +43,15 @@ export const paymentStatus = pgEnum("payment_status", [
   "partially_refunded",
   "refunded",
 ]);
-export const paymentMethod = pgEnum("payment_method", ["sslcommerz", "cod"]);
+export const paymentMethod = pgEnum("payment_method", ["sslcommerz", "cod", "manual"]);
 export const shippingZone = pgEnum("shipping_zone", ["inside_dhaka", "outside_dhaka"]);
-export const courierName = pgEnum("courier_name", ["mock", "pathao", "steadfast"]);
+export const courierName = pgEnum("courier_name", [
+  "mock",
+  "pathao",
+  "steadfast",
+  "redx",
+  "manual",
+]);
 export const stockMovementType = pgEnum("stock_movement_type", [
   "initial",
   "sale",

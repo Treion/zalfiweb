@@ -57,6 +57,20 @@
       "when": 1791114380940,
       "tag": "0007_dusk_worlds_any_case",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791116450056,
+      "tag": "0008_integrations",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791116463181,
+      "tag": "0009_manual_and_redx",
+      "breakpoints": true
     }
   ]
 }

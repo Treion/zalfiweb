@@ -1,23 +1,30 @@
 import type { OrderStatus } from "@/server/orders/state";
 
 /**
- * Couriers, behind one interface. Three implement it:
- *  - mock: a test courier for development and previews. The admin plays the courier: it sends
- *    status updates by hand, through the same webhook code the real couriers use.
+ * Couriers, behind one interface:
  *  - pathao: Pathao Courier's merchant API (sandbox or live).
- *  - steadfast: Steadfast Courier's API.
+ *  - steadfast: Steadfast Courier's API (live only).
+ *  - redx: RedX's open API (sandbox or live).
+ *  - manual: any other courier, or the team's own rider. The team records the tracking number and
+ *    moves the parcel along by hand, through the same status code the real couriers use.
+ *  - mock: a test courier for development and previews. The admin plays the courier.
  * Each courier's own statuses map to ZALFI's order states in one file per courier (status-*.ts).
+ * Set-up and the on/off switch for each live in Admin → Integrations.
  */
 
-export type CourierName = "mock" | "pathao" | "steadfast";
+/** Every courier, in the order the admin lists them */
+export const COURIER_NAMES = ["pathao", "steadfast", "redx", "manual", "mock"] as const;
+export type CourierName = (typeof COURIER_NAMES)[number];
 
 /** The status of a parcel taken back from the admin before pickup (not a courier's own word) */
 export const CANCELLED_HERE = "cancelled_by_zalfi";
 
 export const COURIER_LABELS: Record<CourierName, string> = {
-  mock: "Test courier",
   pathao: "Pathao",
   steadfast: "Steadfast",
+  redx: "RedX",
+  manual: "Other courier",
+  mock: "Test courier",
 };
 
 /** What a courier needs to collect a parcel and deliver it */

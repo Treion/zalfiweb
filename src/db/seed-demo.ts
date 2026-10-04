@@ -614,7 +614,8 @@ async function main() {
                 : status === "out_for_delivery"
                   ? "out"
                   : "transit";
-        const shipStatus = DEMO_COURIER_STATUS[order!.courier][stage];
+        const shipStatus =
+          DEMO_COURIER_STATUS[order!.courier as keyof typeof DEMO_COURIER_STATUS][stage];
         await tx.insert(S.shipments).values({
           orderId: order!.id,
           courier: order!.courier,

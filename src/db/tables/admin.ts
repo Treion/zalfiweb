@@ -136,6 +136,28 @@ export const settings = pgTable("settings", {
   updatedAt: ts("updated_at").notNull().defaultNow(),
 });
 
+/**
+ * Payment, courier and messaging providers set up in the admin (src/server/integrations). Secret
+ * values are sealed with AES-256-GCM (vault.ts); plain settings (store IDs, sender ID) sit in
+ * config. A null enabled or mode means "not chosen yet": the defaults follow the environment.
+ */
+export const integrations = pgTable("integrations", {
+  provider: text("provider").primaryKey(),
+  enabled: boolean("enabled"),
+  mode: text("mode"),
+  secrets: text("secrets"),
+  config: jsonb("config").$type<Record<string, string>>().notNull().default({}),
+  webhookToken: text("webhook_token"),
+  lastCheck: jsonb("last_check").$type<{
+    ok: boolean;
+    at: string;
+    message: string;
+    source: "test" | "live";
+  } | null>(),
+  updatedBy: text("updated_by").references(() => adminUsers.id, { onDelete: "set null" }),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
 /** Who did what, when: every important admin action, with before/after values */
 export const auditLog = pgTable(
   "audit_log",
