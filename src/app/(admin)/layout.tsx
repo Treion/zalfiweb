@@ -1,14 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Bodoni_Moda, Hanken_Grotesk } from "next/font/google";
+import { bodoni, hanken } from "@/app/fonts";
 import { Toaster } from "@/components/admin/ui/sonner";
 import { TooltipProvider } from "@/components/admin/ui/tooltip";
 import { ThemeProvider } from "@/components/admin/theme";
 import "./admin.css";
 
 // The admin's own root layout: no stage, no Lenis, no GSAP, no cursor. Light and dark themes.
-
-const bodoni = Bodoni_Moda({ subsets: ["latin"], variable: "--font-bodoni", display: "swap" });
-const hanken = Hanken_Grotesk({ subsets: ["latin"], variable: "--font-hanken", display: "swap" });
 
 export const metadata: Metadata = {
   title: { default: "ZALFI Admin", template: "%s · ZALFI Admin" },

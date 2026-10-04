@@ -1,20 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Bodoni_Moda, Hanken_Grotesk } from "next/font/google";
+import { bodoni, hanken } from "@/app/fonts";
 import "./(site)/globals.css";
 import { getFragrances } from "@/db/queries";
 import { countWord } from "@/lib/words";
 
 // With two root layouts (the storefront and the admin) there is no single layout to compose a 404
 // from, so unmatched URLs render this page on its own: the storefront's 404, without the stage.
-
-const bodoni = Bodoni_Moda({
-  subsets: ["latin"],
-  style: ["normal", "italic"],
-  variable: "--font-bodoni",
-  display: "swap",
-});
-const hanken = Hanken_Grotesk({ subsets: ["latin"], variable: "--font-hanken", display: "swap" });
 
 export const metadata: Metadata = {
   title: "Not found | ZALFI",
