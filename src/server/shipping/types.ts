@@ -5,6 +5,7 @@ import type { OrderStatus } from "@/server/orders/state";
  *  - pathao: Pathao Courier's merchant API (sandbox or live).
  *  - steadfast: Steadfast Courier's API (live only).
  *  - redx: RedX's open API (sandbox or live).
+ *  - carrybee: CarryBee's Delivery API v2 (sandbox or live).
  *  - manual: any other courier, or the team's own rider. The team records the tracking number and
  *    moves the parcel along by hand, through the same status code the real couriers use.
  *  - mock: a test courier for development and previews. The admin plays the courier.
@@ -13,7 +14,7 @@ import type { OrderStatus } from "@/server/orders/state";
  */
 
 /** Every courier, in the order the admin lists them */
-export const COURIER_NAMES = ["pathao", "steadfast", "redx", "manual", "mock"] as const;
+export const COURIER_NAMES = ["pathao", "steadfast", "redx", "carrybee", "manual", "mock"] as const;
 export type CourierName = (typeof COURIER_NAMES)[number];
 
 /** "Other courier": names offered in the send dialog (anything else can be typed) */
@@ -34,6 +35,7 @@ export const COURIER_LABELS: Record<CourierName, string> = {
   pathao: "Pathao",
   steadfast: "Steadfast",
   redx: "RedX",
+  carrybee: "CarryBee",
   manual: "Other courier",
   mock: "Test courier",
 };
@@ -52,6 +54,8 @@ export type ShipmentInput = {
   pathao?: { cityId: number; zoneId: number; areaId?: number | null };
   /** RedX only: the delivery area chosen (or matched) for the address */
   redx?: { areaId: number; areaName: string };
+  /** CarryBee only: the city and zone chosen (or matched) for the address */
+  carrybee?: { cityId: number; zoneId: number };
   /** Another courier, or the team's own rider: what the team typed in */
   manual?: { courierName: string; trackingCode: string | null; trackingUrl: string | null };
   note?: string;

@@ -1,12 +1,14 @@
 import { getIntegration } from "@/server/integrations";
+import { CARRYBEE_WEBHOOK_HEADER } from "@/server/shipping/carrybee";
 import { handleCourierWebhook } from "@/server/shipping/service";
 
-// Courier status webhooks (Pathao, Steadfast, RedX). Each courier proves it is itself: Pathao sends
-// the secret set in its panel (X-PATHAO-Signature), Steadfast our token as a Bearer header, RedX
-// our token in this address. The status is then re-read from the courier's API where it has one.
+// Courier status webhooks (Pathao, Steadfast, RedX, CarryBee). Each courier proves it is itself:
+// Pathao sends the secret set in its panel (X-PATHAO-Signature), Steadfast our token as a Bearer
+// header, RedX our token in this address, CarryBee the secret from its Webhook Integration page
+// (X-CB-Webhook-Integration-Header). The status is then re-read from the courier's API where it has one.
 // Repeats change nothing. Set-up for each lives in Admin → Integrations.
 
-const HOOKED = new Set(["pathao", "steadfast", "redx"]);
+const HOOKED = new Set(["pathao", "steadfast", "redx", "carrybee"]);
 
 export async function POST(req: Request, ctx: RouteContext<"/api/couriers/webhook/[courier]">) {
   const { courier } = await ctx.params;
@@ -25,6 +27,14 @@ export async function POST(req: Request, ctx: RouteContext<"/api/couriers/webhoo
     return new Response(null, {
       status: 202,
       headers: secret ? { "X-Pathao-Merchant-Webhook-Integration-Secret": secret } : {},
+    });
+  }
+  if (courier === "carrybee" && code === 200) {
+    // CarryBee's integration check expects 202 and its secret echoed back
+    const secret = (await getIntegration("carrybee")).values.webhookSecret;
+    return new Response(null, {
+      status: 202,
+      headers: secret ? { [CARRYBEE_WEBHOOK_HEADER]: secret } : {},
     });
   }
   if (code === 200)

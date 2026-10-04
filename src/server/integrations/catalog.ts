@@ -3,6 +3,18 @@
  * found in that provider's own panel, and which environment variables it falls back to. The pages,
  * the save action and each provider's config all read from here, so a field is described once.
  */
+/** SMS gateways and email services, in the order they are tried until the owner changes it */
+export const SMS_PROVIDERS = ["bulksmsbd", "sslwireless", "alphasms", "mimsms"] as const;
+export const EMAIL_PROVIDERS = ["resend", "brevo", "postmark", "smtp"] as const;
+export type SmsName = (typeof SMS_PROVIDERS)[number];
+export type EmailName = (typeof EMAIL_PROVIDERS)[number];
+
+/** A saved order, made whole: repeats dropped, providers missing from it added at the end */
+export function inOrder<T extends string>(saved: readonly T[], all: readonly T[]): T[] {
+  const kept = [...new Set(saved)].filter((n) => all.includes(n));
+  return [...kept, ...all.filter((n) => !kept.includes(n))];
+}
+
 export const INTEGRATIONS = [
   "sslcommerz",
   "aamarpay",
@@ -10,9 +22,10 @@ export const INTEGRATIONS = [
   "pathao",
   "steadfast",
   "redx",
+  "carrybee",
   "test-courier",
-  "bulksmsbd",
-  "resend",
+  ...SMS_PROVIDERS,
+  ...EMAIL_PROVIDERS,
 ] as const;
 export type IntegrationName = (typeof INTEGRATIONS)[number];
 
@@ -28,8 +41,8 @@ export type Field = {
   /** Where to find it, in the provider's own words where possible */
   help: string;
   placeholder?: string;
-  /** The environment variable it falls back to */
-  env: string;
+  /** The environment variable it falls back to (none for providers added after the admin) */
+  env?: string;
   /** Picked from a list the connection test fetches (Pathao and RedX stores) */
   pick?: "stores";
 };
@@ -37,7 +50,7 @@ export type Field = {
 export type IntegrationDef = {
   name: IntegrationName;
   label: string;
-  group: "payments" | "couriers" | "messages";
+  group: "payments" | "couriers" | "sms" | "email";
   /** One line on the card */
   blurb: string;
   /** Empty: live only (the provider has no sandbox) */
@@ -293,6 +306,58 @@ export const CATALOG: Record<IntegrationName, IntegrationDef> = {
       "Switch it on.",
     ],
   },
+  carrybee: {
+    name: "carrybee",
+    label: "CarryBee",
+    group: "couriers",
+    blurb: "Pickups and delivery across all 64 districts, with cash collection.",
+    modes: ["sandbox", "live"],
+    fields: [
+      {
+        key: "clientId",
+        label: "Client ID",
+        required: true,
+        help: "CarryBee merchant panel → API Credentials. Sandbox and Production each have their own.",
+      },
+      {
+        key: "clientSecret",
+        label: "Client secret",
+        secret: true,
+        required: true,
+        help: "On the same page as the Client ID.",
+      },
+      {
+        key: "clientContext",
+        label: "Client context",
+        required: true,
+        help: "The third value on the API Credentials page.",
+      },
+      {
+        key: "storeId",
+        label: "Pickup store",
+        required: true,
+        pick: "stores",
+        help: "Where CarryBee collects parcels. Press Test connection to choose from your stores.",
+      },
+      {
+        key: "webhookSecret",
+        label: "Webhook integration secret",
+        secret: true,
+        help: "CarryBee shows it on the Webhook Integration page. If it asks you for one, use a long random phrase, and enter the same here.",
+      },
+    ],
+    webhook: {
+      path: "/api/couriers/webhook/carrybee",
+      how: "On CarryBee's Webhook Integration page, paste this address and copy the secret into the field above. The site answers CarryBee's check with that secret.",
+    },
+    steps: [
+      "Choose Sandbox to try it, or Live for real parcels. Each has its own keys.",
+      "Enter the Client ID, Client secret and Client context from CarryBee's API Credentials page.",
+      "Press Test connection, then choose your pickup store.",
+      "Add the webhook on CarryBee's Webhook Integration page, and save its secret here.",
+      "Switch it on.",
+    ],
+  },
   "test-courier": {
     name: "test-courier",
     label: "Test courier",
@@ -306,9 +371,9 @@ export const CATALOG: Record<IntegrationName, IntegrationDef> = {
   },
   bulksmsbd: {
     name: "bulksmsbd",
-    label: "SMS (BulkSMSBD)",
-    group: "messages",
-    blurb: "Sends the checkout's verification code. Without it, customers can't check out.",
+    label: "BulkSMSBD",
+    group: "sms",
+    blurb: "Bangladeshi SMS gateway. API key and sender ID.",
     modes: [],
     fields: [
       {
@@ -333,11 +398,97 @@ export const CATALOG: Record<IntegrationName, IntegrationDef> = {
       "Switch it on.",
     ],
   },
+  sslwireless: {
+    name: "sslwireless",
+    label: "SSL Wireless",
+    group: "sms",
+    blurb: "The largest SMS gateway in Bangladesh (ISMS Plus). API token and SID.",
+    modes: [],
+    fields: [
+      {
+        key: "apiToken",
+        label: "API token",
+        secret: true,
+        required: true,
+        help: "The ISMS Plus API token SSL Wireless gave you with your SMS account.",
+      },
+      {
+        key: "sid",
+        label: "SID",
+        required: true,
+        help: "Your SID from SSL Wireless, sent with the API token. It sets the sender name or number.",
+      },
+    ],
+    steps: [
+      "Enter the API token and SID from SSL Wireless.",
+      "Press Test connection and send yourself a test SMS.",
+      "Switch it on.",
+    ],
+  },
+  alphasms: {
+    name: "alphasms",
+    label: "Alpha SMS",
+    group: "sms",
+    blurb: "Bangladeshi SMS gateway (sms.net.bd). One API key.",
+    modes: [],
+    fields: [
+      {
+        key: "apiKey",
+        label: "API key",
+        secret: true,
+        required: true,
+        help: "In your Alpha SMS panel (sms.net.bd), under API.",
+      },
+      {
+        key: "senderId",
+        label: "Sender ID",
+        help: "Your approved sender ID. Leave it empty to use Alpha SMS's default.",
+      },
+    ],
+    steps: [
+      "Enter the API key from Alpha SMS (and your sender ID, if you have one).",
+      "Press Test connection and send yourself a test SMS. It shows your balance too.",
+      "Switch it on.",
+    ],
+  },
+  mimsms: {
+    name: "mimsms",
+    label: "MiMSMS",
+    group: "sms",
+    blurb: "Bangladeshi SMS gateway. Login email, API key and sender name.",
+    modes: [],
+    fields: [
+      {
+        key: "username",
+        label: "Login email",
+        required: true,
+        help: "The email you sign in to the MiMSMS panel (sms.mimsms.com) with.",
+      },
+      {
+        key: "apiKey",
+        label: "API key",
+        secret: true,
+        required: true,
+        help: "MiMSMS panel → API. It must be activated there before it works.",
+      },
+      {
+        key: "senderName",
+        label: "Sender name",
+        required: true,
+        help: "Your approved sender ID in MiMSMS.",
+      },
+    ],
+    steps: [
+      "Enter your MiMSMS login email, API key and sender name.",
+      "Press Test connection and send yourself a test SMS. It shows your balance too.",
+      "Switch it on.",
+    ],
+  },
   resend: {
     name: "resend",
-    label: "Email (Resend)",
-    group: "messages",
-    blurb: "Sends the e-receipt with its PDF invoice, and team invitations.",
+    label: "Resend",
+    group: "email",
+    blurb: "Email API for developers. API key and a verified domain.",
     modes: [],
     fields: [
       {
@@ -361,6 +512,113 @@ export const CATALOG: Record<IntegrationName, IntegrationDef> = {
       "Verify your domain in Resend → Domains.",
       "Enter the API key and the address to send from.",
       "Press Test connection: it sends a test email to you.",
+      "Switch it on.",
+    ],
+  },
+  brevo: {
+    name: "brevo",
+    label: "Brevo",
+    group: "email",
+    blurb: "Free for 300 emails a day. API key and a verified sender.",
+    modes: [],
+    fields: [
+      {
+        key: "apiKey",
+        label: "API key",
+        secret: true,
+        required: true,
+        help: "Brevo → SMTP & API → API keys → Generate a new API key.",
+      },
+      {
+        key: "from",
+        label: "Send from",
+        required: true,
+        placeholder: "ZALFI <receipts@zalfi.com>",
+        help: "The sender customers see. Add and verify it (or its domain) in Brevo → Senders, domains & dedicated IPs.",
+      },
+    ],
+    steps: [
+      "Verify your sender or domain in Brevo.",
+      "Enter the API key and the address to send from.",
+      "Press Test connection: it sends a test email to you.",
+      "Switch it on.",
+    ],
+  },
+  postmark: {
+    name: "postmark",
+    label: "Postmark",
+    group: "email",
+    blurb: "Known for the best inbox delivery of receipts. Server token and a verified sender.",
+    modes: [],
+    fields: [
+      {
+        key: "serverToken",
+        label: "Server API token",
+        secret: true,
+        required: true,
+        help: "Postmark → your server → API Tokens → Server API token.",
+      },
+      {
+        key: "from",
+        label: "Send from",
+        required: true,
+        placeholder: "ZALFI <receipts@zalfi.com>",
+        help: "The sender customers see. Verify the address or its domain in Postmark → Sender signatures.",
+      },
+    ],
+    steps: [
+      "Verify your sender or domain in Postmark.",
+      "Enter the server API token and the address to send from.",
+      "Press Test connection: it sends a test email to you.",
+      "Switch it on.",
+    ],
+  },
+  smtp: {
+    name: "smtp",
+    label: "Your mailbox (SMTP)",
+    group: "email",
+    blurb: "Google Workspace, Gmail, Zoho Mail or your web host's email. No new account.",
+    modes: [],
+    fields: [
+      {
+        key: "host",
+        label: "SMTP server",
+        required: true,
+        placeholder: "smtp.gmail.com",
+        help: "Gmail and Google Workspace: smtp.gmail.com. Zoho Mail: smtp.zoho.com. A web host: usually mail.yourdomain.com.",
+      },
+      {
+        key: "port",
+        label: "Port",
+        required: true,
+        placeholder: "465",
+        help: "465 (SSL) or 587 (STARTTLS). Your mail provider's help page says which.",
+      },
+      {
+        key: "username",
+        label: "Username",
+        required: true,
+        help: "Usually the full email address.",
+      },
+      {
+        key: "password",
+        label: "Password",
+        secret: true,
+        required: true,
+        help: "For Gmail or Google Workspace, an app password (Google Account → Security → App passwords), not your normal password.",
+      },
+      {
+        key: "from",
+        label: "Send from",
+        required: true,
+        placeholder: "ZALFI <receipts@zalfi.com>",
+        help: "The sender customers see. Use the mailbox's own address, or one it may send as.",
+      },
+    ],
+    steps: [
+      "Enter the SMTP server, port, username and password from your mail provider.",
+      "Enter the address to send from.",
+      "Press Test connection: it signs in, then sends a test email to you.",
       "Switch it on.",
     ],
   },

@@ -167,24 +167,47 @@ Use any. The default is chosen in **Settings → Shipping**, and each order can 
 3. **Updates:** give RedX the whole **address** shown (it carries a token, which is how the site knows the update is from RedX).
 4. Switch it **On**. Sending an order picks the RedX delivery area from the address; you can change it in the send dialog.
 
+**CarryBee**
+1. In the CarryBee merchant panel, open **API Credentials**. Sandbox and Production each have a **Client ID**, **Client Secret** and **Client Context**. Create your pickup store in CarryBee's panel too.
+2. In **Integrations → CarryBee → Set up**: choose Sandbox or Live, enter the three values, **Save**, **Test connection**, and choose your **pickup store**.
+3. **Updates:** on CarryBee's **Webhook Integration** page, paste the **address** shown on the card, and copy CarryBee's secret into **Webhook integration secret** on the card (if CarryBee asks you to choose one, use a long random phrase in both places). The site answers CarryBee's check with that secret.
+4. Switch it **On**. Sending an order picks the CarryBee city and zone from the address; you can change them in the send dialog. A parcel can be cancelled from the order page before pickup.
+
 **Other courier or own rider:** for any courier without a connection (Sundarban, Paperfly, your own rider), or when the others are down. It's on by default. See the [admin guide](admin-guide.md#sending-with-another-courier-or-your-own-rider).
 
 Without webhooks, parcels still update: the site asks each connected courier every 30 minutes, and **Check** on an order asks at once.
 
-### Checkout codes: SMS (BulkSMSBD)
+### Checkout codes: SMS
 
-Every customer verifies their phone with a 6-digit code before ordering.
-1. Open an account at [bulksmsbd.net](https://bulksmsbd.net), add credit, and have a **sender ID** approved.
-2. In **Integrations → SMS → Set up**: enter the **API key** and **Sender ID**, **Save**, then **Test connection** with your own number: a test SMS arrives.
-3. Switch it **On**. Until it's on, codes are only written to the server's log, so real customers can't check out.
+Every customer verifies their phone with a 6-digit code before ordering. Pick any of these Bangladeshi gateways, and add a second as a backup:
 
-### The e-receipt: email (Resend)
+| Gateway | What it needs |
+|---|---|
+| **BulkSMSBD** ([bulksmsbd.net](https://bulksmsbd.net)) | API key, sender ID |
+| **SSL Wireless** (ISMS Plus) | API token, SID |
+| **Alpha SMS** ([sms.net.bd](https://sms.net.bd)) | API key (sender ID optional) |
+| **MiMSMS** ([mimsms.com](https://www.mimsms.com)) | Login email, API key (activated in their panel), sender name |
 
-ZALFI sends one email to customers: the receipt, with the invoice PDF attached. Team invitations go by email too.
-1. Open an account at [resend.com](https://resend.com). **Domains → Add Domain**: add the DNS records Resend shows at your registrar, and wait for **Verified**.
-2. **API Keys → Create** (sending access).
-3. In **Integrations → Email → Set up**: enter the key and the **Send from** address on your domain (`ZALFI <receipts@zalfi.com>`). **Save**, then **Test connection**: a test email arrives in your inbox.
-4. Switch it **On**.
+1. Open an account, add credit, and have a **sender ID** approved.
+2. In **Integrations → SMS**, open the gateway's card → **Set up**: enter its values, **Save**, then **Test connection** with your own number: a test SMS arrives.
+3. Switch it **On**. With two or more on, the box at the top of **SMS** sets which goes first; the next takes over if one fails. Until one is on, codes are only written to the server's log, so real customers can't check out.
+
+### The e-receipt: email
+
+ZALFI sends one email to customers: the receipt, with the invoice PDF attached. Team invitations go by email too. Pick any of these, and add a second as a backup:
+
+| Service | What it needs |
+|---|---|
+| **Resend** ([resend.com](https://resend.com)) | API key (Domains → Add Domain, then API Keys → Create) |
+| **Brevo** ([brevo.com](https://www.brevo.com)), free for 300 a day | API key (SMTP & API → API keys), a verified sender |
+| **Postmark** ([postmarkapp.com](https://postmarkapp.com)) | Server API token, a verified sender signature |
+| **Your mailbox (SMTP)** | Server, port, username, password of a mailbox you already have |
+
+For **your mailbox**: Gmail and Google Workspace use `smtp.gmail.com`, port 465, and an **app password** (Google Account → Security → App passwords), not your normal password. Zoho Mail uses `smtp.zoho.com`, port 465. A web host's email is usually `mail.yourdomain.com`, port 465 or 587. Gmail sends about 500 emails a day at most.
+
+1. Verify the address you send from (or its domain) with the service.
+2. In **Integrations → Email**, open its card → **Set up**: enter the values and the **Send from** address (`ZALFI <receipts@zalfi.com>`). **Save**, then **Test connection**: a test email arrives in your inbox.
+3. Switch it **On**. With two or more on, the box at the top of **Email** sets which goes first.
 
 ### Photo storage: Vercel Blob
 
@@ -198,8 +221,8 @@ Done in Part 1, step 3. Photos go to Blob whenever its token is there, with no s
 - [ ] **Store** and **Invoice details** are filled in. **Shipping** fees and Dhaka areas are right.
 - [ ] Real **prices and stock** are set in Products and Inventory.
 - [ ] At least one way to pay works: **SSLCommerz** or **aamarPay** live (tested, switched on, IPN address set), or **cash on delivery**, or **bKash and Nagad by hand**.
-- [ ] **SMS** sends real codes (Integrations → SMS: tested, on).
-- [ ] **Email** sends the receipt (Integrations → Email: domain verified, tested, on).
+- [ ] **SMS** sends real codes (Integrations → SMS: one gateway tested and on, a second as backup if you can).
+- [ ] **Email** sends the receipt (Integrations → Email: sender verified, tested, on).
 - [ ] At least one **courier** is live, tested, its webhook set, and chosen as the default.
 - [ ] **Integrations** shows no card as **Needs attention**.
 - [ ] **Blob** storage is connected (Part 1, step 3) before uploading photos.
@@ -220,7 +243,7 @@ Also listed, with comments, in [`.env.example`](../../.env.example).
 | `CRON_SECRET` | Always | Lets Vercel's background jobs in |
 | `BLOB_READ_WRITE_TOKEN` | For photo uploads (set by the Blob integration) | Vercel Blob |
 | `CREDENTIALS_KEY` | Optional | Encrypts the keys saved in Integrations. Without it, a key derived from `BETTER_AUTH_SECRET` is used |
-| `SSLCOMMERZ_*`, `AAMARPAY_*`, `PATHAO_*`, `STEADFAST_*`, `REDX_*`, `BULKSMSBD_*`, `RESEND_API_KEY`, `EMAIL_FROM` | No (set them up in Integrations) | Fallbacks for a site set up before the Integrations page. Keys saved in the admin win. The full list with comments is in `.env.example` |
+| `SSLCOMMERZ_*`, `AAMARPAY_*`, `PATHAO_*`, `STEADFAST_*`, `REDX_*`, `BULKSMSBD_*`, `RESEND_API_KEY`, `EMAIL_FROM` | No (set them up in Integrations) | Fallbacks for a site set up before the Integrations page. Keys saved in the admin win. The full list with comments is in `.env.example`. CarryBee, SSL Wireless, Alpha SMS, MiMSMS, Brevo, Postmark and SMTP have no variables: they are set up in the admin only |
 | `ALLOW_TEST_PROVIDERS` | Never on the live site | `true` lets the test gateway and courier run on a non-Vercel production build (a staging server) |
 | `NEON_LOCAL_PROXY_PORT`, `ADMIN_OWNER_PASSWORD` | Your computer only | The local database bridge; scripted owner creation |
 

@@ -1,4 +1,7 @@
-/** A parcel's public tracking page. Works without the courier's keys (for receipts sent later). */
+/**
+ * A parcel's public tracking page. Works without the courier's keys (for receipts sent later).
+ * CarryBee's API names no public tracking page, so its parcels show the consignment ID only.
+ */
 export function trackingUrl(name: string, trackingCode: string | null, phone: string) {
   if (!trackingCode) return null;
   if (name === "pathao")

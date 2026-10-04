@@ -39,9 +39,10 @@ import {
   SelectValue,
 } from "@/components/admin/ui/select";
 import { formatPrice } from "@/lib/money";
-import { OTHER_COURIERS, type CourierName } from "@/server/shipping/types";
+import { COURIER_LABELS, OTHER_COURIERS, type CourierName } from "@/server/shipping/types";
 import {
   cancelShipmentAction,
+  carrybeePlacesAction,
   manualStatusAction,
   pathaoPlacesAction,
   redxPlacesAction,
@@ -54,8 +55,8 @@ type Option = { name: CourierName; label: string; mode: string };
 type Place = { id: number; name: string };
 
 /**
- * "Send to courier": choose the courier and send. Pathao also needs its city and zone, RedX its
- * delivery area; "Other courier" takes the courier's name, tracking number and link.
+ * "Send to courier": choose the courier and send. Pathao and CarryBee also need their city and
+ * zone, RedX its delivery area; "Other courier" takes the courier's name, tracking number and link.
  */
 export function SendToCourier({
   orderId,
@@ -100,27 +101,43 @@ export function SendToCourier({
     };
   }, [open, name, orderId]);
 
-  // Pathao: load its cities and zones, with the address's own picked
+  // Pathao and CarryBee: load the courier's cities and zones, with the address's own picked
+  const cityZone = name === "pathao" || name === "carrybee";
+  const placesAction = name === "carrybee" ? carrybeePlacesAction : pathaoPlacesAction;
   useEffect(() => {
-    if (!open || name !== "pathao") return;
+    if (!open || (name !== "pathao" && name !== "carrybee")) return;
     let live = true;
-    void pathaoPlacesAction({ orderId }).then((r) => {
-      if (!live) return;
-      if (!r.ok) return setLookupError(r.error);
-      setCities(r.data.cities);
-      setZones(r.data.zones);
-      setCityId(r.data.cityId);
-      setZoneId(r.data.zoneId);
-    });
+    void (name === "carrybee" ? carrybeePlacesAction : pathaoPlacesAction)({ orderId }).then(
+      (r) => {
+        if (!live) return;
+        if (!r.ok) return setLookupError(r.error);
+        setCities(r.data.cities);
+        setZones(r.data.zones);
+        setCityId(r.data.cityId);
+        setZoneId(r.data.zoneId);
+      },
+    );
     return () => {
       live = false;
     };
   }, [open, name, orderId]);
 
+  // A new courier starts from a clean choice of places (Pathao's and CarryBee's ids differ)
+  function chooseCourier(v: string) {
+    setName(v as Option["name"]);
+    setLookupError(null);
+    setCities([]);
+    setZones([]);
+    setCityId(null);
+    setZoneId(null);
+    setAreas([]);
+    setAreaId(null);
+  }
+
   function chooseCity(id: number) {
     setCityId(id);
     setZoneId(null);
-    void pathaoPlacesAction({ orderId, cityId: id }).then((r) => {
+    void placesAction({ orderId, cityId: id }).then((r) => {
       if (r.ok) {
         setZones(r.data.zones);
         setZoneId(r.data.zoneId);
@@ -139,7 +156,7 @@ export function SendToCourier({
   const linkOk = !other.trackingUrl.trim() || /^https:\/\/\S+$/.test(other.trackingUrl.trim());
   const ready =
     !!name &&
-    (name !== "pathao" || (!!cityId && !!zoneId)) &&
+    (!cityZone || (!!cityId && !!zoneId)) &&
     (name !== "redx" || !!areaId) &&
     (name !== "manual" || (other.courierName.trim().length >= 2 && linkOk));
   return (
@@ -160,7 +177,7 @@ export function SendToCourier({
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="send-courier">Courier</Label>
-              <Select value={name} onValueChange={(v) => setName(v as Option["name"])}>
+              <Select value={name} onValueChange={chooseCourier}>
                 <SelectTrigger id="send-courier" className="w-full">
                   <SelectValue>
                     {couriers.find((c) => c.name === name)?.label ?? "Choose a courier"}
@@ -176,15 +193,15 @@ export function SendToCourier({
                 </SelectContent>
               </Select>
             </div>
-            {name === "pathao" && (
+            {cityZone && name && (
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="pathao-city">Pathao city</Label>
+                  <Label htmlFor="courier-city">{COURIER_LABELS[name]} city</Label>
                   <Select
                     value={cityId ? String(cityId) : undefined}
                     onValueChange={(v) => chooseCity(Number(v))}
                   >
-                    <SelectTrigger id="pathao-city" className="w-full">
+                    <SelectTrigger id="courier-city" className="w-full">
                       <SelectValue placeholder="Choose">
                         {cities.find((c) => c.id === cityId)?.name}
                       </SelectValue>
@@ -199,12 +216,12 @@ export function SendToCourier({
                   </Select>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="pathao-zone">Pathao zone</Label>
+                  <Label htmlFor="courier-zone">{COURIER_LABELS[name]} zone</Label>
                   <Select
                     value={zoneId ? String(zoneId) : undefined}
                     onValueChange={(v) => setZoneId(Number(v))}
                   >
-                    <SelectTrigger id="pathao-zone" className="w-full">
+                    <SelectTrigger id="courier-zone" className="w-full">
                       <SelectValue placeholder="Choose">
                         {zones.find((z) => z.id === zoneId)?.name}
                       </SelectValue>
@@ -307,6 +324,9 @@ export function SendToCourier({
                     courier: name,
                     ...(name === "pathao" && cityId && zoneId
                       ? { pathao: { cityId, zoneId } }
+                      : {}),
+                    ...(name === "carrybee" && cityId && zoneId
+                      ? { carrybee: { cityId, zoneId } }
                       : {}),
                     ...(name === "redx" && areaId
                       ? {

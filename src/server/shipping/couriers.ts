@@ -2,6 +2,7 @@ import { poolDb, type Executor } from "@/server/db/pool";
 import { getIntegration, type Resolved } from "@/server/integrations";
 import { getSettings } from "@/server/settings";
 import { testProvidersAllowed } from "@/server/test-mode";
+import { carrybee, type CarrybeeConfig, type CarrybeeProvider } from "./carrybee";
 import { manualCourier } from "./manual";
 import { mockCourier } from "./mock";
 import { pathao, type PathaoConfig, type PathaoProvider } from "./pathao";
@@ -10,7 +11,7 @@ import { steadfast, type SteadfastConfig, type SteadfastProvider } from "./stead
 import { COURIER_LABELS, COURIER_NAMES, type CourierName, type CourierProvider } from "./types";
 
 /**
- * Which couriers take parcels. Pathao, Steadfast and RedX are set up and switched on in Admin →
+ * Which couriers take parcels. Pathao, Steadfast, RedX and CarryBee are set up and switched on in Admin →
  * Integrations (keys saved there, or the old environment variables). "Other courier" (the team's
  * own records) has its switch there too; the test courier runs only off the live site.
  *
@@ -42,11 +43,21 @@ export const redxConfigOf = (r: Resolved): RedxConfig => ({
   webhookToken: r.webhookToken,
 });
 
+export const carrybeeConfigOf = (r: Resolved): CarrybeeConfig => ({
+  clientId: r.values.clientId!,
+  clientSecret: r.values.clientSecret!,
+  clientContext: r.values.clientContext!,
+  storeId: r.values.storeId!,
+  live: r.mode === "live",
+  webhookSecret: r.values.webhookSecret ?? null,
+});
+
 /** Where each courier's switch lives in the integrations table */
 const INTEGRATION = {
   pathao: "pathao",
   steadfast: "steadfast",
   redx: "redx",
+  carrybee: "carrybee",
   mock: "test-courier",
 } as const;
 
@@ -69,9 +80,11 @@ async function find(name: CourierName, exec: Executor): Promise<Found | null> {
         ? steadfast(steadfastConfigOf(r))
         : name === "redx"
           ? redx(redxConfigOf(r))
-          : testProvidersAllowed()
-            ? mockCourier
-            : null;
+          : name === "carrybee"
+            ? carrybee(carrybeeConfigOf(r))
+            : testProvidersAllowed()
+              ? mockCourier
+              : null;
   return provider ? { provider, enabled: r.enabled, mode: provider.mode } : null;
 }
 
@@ -91,6 +104,7 @@ export const pathaoCourier = async () => (await courier("pathao")) as PathaoProv
 export const steadfastCourier = async () =>
   (await courier("steadfast")) as SteadfastProvider | null;
 export const redxCourier = async () => (await courier("redx")) as RedxProvider | null;
+export const carrybeeCourier = async () => (await courier("carrybee")) as CarrybeeProvider | null;
 
 export type CourierOption = { name: CourierName; label: string; mode: string };
 

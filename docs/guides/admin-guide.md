@@ -56,7 +56,7 @@ When the bottles are boxed, press **Mark packed**. For several at once: tick the
 ### 3. Send it to the courier
 
 On the order, under **Shipment**, press **Send to courier**:
-1. Choose the courier (your default is preselected; only couriers switched on in **Integrations** are offered). For Pathao, check the city and zone it matched from the address. For RedX, check the delivery area. For **Other courier**, see [below](#sending-with-another-courier-or-your-own-rider).
+1. Choose the courier (your default is preselected; only couriers switched on in **Integrations** are offered). For Pathao and CarryBee, check the city and zone it matched from the address. For RedX, check the delivery area. For **Other courier**, see [below](#sending-with-another-courier-or-your-own-rider).
 2. The dialog shows the cash the courier will collect (the total for unpaid cash-on-delivery orders, nothing for paid ones).
 3. Press **Send**. The courier gives a consignment number, and the order shows **Packed** while it waits for pickup.
 
@@ -219,16 +219,17 @@ Payment gateways, couriers, SMS and email are set up in **Integrations**, below.
 
 ## Integrations: gateways, couriers, SMS and email
 
-**Integrations** (owner only; managers can look) has a card for every service: **SSLCommerz**, **aamarPay**, **bKash and Nagad (by hand)**, **Cash on delivery**, **Pathao**, **Steadfast**, **RedX**, **Other courier or own rider**, **SMS** and **Email**.
+**Integrations** (owner only; managers can look) has a card for every service: **SSLCommerz**, **aamarPay**, **bKash and Nagad (by hand)**, **Cash on delivery**, **Pathao**, **Steadfast**, **RedX**, **CarryBee**, **Other courier or own rider**; four SMS gateways (**BulkSMSBD**, **SSL Wireless**, **Alpha SMS**, **MiMSMS**) and four email services (**Resend**, **Brevo**, **Postmark**, **Your mailbox (SMTP)**).
 
 - **The badge** says where it stands: **Not set up**, **Sandbox** (test only), **Live**, **Off**, or **Needs attention** (it's failing: the card says why).
 - **The switch** turns it on or off at once. A gateway switched off takes no new payments, but payments already under way still settle. A courier switched off takes no new parcels, but keeps updating the ones it has.
 - **Set up** opens its page:
   1. **Sandbox** or **Live**.
-  2. The keys, each with where to find it in that provider's panel. Some have **Fill in the public sandbox account**. Pathao and RedX list your pickup stores after a test.
+  2. The keys, each with where to find it in that provider's panel. Some have **Fill in the public sandbox account**. Pathao, RedX and CarryBee list your pickup stores after a test.
   3. **Save**. Keys are stored encrypted and never shown again: a saved one shows its last four characters, with **Replace**.
-  4. **Test connection**. It checks the keys with the provider without changing anything that matters: a payment page opened and left, a store list, your balance, one SMS to the number you type, one email to you.
+  4. **Test connection**. It checks the keys with the provider without changing anything that matters: a payment page opened and left, a store list, your balance, one SMS to the number you type (with the balance, for Alpha SMS and MiMSMS), one email to you (SMTP signs in first, so a wrong password is named plainly).
   5. **The webhook** (couriers) or **notification address** (gateways): the exact address, and the secret, to paste into the provider's panel, each with **Copy**. **Make a new secret** replaces it; paste the new one at once.
+- **SMS and Email: the send order.** Switch on more than one, as a backup. The box at the top of each section lists the ones that are on, in order, with arrows to move them. Codes and receipts go with the first; if it refuses or doesn't answer, the next sends them by itself, and the one that failed shows **Needs attention**.
 - **Checkout tries first** (top of Payments): with SSLCommerz and aamarPay both on, checkout uses this one, and the other takes over by itself if it can't open a payment page.
 - **Someone changed a key in the provider's panel?** The next real call fails. The card shows **Needs attention** and the **Overview** lists it. Open **Set up**, replace the key, test again.
 - **Keys from the hosting settings** (environment variables, from before this page existed) keep working. The card says so, and **Move them into the admin** copies them in so you can change them here.

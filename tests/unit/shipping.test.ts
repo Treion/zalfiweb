@@ -11,6 +11,14 @@ import { manualCourier } from "@/server/shipping/manual";
 import { mapRedx } from "@/server/shipping/status-redx";
 import { parseRedxCreated, redx, redxBase, redxParcelBody } from "@/server/shipping/redx";
 import { trackingUrl } from "@/server/shipping/tracking";
+import { mapCarrybee, normaliseCarrybee } from "@/server/shipping/status-carrybee";
+import {
+  carrybee,
+  carrybeeBase,
+  carrybeeError,
+  carrybeeOrderBody,
+  parseCarrybeeCreated,
+} from "@/server/shipping/carrybee";
 import { codAmountFor, pathTo } from "@/server/shipping/service";
 import { CANCELLED_HERE, type ShipmentInput } from "@/server/shipping/types";
 import { ORDER_STATUSES, TRANSITIONS } from "@/server/orders/state";
@@ -375,6 +383,150 @@ describe("RedX", () => {
     expect(trackingUrl("redx", "21A427TU4BN3R", "01712345678")).toBe(
       "https://redx.com.bd/track-parcel/?trackingId=21A427TU4BN3R",
     );
+  });
+});
+
+describe("CarryBee", () => {
+  const cfg = {
+    clientId: "cid",
+    clientSecret: "csec",
+    clientContext: "cctx",
+    storeId: "a1b2c3d4",
+    live: false,
+    webhookSecret: "cb-secret",
+  };
+
+  it("sends the parcel with its city and zone, cash in whole taka and weight in grams", () => {
+    const b = carrybeeOrderBody(cfg, { ...input, carrybee: { cityId: 14, zoneId: 286 } });
+    expect(b).toMatchObject({
+      store_id: "a1b2c3d4",
+      merchant_order_id: "ZLF-001234",
+      delivery_type: 1,
+      product_type: 1,
+      recipient_phone: "01712345678",
+      recipient_name: "Nusrat Jahan",
+      recipient_address: "Road 7A, House 21, Dhanmondi, Dhaka",
+      city_id: 14,
+      zone_id: 286,
+      item_weight: 1500,
+      item_quantity: 3,
+      collectable_amount: 4570,
+      is_closed_box: true,
+      product_description: "Reva x2, Oudor",
+    });
+    expect(() => carrybeeOrderBody(cfg, input)).toThrow(/city and zone/);
+    const long = carrybeeOrderBody(cfg, {
+      ...input,
+      reference: "R".repeat(80),
+      recipient: { ...input.recipient, name: "N".repeat(150), address: "A".repeat(300) },
+      carrybee: { cityId: 1, zoneId: 2 },
+    });
+    expect(long.merchant_order_id.length).toBeLessThan(50);
+    expect(long.recipient_name.length).toBeLessThanOrEqual(99);
+    expect(long.recipient_address.length).toBeLessThanOrEqual(200);
+    expect(carrybeeBase(false)).toBe("https://sandbox.carrybee.com");
+    expect(carrybeeBase(true)).toBe("https://developers.carrybee.com");
+  });
+
+  it("reads the consignment and the fee, or why CarryBee refused", () => {
+    expect(
+      parseCarrybeeCreated({
+        error: false,
+        message: "Order created successfully",
+        data: {
+          order: {
+            consignment_id: "FX1212124433",
+            store_id: "a1b2c3d4",
+            merchant_order_id: "ZLF-001234",
+            collectable_amount: "4570",
+            cod_fee: 15,
+            delivery_fee: "83.46",
+          },
+        },
+      }),
+    ).toMatchObject({
+      consignmentId: "FX1212124433",
+      trackingCode: "FX1212124433",
+      status: "created",
+      deliveryFee: 9846,
+    });
+    const invalid = {
+      error: true,
+      message: "Validation error",
+      causes: {
+        recipient_phone: [{ type: "phone", attribute: {} }],
+        item_weight: [{ type: "max", attribute: {} }],
+      },
+    };
+    expect(() => parseCarrybeeCreated(invalid)).toThrow(
+      "Validation error: recipient_phone (phone); item_weight (max)",
+    );
+    expect(carrybeeError({ error: true, message: "Store not found" }, "x")).toBe("Store not found");
+  });
+
+  it("maps every CarryBee event to the order", () => {
+    expect(mapCarrybee("order.pickup-requested")).toMatchObject({ order: "packed" });
+    expect(mapCarrybee("order.picked")).toMatchObject({ order: "shipped", final: false });
+    for (const e of [
+      "at-the-sorting-hub",
+      "on-the-way-to-central-warehouse",
+      "at-central-warehouse",
+      "in-transit",
+      "received-at-last-mile-hub",
+    ])
+      expect(mapCarrybee(`order.${e}`).order).toBe("shipped");
+    expect(mapCarrybee("order.assigned-for-delivery").order).toBe("out_for_delivery");
+    expect(mapCarrybee("order.delivered")).toMatchObject({ order: "delivered", final: true });
+    expect(mapCarrybee("order.partial-delivery")).toMatchObject({ order: "delivered" });
+    expect(mapCarrybee("order.delivery-failed")).toMatchObject({
+      order: "delivery_failed",
+      failedAttempt: true,
+    });
+    expect(mapCarrybee("order.delivery-on-hold").attention).toBeTruthy();
+    expect(mapCarrybee("order.pickup-cancelled")).toMatchObject({ final: true, order: null });
+    expect(mapCarrybee("order.returned-to-merchant")).toMatchObject({
+      order: "delivery_failed",
+      final: true,
+    });
+    expect(mapCarrybee("order.paid").order).toBeNull();
+    // The details API's transfer_status, however it is written
+    expect(normaliseCarrybee("In Transit")).toBe("in-transit");
+    expect(normaliseCarrybee("assigned_for_delivery")).toBe("assigned-for-delivery");
+    expect(mapStatus("carrybee", "Delivered").order).toBe("delivered");
+    expect(mapCarrybee("something-new")).toMatchObject({ label: "something new", order: null });
+  });
+
+  it("accepts a webhook only with the secret from CarryBee's panel", () => {
+    const c = carrybee(cfg);
+    const body = {
+      event: "order.delivery-on-hold",
+      store_id: "a1b2c3d4",
+      consignment_id: "FX1212124433",
+      merchant_order_id: "ZLF-001234",
+      timestamptz: "2025-07-30T10:11:12+00:00",
+      attempt: 1,
+      reason: "Customer not reachable",
+      remarks: "",
+    };
+    const signed = new Headers({ "X-CB-Webhook-Integration-Header": "cb-secret" });
+    expect(c.handleWebhook(signed, body)).toEqual({
+      consignmentId: "FX1212124433",
+      status: "delivery-on-hold",
+      message: "Customer not reachable",
+      eventId: "FX1212124433:delivery-on-hold:2025-07-30T10:11:12+00:00",
+    });
+    expect(
+      c.handleWebhook(new Headers({ "X-CB-Webhook-Integration-Header": "nope" }), body),
+    ).toBeNull();
+    expect(c.handleWebhook(new Headers(), body)).toBeNull();
+    // The set-up check names no parcel
+    expect(c.handleWebhook(signed, { event: "webhook.integration" })).toMatchObject({
+      consignmentId: "",
+    });
+    // "updated" changes amounts, not where the parcel is
+    expect(c.handleWebhook(signed, { ...body, event: "order.updated" })?.status).toBeNull();
+    expect(carrybee({ ...cfg, webhookSecret: null }).handleWebhook(signed, body)).toBeNull();
+    expect(trackingUrl("carrybee", "FX1212124433", "01712345678")).toBeNull();
   });
 });
 

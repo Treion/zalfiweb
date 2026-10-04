@@ -99,7 +99,7 @@ export function ShipmentPanel({
                 shipmentId={current.id}
                 mock={current.courier === "mock"}
                 manual={current.courier === "manual"}
-                cancelsHere={["mock", "manual", "redx"].includes(current.courier)}
+                cancelsHere={["mock", "manual", "redx", "carrybee"].includes(current.courier)}
                 underWay={current.active}
                 canCancel={current.active && o.status === "packed"}
                 courierLabel={shipmentLabel(current)}

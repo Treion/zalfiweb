@@ -25,7 +25,7 @@ Read this whole file before writing any code. Then follow the **Phases** section
 - **Admin UI:** shadcn/ui components (Tailwind v4 compatible), TanStack Table for data tables, Recharts (or shadcn charts, which wrap Recharts) for graphs, `next-themes` for dark/light mode, `lucide-react` icons, React Hook Form + Zod for forms.
 - **Auth (admin only):** Better Auth with its Drizzle adapter (fall back to Auth.js v5 only if Better Auth is incompatible with this Next.js version — note the choice in DECISIONS.md). Email + password, passwords hashed with argon2 or the library default.
 - **Validation:** Zod schemas shared between server and client.
-- **Email:** Resend + React Email templates, behind an `EmailProvider` adapter (dev provider writes emails to the console and to a local preview page).
+- **Email:** React Email templates, behind an `EmailProvider` adapter (dev provider writes emails to the console and to a local preview page). Real services: Resend, Brevo, Postmark and the owner's own mailbox over SMTP, tried in the owner's order with fallback (`integrations.emailOrder`).
 - **PDF (invoices, shipping labels):** `@react-pdf/renderer`.
 - **Background jobs:** Vercel Cron hitting protected route handlers.
 - **Rate limiting:** a small Postgres-backed limiter (no extra paid service).
@@ -82,7 +82,7 @@ Wire the existing bag/cart and `/api/checkout` to this flow, using the storefron
 
 1. Customer adds items to the bag (existing UI).
 2. At checkout they enter: **full name, phone number, email, delivery address** (district dropdown with all 64 districts, then area/thana and street address). Validate Bangladeshi mobile numbers (`01XXXXXXXXX`, normalise `+880`).
-3. **Phone verification by OTP:** send a 6-digit code by SMS. Code expires in 5 minutes, max 5 attempts, resend allowed after 60 seconds, rate-limited per phone and per IP. Codes stored hashed. Once verified, the phone stays verified for that browser session for 24 hours. SMS sending goes through an `SmsProvider` adapter with a dev provider that logs the code to the console; real providers to support later: BulkSMSBD, SSL Wireless, Alpha SMS (implement one fully, structure the adapter so others are easy).
+3. **Phone verification by OTP:** send a 6-digit code by SMS. Code expires in 5 minutes, max 5 attempts, resend allowed after 60 seconds, rate-limited per phone and per IP. Codes stored hashed. Once verified, the phone stays verified for that browser session for 24 hours. SMS sending goes through an `SmsProvider` adapter with a dev provider that logs the code to the console; real providers: BulkSMSBD, SSL Wireless, Alpha SMS and MiMSMS, tried in the owner's order with fallback to the next (`integrations.smsOrder`).
 4. The server calculates the shipping fee (section 6), applies any coupon (section 7), re-checks stock and prices, and shows the final total.
 5. Customer chooses a payment method among those enabled in settings:
    - **SSLCommerz** (cards, bKash, Nagad, Rocket, etc.)

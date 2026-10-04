@@ -71,6 +71,13 @@
       "when": 1791116463181,
       "tag": "0009_manual_and_redx",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791133529092,
+      "tag": "0010_carrybee",
+      "breakpoints": true
     }
   ]
 }

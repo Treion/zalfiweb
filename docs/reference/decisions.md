@@ -255,4 +255,12 @@ Judgement calls made while building the backend and admin, newest last. Each one
     - The team types its name, tracking number and link, then records each step from the order page through the same status code the connected couriers use. Steps are audited with who recorded them.
     - The customer's tracking button opens the saved link. It's on by default (`shipping.manualCourierEnabled`).
 120. **SMS and email moved onto the same page** (owner's choice), each with a test send to the owner. **Photo storage needs no switch:** Vercel Blob whenever its token is set, local files otherwise. The old `integrations.payments/sms/email/storage` settings are gone; `integrations.gatewayOrder` remains.
-
+121. **More SMS gateways and email services, tried in order.** SMS: BulkSMSBD, SSL Wireless (ISMS Plus v3), Alpha SMS (sms.net.bd) and MiMSMS (API v2), all Bangladeshi with BTRC-approved sender IDs. Email: Resend, Brevo, Postmark and the owner's own mailbox over SMTP (nodemailer, loaded only when used).
+    - Every one switched on is tried in the owner's order (`integrations.smsOrder`, `integrations.emailOrder`, the same rule the owner chose for gateways). When one refuses or doesn't answer, the next sends; the one that failed is flagged in Needs attention even so.
+    - SMTP needs TLS: port 465 from the start, any other port with STARTTLS required (only a mail server on the same computer is exempt, for testing). Test connection signs in first, so a wrong password is named plainly.
+    - These providers' docs couldn't be fetched from the build environment; requests follow their published API references, and each card's Test connection proves the keys with the provider.
+122. **New providers are set up in the admin only.** CarryBee, SSL Wireless, Alpha SMS, MiMSMS, Brevo, Postmark and SMTP have no environment-variable fallback (`Field.env` is optional): no site was ever set up the old way with them.
+123. **CarryBee** follows the Delivery API doc the owner supplied (`docs/reference/carrybee-api.md`).
+    - Three headers per environment (Client-ID, Client-Secret, Client-Context). The city and zone are matched from the address like Pathao's, then through CarryBee's own address lookup.
+    - Its webhook carries the secret from CarryBee's Webhook Integration page in `X-CB-Webhook-Integration-Header`, compared in constant time, and the answer is 202 with the secret echoed back. The parcel's status is re-read from the order details API (`transfer_status`).
+    - The doc names no public tracking page, so customers see the consignment ID. Reverse pickups, exchanges and bulk orders aren't used yet.

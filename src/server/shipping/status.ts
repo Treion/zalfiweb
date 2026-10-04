@@ -1,3 +1,4 @@
+import { mapCarrybee } from "./status-carrybee";
 import { mapMock } from "./status-mock";
 import { mapPathao } from "./status-pathao";
 import { mapRedx } from "./status-redx";
@@ -16,6 +17,8 @@ export function mapStatus(name: CourierName, status: string): MappedStatus {
       return mapSteadfast(status);
     case "redx":
       return mapRedx(status);
+    case "carrybee":
+      return mapCarrybee(status);
     case "manual":
     case "mock":
       return mapMock(status);

@@ -5,8 +5,11 @@ import { z } from "zod";
 import { runAction } from "@/server/auth/session";
 import { UserFacingError } from "@/server/errors";
 import {
+  EMAIL_PROVIDERS,
   getIntegration,
+  inOrder,
   INTEGRATIONS,
+  SMS_PROVIDERS,
   recordCheck,
   saveIntegration,
   webhookToken,
@@ -96,6 +99,31 @@ export async function setGatewayOrderAction(input: unknown) {
       await saveSettings(
         "integrations",
         { ...current, gatewayOrder: [...gatewayOrder] },
+        admin.actor,
+      );
+      refresh();
+    },
+  );
+}
+
+/** The order SMS gateways (or email services) are tried in: the next takes over when one fails */
+export async function setSendOrderAction(input: unknown) {
+  return runAction(
+    "integrations.manage",
+    z.discriminatedUnion("kind", [
+      z.object({ kind: z.literal("sms"), order: z.array(z.enum(SMS_PROVIDERS)).min(1) }).strict(),
+      z
+        .object({ kind: z.literal("email"), order: z.array(z.enum(EMAIL_PROVIDERS)).min(1) })
+        .strict(),
+    ]),
+    input,
+    async (d, admin) => {
+      const current = await getSettings("integrations");
+      await saveSettings(
+        "integrations",
+        d.kind === "sms"
+          ? { ...current, smsOrder: inOrder(d.order, SMS_PROVIDERS) }
+          : { ...current, emailOrder: inOrder(d.order, EMAIL_PROVIDERS) },
         admin.actor,
       );
       refresh();

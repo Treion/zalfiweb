@@ -51,6 +51,7 @@ export const courierName = pgEnum("courier_name", [
   "steadfast",
   "redx",
   "manual",
+  "carrybee",
 ]);
 export const stockMovementType = pgEnum("stock_movement_type", [
   "initial",

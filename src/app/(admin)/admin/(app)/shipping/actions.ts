@@ -11,6 +11,7 @@ import {
   RETURN_CONDITIONS,
   applyCourierStatus,
   cancelShipment,
+  carrybeePlaces,
   pathaoPlaces,
   recordManualStatus,
   recordReturn,
@@ -43,6 +44,7 @@ export async function sendToCourierAction(input: unknown) {
           .object({ areaId: id, areaName: z.string().trim().min(1).max(120) })
           .strict()
           .optional(),
+        carrybee: z.object({ cityId: id, zoneId: id }).strict().optional(),
         manual: z
           .object({
             courierName: z.string().trim().min(2, "Say which courier takes it.").max(60),
@@ -65,7 +67,13 @@ export async function sendToCourierAction(input: unknown) {
     async (d, admin) => {
       const r = await sendToCourier(
         d.id,
-        { courier: d.courier, pathao: d.pathao, redx: d.redx, manual: d.manual },
+        {
+          courier: d.courier,
+          pathao: d.pathao,
+          redx: d.redx,
+          carrybee: d.carrybee,
+          manual: d.manual,
+        },
         admin.actor,
       );
       refresh();
@@ -93,6 +101,15 @@ export async function pathaoPlacesAction(input: unknown) {
     z.object({ orderId: id, cityId: id.optional() }).strict(),
     input,
     async (d) => pathaoPlaces(d.orderId, d.cityId),
+  );
+}
+
+export async function carrybeePlacesAction(input: unknown) {
+  return runAction(
+    "shipping.manage",
+    z.object({ orderId: id, cityId: id.optional() }).strict(),
+    input,
+    async (d) => carrybeePlaces(d.orderId, d.cityId),
   );
 }
 

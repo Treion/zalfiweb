@@ -5,9 +5,15 @@ import { aamarpay } from "@/server/payments/aamarpay";
 import { aamarConfigOf, sslConfigOf } from "@/server/payments/providers";
 import { sslcommerz } from "@/server/payments/sslcommerz";
 import type { PaymentProvider } from "@/server/payments/types";
-import { bulkSmsBd } from "@/server/providers/sms";
-import { resendEmail } from "@/server/providers/email";
-import { pathaoConfigOf, redxConfigOf, steadfastConfigOf } from "@/server/shipping/couriers";
+import { smsGatewayOf } from "@/server/providers/sms";
+import { emailServiceOf, smtpEmail } from "@/server/providers/email";
+import { carrybee } from "@/server/shipping/carrybee";
+import {
+  carrybeeConfigOf,
+  pathaoConfigOf,
+  redxConfigOf,
+  steadfastConfigOf,
+} from "@/server/shipping/couriers";
 import { pathao } from "@/server/shipping/pathao";
 import { redx } from "@/server/shipping/redx";
 import { steadfast } from "@/server/shipping/steadfast";
@@ -24,6 +30,8 @@ export type TestResult = {
   /** Pickup stores to choose from (Pathao, RedX) */
   stores?: { id: string; name: string; address: string }[];
 };
+
+const stores = (n: number) => `${n} pickup store${n === 1 ? "" : "s"}`;
 
 /** The fields a test needs: the required ones, except those it helps choose (a store) */
 function missing(r: Resolved) {
@@ -73,11 +81,11 @@ export async function testIntegration(
       case "aamarpay":
         return await openTestPage(aamarpay(aamarConfigOf(r)));
       case "pathao": {
-        const stores = await pathao(pathaoConfigOf(r)).stores();
+        const list = await pathao(pathaoConfigOf(r)).stores();
         return {
           ok: true,
-          message: `Signed in to Pathao (${r.mode}) as ${r.values.username}. ${stores.length} pickup store${stores.length === 1 ? "" : "s"}.`,
-          stores: stores.map((s) => ({ id: String(s.id), name: s.name, address: s.address })),
+          message: `Signed in to Pathao (${r.mode}) as ${r.values.username}. ${stores(list.length)}.`,
+          stores: list.map((s) => ({ id: String(s.id), name: s.name, address: s.address })),
         };
       }
       case "steadfast": {
@@ -88,27 +96,52 @@ export async function testIntegration(
         };
       }
       case "redx": {
-        const stores = await redx(redxConfigOf(r)).stores();
+        const list = await redx(redxConfigOf(r)).stores();
         return {
           ok: true,
-          message: `Connected to RedX (${r.mode}). ${stores.length} pickup store${stores.length === 1 ? "" : "s"}.`,
-          stores: stores.map((s) => ({ id: String(s.id), name: s.name, address: s.address })),
+          message: `Connected to RedX (${r.mode}). ${stores(list.length)}.`,
+          stores: list.map((s) => ({ id: String(s.id), name: s.name, address: s.address })),
         };
       }
-      case "bulksmsbd": {
+      case "carrybee": {
+        const list = await carrybee(carrybeeConfigOf(r)).stores();
+        return {
+          ok: true,
+          message: `Connected to CarryBee (${r.mode}). ${stores(list.length)}.`,
+          stores: list,
+        };
+      }
+      case "bulksmsbd":
+      case "sslwireless":
+      case "alphasms":
+      case "mimsms": {
         const to = opts.to ? normalisePhone(opts.to) : null;
         if (!to)
           return { ok: false, message: "Enter a Bangladeshi mobile number to send the test to." };
-        const sent = await bulkSmsBd(r.values.apiKey!, r.values.senderId!).send(
-          to,
-          "ZALFI: this is a test message. SMS is working.",
-        );
-        return sent.ok
-          ? { ok: true, message: `Sent a test SMS to ${to}. Check the phone.` }
-          : { ok: false, message: sent.error };
+        const gateway = smsGatewayOf(r);
+        const sent = await gateway.send(to, "ZALFI: this is a test message. SMS is working.");
+        if (!sent.ok) return { ok: false, message: sent.error };
+        const balance = await gateway.balance?.().catch(() => null);
+        return {
+          ok: true,
+          message: `Sent a test SMS to ${to}. Check the phone.${balance ? ` Balance: ${balance}.` : ""}`,
+        };
       }
-      case "resend": {
-        const sent = await resendEmail(r.values.apiKey!, r.values.from!).send({
+      case "resend":
+      case "brevo":
+      case "postmark":
+      case "smtp": {
+        if (r.name === "smtp") {
+          const refused = await smtpEmail({
+            host: r.values.host!,
+            port: r.values.port!,
+            username: r.values.username!,
+            password: r.values.password!,
+            from: r.values.from!,
+          }).verify();
+          if (refused) return { ok: false, message: refused };
+        }
+        const sent = await emailServiceOf(r).send({
           to: opts.ownerEmail,
           subject: "ZALFI: test email",
           text: "This is a test from Admin → Integrations. Email is working.",

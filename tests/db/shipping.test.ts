@@ -29,6 +29,7 @@ import {
   simulateCourier,
 } from "@/server/shipping/service";
 import { loadLabels, renderLabels } from "@/server/shipping/label";
+import { saveIntegration } from "@/server/integrations";
 
 /** Shipping against a real database, through the test courier and a stubbed Steadfast */
 const RUN = Date.now().toString(36);
@@ -313,6 +314,115 @@ describe("shipping", () => {
       ),
     ).toBe(200);
     // The payload said "pending"; the API says "delivered", and the API wins
+    expect(await orderOf(o.id)).toMatchObject({ status: "delivered", paymentStatus: "paid" });
+  });
+
+  it("sends with CarryBee, takes its webhooks only with the secret, and trusts its API", async () => {
+    await saveIntegration(
+      "carrybee",
+      {
+        mode: "sandbox",
+        enabled: true,
+        values: {
+          clientId: "cid",
+          clientSecret: "csecret",
+          clientContext: "cctx",
+          storeId: "store-1",
+          webhookSecret: "cb-secret",
+        },
+      },
+      admin,
+    );
+    const consignment = `${RUN}CB${seq++}`;
+    let details: string | null = null;
+    const calls: { url: string; body: unknown; headers: Headers }[] = [];
+    const fetch = vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push({
+        url,
+        body: init?.body ? JSON.parse(String(init.body)) : null,
+        headers: new Headers(init?.headers),
+      });
+      if (url.endsWith("/api/v2/cities"))
+        return Response.json({ error: false, data: { cities: [{ id: 7, name: "Sylhet" }] } });
+      if (url.endsWith("/api/v2/cities/7/zones"))
+        return Response.json({
+          error: false,
+          data: { zones: [{ id: 70, name: "Zindabazar", city_id: 7 }] },
+        });
+      if (url.endsWith("/api/v2/orders"))
+        return Response.json(
+          {
+            error: false,
+            message: "Order created successfully",
+            data: {
+              order: {
+                consignment_id: consignment,
+                store_id: "store-1",
+                merchant_order_id: "x",
+                collectable_amount: "6000",
+                cod_fee: 15,
+                delivery_fee: "110",
+              },
+            },
+          },
+          { status: 201 },
+        );
+      if (url.includes("/details")) {
+        if (!details) throw new TypeError("fetch failed");
+        return Response.json({ error: false, data: { transfer_status: details } });
+      }
+      return Response.json({ error: true, message: "Not found" }, { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    const o = await order();
+    await sendToCourier(o.id, { courier: "carrybee" }, admin);
+    const s = await shipmentOf(o.id);
+    expect(s).toMatchObject({
+      courier: "carrybee",
+      consignmentId: consignment,
+      status: "created",
+    });
+    const sent = calls.find((c) => c.url.endsWith("/api/v2/orders"))!;
+    expect(sent.url).toBe("https://sandbox.carrybee.com/api/v2/orders");
+    expect(sent.headers.get("client-id")).toBe("cid");
+    expect(sent.headers.get("client-context")).toBe("cctx");
+    expect(sent.body).toMatchObject({
+      store_id: "store-1",
+      city_id: 7,
+      zone_id: 70,
+      collectable_amount: o.total / 100,
+    });
+
+    const event = (name: string) => ({
+      event: name,
+      store_id: "store-1",
+      consignment_id: consignment,
+      merchant_order_id: o.number,
+      timestamptz: new Date().toISOString(),
+    });
+    const signed = new Headers({ "X-CB-Webhook-Integration-Header": "cb-secret" });
+    expect(
+      await handleCourierWebhook(
+        "carrybee",
+        new Headers({ "X-CB-Webhook-Integration-Header": "wrong" }),
+        event("order.picked"),
+      ),
+    ).toBe(401);
+    // CarryBee's set-up check names no parcel: accepted, nothing changes
+    expect(await handleCourierWebhook("carrybee", signed, { event: "webhook.integration" })).toBe(
+      200,
+    );
+    expect((await orderOf(o.id)).status).toBe("packed");
+    // The details API can't be reached: the signed payload stands
+    const picked = event("order.picked");
+    expect(await handleCourierWebhook("carrybee", signed, picked)).toBe(200);
+    expect(await handleCourierWebhook("carrybee", signed, picked)).toBe(200);
+    expect(await orderOf(o.id)).toMatchObject({ status: "shipped" });
+    expect((await shipmentOf(o.id)).status).toBe("picked");
+    // The API answers again, and wins over the payload
+    details = "Delivered";
+    expect(await handleCourierWebhook("carrybee", signed, event("order.in-transit"))).toBe(200);
     expect(await orderOf(o.id)).toMatchObject({ status: "delivered", paymentStatus: "paid" });
   });
 

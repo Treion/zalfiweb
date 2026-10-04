@@ -10,7 +10,7 @@ import { transitionOrder } from "@/server/orders/manage";
 import { TRANSITIONS, type OrderStatus } from "@/server/orders/state";
 import { firstDelivery } from "@/server/payments/service";
 import { getSettings } from "@/server/settings";
-import { courier, courierForNew, pathaoCourier, redxCourier } from "./couriers";
+import { carrybeeCourier, courier, courierForNew, pathaoCourier, redxCourier } from "./couriers";
 import type { ManualStatus } from "./manual";
 import { shipmentLabel } from "./shipment-meta";
 import { mockWebhook } from "./mock";
@@ -121,6 +121,55 @@ async function autoRedx(district: string, area: string) {
 }
 
 /**
+ * For the send dialog: CarryBee's cities and zones, with the ones matching the address chosen.
+ * When the names don't match, CarryBee's own address lookup suggests them.
+ */
+export async function carrybeePlaces(orderId: number, cityId?: number) {
+  const c = await carrybeeCourier();
+  if (!c) throw new UserFacingError("CarryBee isn't set up yet.");
+  const [o] = await poolDb().select().from(orders).where(eq(orders.id, orderId)).limit(1);
+  if (!o) throw new UserFacingError("That order no longer exists.");
+  try {
+    return await carrybeeLookup(c, o, cityId);
+  } catch (e) {
+    if (e instanceof UserFacingError) throw e;
+    throw new UserFacingError(
+      `CarryBee's cities couldn't be loaded: ${e instanceof Error ? e.message : String(e)}`,
+    );
+  }
+}
+
+async function carrybeeLookup(
+  c: NonNullable<Awaited<ReturnType<typeof carrybeeCourier>>>,
+  o: typeof orders.$inferSelect,
+  cityId?: number,
+) {
+  const cities = await c.cities();
+  let city = cityId ? cities.find((x) => x.id === cityId) : matchPlace(cities, o.addressDistrict);
+  let suggested: { cityId: number; zoneId: number } | null = null;
+  if (!city && !cityId) {
+    suggested = await c
+      .addressDetails(`${o.addressStreet}, ${o.addressArea}, ${o.addressDistrict}`)
+      .catch(() => null);
+    city = cities.find((x) => x.id === suggested?.cityId);
+  }
+  const zones = city ? await c.zones(city.id) : [];
+  const zone =
+    matchPlace(zones, o.addressArea) ??
+    (suggested ? (zones.find((z) => z.id === suggested.zoneId) ?? null) : null);
+  return { cities, zones, cityId: city?.id ?? null, zoneId: zone?.id ?? null };
+}
+
+async function autoCarrybee(street: string, district: string, area: string) {
+  const c = await carrybeeCourier();
+  if (!c) return null;
+  const city = matchPlace(await c.cities(), district);
+  const zone = city ? matchPlace(await c.zones(city.id), area) : null;
+  if (city && zone) return { cityId: city.id, zoneId: zone.id };
+  return c.addressDetails(`${street}, ${area}, ${district}`);
+}
+
+/**
  * Hands an order to a courier. The order must be confirmed or packed (and paid, if it was paid
  * online), with no parcel already under way. A placeholder shipment is written first, so a double
  * click can't create two parcels.
@@ -131,6 +180,7 @@ export async function sendToCourier(
     courier?: CourierName;
     pathao?: { cityId: number; zoneId: number; areaId?: number | null };
     redx?: { areaId: number; areaName: string };
+    carrybee?: { cityId: number; zoneId: number };
     manual?: ShipmentInput["manual"];
   },
   admin: Actor,
@@ -207,6 +257,14 @@ export async function sendToCourier(
     if (!redxArea)
       throw await fail("its delivery area couldn't be matched. Choose it on the order page.");
   }
+  let carrybeePlace = opts.carrybee;
+  if (name === "carrybee" && !carrybeePlace) {
+    carrybeePlace =
+      (await autoCarrybee(o.addressStreet, o.addressDistrict, o.addressArea).catch(() => null)) ??
+      undefined;
+    if (!carrybeePlace)
+      throw await fail("its city and zone couldn't be matched. Choose them on the order page.");
+  }
 
   const input: ShipmentInput = {
     reference,
@@ -222,6 +280,7 @@ export async function sendToCourier(
     items,
     pathao: pathaoPlace,
     redx: redxArea,
+    carrybee: carrybeePlace,
     manual: opts.manual,
   };
   let created;

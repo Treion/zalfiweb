@@ -2,6 +2,7 @@ import { z } from "zod";
 import { DHAKA_CITY_THANAS } from "@/lib/bd-geo";
 import { CONTACT } from "@/lib/contact";
 import { DEFAULT_TOGGLES } from "@/server/auth/permissions";
+import { EMAIL_PROVIDERS, SMS_PROVIDERS } from "@/server/integrations/catalog";
 import { COURIER_NAMES } from "@/server/shipping/types";
 
 /**
@@ -98,8 +99,9 @@ export const SETTINGS_SCHEMAS = {
   }),
   /**
    * Providers are set up and switched on in Admin → Integrations (src/server/integrations). This
-   * section keeps only the choice that isn't a provider's own: which online gateway checkout
-   * tries first. (Photos go to Vercel Blob whenever its token is set.)
+   * section keeps only the choices that aren't a provider's own: which online gateway checkout
+   * tries first, and the order SMS gateways and email services are tried in (the next takes
+   * over when one fails). (Photos go to Vercel Blob whenever its token is set.)
    */
   integrations: z.object({
     gatewayOrder: z
@@ -107,6 +109,14 @@ export const SETTINGS_SCHEMAS = {
       .length(2)
       .refine((a) => new Set(a).size === 2, "Each gateway once")
       .default(["sslcommerz", "aamarpay"]),
+    smsOrder: z
+      .array(z.enum(SMS_PROVIDERS))
+      .max(SMS_PROVIDERS.length)
+      .default([...SMS_PROVIDERS]),
+    emailOrder: z
+      .array(z.enum(EMAIL_PROVIDERS))
+      .max(EMAIL_PROVIDERS.length)
+      .default([...EMAIL_PROVIDERS]),
   }),
 };
 

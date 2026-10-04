@@ -1,0 +1,1 @@
+ALTER TYPE "public"."courier_name" ADD VALUE 'carrybee';

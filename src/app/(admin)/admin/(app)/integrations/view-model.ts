@@ -1,12 +1,12 @@
 import type { LastCheck } from "@/server/integrations";
-import type { IntegrationName, Mode } from "@/server/integrations/catalog";
+import type { EmailName, IntegrationName, Mode, SmsName } from "@/server/integrations/catalog";
 import type { Settings } from "@/server/settings/schema";
 
 /** One provider as the Integrations page shows it: never a secret, only whether it is set */
 export type ProviderView = {
   name: IntegrationName;
   label: string;
-  group: "payments" | "couriers" | "messages";
+  group: "payments" | "couriers" | "sms" | "email";
   blurb: string;
   modes: Mode[];
   steps: string[];
@@ -44,6 +44,9 @@ export type IntegrationsData = {
   providers: ProviderView[];
   canManage: boolean;
   gatewayFirst: "sslcommerz" | "aamarpay";
+  /** Every SMS gateway and email service, in the order they are tried */
+  smsOrder: SmsName[];
+  emailOrder: EmailName[];
   payments: Settings<"payments">;
   manualCourierEnabled: boolean;
   /** Where the site is reached: the base of every callback address */

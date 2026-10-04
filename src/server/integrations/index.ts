@@ -47,7 +47,12 @@ export type Resolved = {
 type Row = typeof integrations.$inferSelect;
 
 const envValues = (def: IntegrationDef) =>
-  Object.fromEntries(def.fields.flatMap((f) => (env(f.env) ? [[f.key, env(f.env)!]] : [])));
+  Object.fromEntries(
+    def.fields.flatMap((f) => {
+      const v = f.env ? env(f.env) : undefined;
+      return v ? [[f.key, v]] : [];
+    }),
+  );
 
 function savedValues(row: Row | undefined): {
   values: Record<string, string>;

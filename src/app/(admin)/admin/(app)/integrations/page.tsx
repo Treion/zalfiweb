@@ -3,7 +3,14 @@ import { PageHeader } from "@/components/admin/shell/PageHeader";
 import { env } from "@/lib/env";
 import { isMissingTable } from "@/server/db/errors";
 import { requireAdmin } from "@/server/auth/session";
-import { getIntegrations, shownValues, webhookToken } from "@/server/integrations";
+import {
+  EMAIL_PROVIDERS,
+  getIntegrations,
+  inOrder,
+  shownValues,
+  SMS_PROVIDERS,
+  webhookToken,
+} from "@/server/integrations";
 import { getAllSettings } from "@/server/settings";
 import { testProvidersAllowed } from "@/server/test-mode";
 import { IntegrationsView } from "./IntegrationsView";
@@ -95,8 +102,8 @@ export default async function IntegrationsPage() {
         title="Integrations"
         description={
           canManage
-            ? "Payment gateways, couriers and messages: set each up, test it, and switch it on or off. Keys are stored encrypted and never shown again."
-            : "How payments, couriers and messages are set up. Only the owner can change them."
+            ? "Payment gateways, couriers, SMS and email: set each up, test it, and switch it on or off. Keys are stored encrypted and never shown again."
+            : "How payments, couriers, SMS and email are set up. Only the owner can change them."
         }
       />
       <IntegrationsView
@@ -104,6 +111,8 @@ export default async function IntegrationsPage() {
           providers,
           canManage,
           gatewayFirst: settings.integrations.gatewayOrder[0]!,
+          smsOrder: inOrder(settings.integrations.smsOrder, SMS_PROVIDERS),
+          emailOrder: inOrder(settings.integrations.emailOrder, EMAIL_PROVIDERS),
           payments: settings.payments,
           manualCourierEnabled: settings.shipping.manualCourierEnabled,
           siteUrl: site,

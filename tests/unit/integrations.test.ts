@@ -124,11 +124,33 @@ describe("resolving a provider's set-up", () => {
     ).toBe("admin-hook");
   });
 
-  it("describes every field with its environment variable and where to find it", () => {
+  it("describes every field and where to find it; the older providers keep their variables", () => {
+    // Set up before the admin had an Integrations page, so the environment still works for them
+    const fromEnv = [
+      "sslcommerz",
+      "aamarpay",
+      "pathao",
+      "steadfast",
+      "redx",
+      "bulksmsbd",
+      "resend",
+    ];
     for (const def of Object.values(CATALOG))
       for (const f of def.fields) {
-        expect(f.env).toMatch(/^[A-Z][A-Z0-9_]+$/);
+        if (fromEnv.includes(def.name)) expect(f.env).toMatch(/^[A-Z][A-Z0-9_]+$/);
+        else expect(f.env).toBeUndefined();
         expect(f.help.length).toBeGreaterThan(10);
       }
+  });
+
+  it("files every provider under its section", () => {
+    const of = (g: string) =>
+      Object.values(CATALOG)
+        .filter((d) => d.group === g)
+        .map((d) => d.name);
+    expect(of("sms")).toEqual(["bulksmsbd", "sslwireless", "alphasms", "mimsms"]);
+    expect(of("email")).toEqual(["resend", "brevo", "postmark", "smtp"]);
+    expect(of("couriers")).toContain("carrybee");
+    expect(CATALOG.carrybee.fields.find((f) => f.key === "storeId")?.pick).toBe("stores");
   });
 });

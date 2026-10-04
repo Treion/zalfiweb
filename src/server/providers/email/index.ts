@@ -1,29 +1,50 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { poolDb, type Executor } from "@/server/db/pool";
-import { getIntegration, noteFailure, noteWorking } from "@/server/integrations";
+import {
+  CATALOG,
+  EMAIL_PROVIDERS,
+  getIntegration,
+  inOrder,
+  noteFailure,
+  noteWorking,
+  type EmailName,
+  type Resolved,
+} from "@/server/integrations";
+import { getSettings } from "@/server/settings";
+import {
+  brevoEmail,
+  parseFrom,
+  postmarkEmail,
+  resendEmail,
+  type EmailMessage,
+  type EmailResult,
+  type EmailService,
+} from "./services";
+import { smtpEmail } from "./smtp";
+
+export {
+  brevoEmail,
+  parseFrom,
+  postmarkEmail,
+  resendEmail,
+  smtpEmail,
+  type EmailMessage,
+  type EmailResult,
+  type EmailService,
+};
 
 /**
  * Sending email, behind one interface. ZALFI sends only the e-receipt to customers (and invitation
  * links to its own team).
  *  - dev (default): prints to the console and saves each email as an HTML file in .data/outbox,
  *    previewable in the admin (Dev outbox) while developing
- *  - resend: the Resend HTTP API, set up and switched on in Admin → Integrations
+ *  - Resend, Brevo, Postmark (services.ts) and your own mailbox over SMTP (smtp.ts): set up and
+ *    switched on in Admin → Integrations. With several on, they are tried in the owner's order
+ *    (integrations.emailOrder): when one refuses or doesn't answer, the next sends it.
  */
-export type EmailMessage = {
-  to: string;
-  subject: string;
-  html: string;
-  text: string;
-  /** For logs and the dev outbox, e.g. "receipt" or "invitation" */
-  tag: string;
-  attachments?: { filename: string; content: Buffer }[];
-};
-
-export type EmailResult = { ok: true; id: string } | { ok: false; error: string };
-
 export interface EmailProvider {
-  readonly name: "dev" | "resend";
+  readonly name: "dev" | EmailName;
   send(msg: EmailMessage): Promise<EmailResult>;
 }
 
@@ -50,46 +71,57 @@ export const devEmail: EmailProvider = {
   },
 };
 
-export function resendEmail(apiKey: string, from: string): EmailProvider {
+/** A service from its saved set-up */
+export function emailServiceOf(r: Resolved): EmailService {
+  const v = r.values;
+  switch (r.name) {
+    case "brevo":
+      return brevoEmail(v.apiKey!, v.from!);
+    case "postmark":
+      return postmarkEmail(v.serverToken!, v.from!);
+    case "smtp":
+      return smtpEmail({
+        host: v.host!,
+        port: v.port!,
+        username: v.username!,
+        password: v.password!,
+        from: v.from!,
+      });
+    default:
+      return resendEmail(v.apiKey!, v.from!);
+  }
+}
+
+/**
+ * Tries each service in turn until one sends. A refusal is flagged for the owner (Overview →
+ * Needs attention) even when the next service sent the email.
+ */
+export function emailChain(list: { r: Resolved; service: EmailService }[]): EmailProvider {
   return {
-    name: "resend",
+    name: list[0]!.service.name,
     async send(msg) {
-      const res = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          from,
-          to: [msg.to],
-          subject: msg.subject,
-          html: msg.html,
-          text: msg.text,
-          attachments: msg.attachments?.map((a) => ({
-            filename: a.filename,
-            content: a.content.toString("base64"),
-          })),
-        }),
-      }).catch((e: Error) => e);
-      if (res instanceof Error) return { ok: false, error: res.message };
-      const body = (await res.json().catch(() => ({}))) as { id?: string; message?: string };
-      return res.ok && body.id
-        ? { ok: true, id: body.id }
-        : { ok: false, error: body.message ?? `Resend responded ${res.status}` };
+      const errors: string[] = [];
+      for (const { r, service } of list) {
+        const res = await service.send(msg);
+        if (res.ok) {
+          void noteWorking(r);
+          return res;
+        }
+        errors.push(`${CATALOG[r.name].label}: ${res.error}`);
+        void noteFailure(r.name, `An email didn't send: ${res.error}`);
+      }
+      return { ok: false, error: errors.join("; ") };
     },
   };
 }
 
-/** The provider to use now: Resend when it is set up and switched on, else the stand-in */
+/** The services switched on, in the owner's order; the stand-in when none is */
 export async function emailProvider(exec: Executor = poolDb()): Promise<EmailProvider> {
-  const r = await getIntegration("resend", exec);
-  if (!r.enabled) return devEmail;
-  const real = resendEmail(r.values.apiKey!, r.values.from!);
-  return {
-    name: real.name,
-    async send(msg) {
-      const res = await real.send(msg);
-      if (res.ok) void noteWorking(r);
-      else void noteFailure("resend", `An email didn't send: ${res.error}`);
-      return res;
-    },
-  };
+  const { emailOrder } = await getSettings("integrations", exec);
+  const list: { r: Resolved; service: EmailService }[] = [];
+  for (const name of inOrder(emailOrder, EMAIL_PROVIDERS)) {
+    const r = await getIntegration(name, exec);
+    if (r.enabled) list.push({ r, service: emailServiceOf(r) });
+  }
+  return list.length ? emailChain(list) : devEmail;
 }

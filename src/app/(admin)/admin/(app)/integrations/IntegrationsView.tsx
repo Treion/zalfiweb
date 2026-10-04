@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckIcon, CopyIcon, RefreshCwIcon } from "lucide-react";
+import { ArrowDownIcon, ArrowUpIcon, CheckIcon, CopyIcon, RefreshCwIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -46,6 +46,7 @@ import {
   saveManualPaymentAction,
   setGatewayOrderAction,
   setManualCourierAction,
+  setSendOrderAction,
   testIntegrationAction,
 } from "./actions";
 import type { IntegrationsData, ProviderView } from "./view-model";
@@ -193,7 +194,7 @@ function SetupSheet({ p, canManage }: { p: ProviderView; canManage: boolean }) {
     start(async () => {
       const r = await testIntegrationAction({
         name: p.name,
-        ...(p.name === "bulksmsbd" ? { to: smsTo } : {}),
+        ...(p.group === "sms" ? { to: smsTo } : {}),
       });
       if (!r.ok) return void toast.error(r.error);
       setResult(r.data);
@@ -399,7 +400,7 @@ function SetupSheet({ p, canManage }: { p: ProviderView; canManage: boolean }) {
           {canManage && (
             <section className="flex flex-col gap-3 border-t pt-5">
               <h3 className="font-medium">Test connection</h3>
-              {p.name === "bulksmsbd" && (
+              {p.group === "sms" && (
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="sms-to">Send a test SMS to</Label>
                   <Input
@@ -707,6 +708,103 @@ function GatewayOrder({
   );
 }
 
+/**
+ * The order SMS gateways (or email services) are tried in. Only the ones switched on are listed;
+ * the rest keep their place for when they are switched on.
+ */
+function SendOrder({
+  kind,
+  order,
+  providers,
+  canManage,
+  testAllowed,
+}: {
+  kind: "sms" | "email";
+  order: ProviderView["name"][];
+  providers: ProviderView[];
+  canManage: boolean;
+  testAllowed: boolean;
+}) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const on = order
+    .map((n) => providers.find((p) => p.name === n))
+    .filter((p): p is ProviderView => !!p?.enabled);
+  const what = kind === "sms" ? "codes" : "receipts";
+  if (on.length === 0)
+    return (
+      <p className="rounded-md bg-[var(--tone-warning-bg)] px-4 py-3 text-sm text-[var(--tone-warning-fg)]">
+        {kind === "sms"
+          ? testAllowed
+            ? "No SMS gateway is on: checkout codes print in the server's console instead."
+            : "No SMS gateway is on: customers can't get their checkout code. Switch one on below."
+          : testAllowed
+            ? "No email service is on: emails are saved to the Dev outbox instead."
+            : "No email service is on: receipts and invitations aren't sent. Switch one on below."}
+      </p>
+    );
+  if (on.length === 1)
+    return (
+      <p className="rounded-md border px-4 py-3 text-sm">
+        {`Sends ${what} with ${on[0]!.label}. Switch on a second one as a backup.`}
+      </p>
+    );
+
+  const move = (i: number, by: -1 | 1) =>
+    start(async () => {
+      const names = on.map((p) => p.name);
+      [names[i], names[i + by]] = [names[i + by]!, names[i]!];
+      // The ones switched off keep their places after these
+      const next = [...names, ...order.filter((n) => !names.includes(n))];
+      const r = await setSendOrderAction({ kind, order: next });
+      if (!r.ok) return void toast.error(r.error);
+      toast.success("Saved");
+      router.refresh();
+    });
+
+  return (
+    <div className="rounded-md border px-4 py-3 text-sm">
+      <p className="mb-2">
+        {`Sends ${what} with the first one. If it fails, the next takes over by itself.`}
+      </p>
+      <ol className="flex flex-col divide-y">
+        {on.map((p, i) => (
+          <li key={p.name} className="flex items-center gap-3 py-1.5">
+            <span className="text-muted-foreground w-5 tabular-nums">{i + 1}.</span>
+            <span className="flex-1">{p.label}</span>
+            {canManage && (
+              <span className="flex gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-7"
+                  disabled={pending || i === 0}
+                  aria-label={`Move ${p.label} up`}
+                  onClick={() => move(i, -1)}
+                >
+                  <ArrowUpIcon />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-7"
+                  disabled={pending || i === on.length - 1}
+                  aria-label={`Move ${p.label} down`}
+                  onClick={() => move(i, 1)}
+                >
+                  <ArrowDownIcon />
+                </Button>
+              </span>
+            )}
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 /* ---------------------------------------------------------------------------------------------- */
 
 function Section({
@@ -770,10 +868,30 @@ export function IntegrationsView({ data }: { data: IntegrationsData }) {
         </div>
       </Section>
       <Section
-        title="Messages"
-        description="The checkout's verification code by SMS, and the e-receipt by email."
+        title="SMS"
+        description="Sends the checkout's verification code. Without one, customers can't check out."
       >
-        <div className={grid}>{cards("messages")}</div>
+        <SendOrder
+          kind="sms"
+          order={data.smsOrder}
+          providers={by("sms")}
+          canManage={data.canManage}
+          testAllowed={data.testAllowed}
+        />
+        <div className={grid}>{cards("sms")}</div>
+      </Section>
+      <Section
+        title="Email"
+        description="Sends the e-receipt with its PDF invoice, and team invitations."
+      >
+        <SendOrder
+          kind="email"
+          order={data.emailOrder}
+          providers={by("email")}
+          canManage={data.canManage}
+          testAllowed={data.testAllowed}
+        />
+        <div className={grid}>{cards("email")}</div>
       </Section>
     </>
   );
