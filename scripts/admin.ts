@@ -143,6 +143,8 @@ async function create(db: pg.Client, preset: { email?: string; name?: string; ro
   while (!name) name = await ask("Name", email.split("@")[0]);
 
   let role = (preset.role ?? "").trim().toLowerCase();
+  // The one-liner (create EMAIL "NAME") makes an owner without asking, as its usage says
+  if (!role && preset.email) role = "owner";
   if (!role) {
     const owners = await db.query("select 1 from admin_users where role = 'owner' and active");
     role = await ask("Role: owner or manager", owners.rowCount ? "manager" : "owner");
