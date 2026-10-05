@@ -10,21 +10,14 @@
  * When the command ends (or Ctrl+C), the stand-in it started stops too.
  */
 import "dotenv/config";
-import { spawn, type ChildProcess } from "node:child_process";
+import type { ChildProcess } from "node:child_process";
 import net from "node:net";
-import path from "node:path";
 import { readFileSync } from "node:fs";
 import pg from "pg";
+import { createDatabaseHint, startPostgresHint, startTool } from "./tools";
 
 const yellow = (s: string) => `\x1b[33m${s}\x1b[0m`;
 const dim = (s: string) => `\x1b[2m${s}\x1b[0m`;
-const bin = (name: string) =>
-  path.join(
-    process.cwd(),
-    "node_modules",
-    ".bin",
-    process.platform === "win32" ? `${name}.cmd` : name,
-  );
 
 const url = process.env.DATABASE_URL?.trim() ?? "";
 const proxyPort = Number(process.env.NEON_LOCAL_PROXY_PORT || 4444);
@@ -60,11 +53,22 @@ async function checkDatabase() {
   } catch (e) {
     const err = e as NodeJS.ErrnoException & { errors?: NodeJS.ErrnoException[] };
     const code = err.code ?? err.errors?.[0]?.code;
+    const dbName = (() => {
+      try {
+        return new URL(url).pathname.slice(1) || "zalfi";
+      } catch {
+        return "zalfi";
+      }
+    })();
     console.log(
       yellow(
         code === "ECONNREFUSED"
-          ? "! PostgreSQL isn't running, so the admin can't sign in. Start it (for example: sudo systemctl start postgresql) and run npm run dev again."
-          : `! Can't connect to the database: ${err.message}`,
+          ? `! PostgreSQL isn't running, so the admin can't sign in. ${startPostgresHint()}, then run npm run dev again.`
+          : code === "3D000"
+            ? `! The database "${dbName}" doesn't exist yet. ${createDatabaseHint(dbName, "npm run db:migrate, npm run db:seed and npm run dev again")}`
+            : code === "28P01"
+              ? "! PostgreSQL refused the password in DATABASE_URL (.env)."
+              : `! Can't connect to the database: ${err.message}`,
       ),
     );
   } finally {
@@ -90,10 +94,7 @@ async function migrateIfBehind(client: pg.Client) {
   }
   console.log(dim(`Updating the database: ${what}…`));
   const code = await new Promise<number | null>((resolve) =>
-    spawn(bin("drizzle-kit"), ["migrate"], {
-      stdio: ["ignore", "ignore", "inherit"],
-      shell: process.platform === "win32",
-    })
+    startTool("drizzle-kit", ["migrate"], { stdio: ["ignore", "ignore", "inherit"] })
       .on("exit", resolve)
       .on("error", () => resolve(null)),
   );
@@ -109,21 +110,13 @@ async function main() {
   const children: ChildProcess[] = [];
   if (isLocal && !(await portInUse(proxyPort))) {
     console.log(dim(`Starting the local database bridge on :${proxyPort}`));
-    children.push(
-      spawn(bin("tsx"), ["scripts/db/neon-local-proxy.ts"], {
-        stdio: "inherit",
-        shell: process.platform === "win32",
-      }),
-    );
+    children.push(startTool("tsx", ["scripts/db/neon-local-proxy.ts"], { stdio: "inherit" }));
     // Give the stand-in a moment to listen before the command connects
     await new Promise((r) => setTimeout(r, 800));
   }
   const [cmd, ...args] = process.argv.slice(2);
   if (!cmd) throw new Error("Usage: tsx scripts/db/with-db.ts <command> [args…]");
-  const next = spawn(bin(cmd), args, {
-    stdio: "inherit",
-    shell: process.platform === "win32",
-  });
+  const next = startTool(cmd, args, { stdio: "inherit" });
   children.push(next);
 
   const stop = () => children.forEach((c) => c.kill("SIGTERM"));

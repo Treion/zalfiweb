@@ -18,6 +18,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { createInterface } from "node:readline/promises";
 import { hashPassword } from "better-auth/crypto";
 import pg from "pg";
+import { createDatabaseHint, startPostgresHint } from "./db/tools";
 
 const MIN_PASSWORD = 10;
 const bold = (s: string) => `\x1b[1m${s}\x1b[0m`;
@@ -100,13 +101,10 @@ async function connect() {
   } catch (e) {
     const err = e as NodeJS.ErrnoException & { errors?: NodeJS.ErrnoException[] };
     const code = err.code ?? err.errors?.[0]?.code;
-    if (code === "ECONNREFUSED")
-      throw new Stop(
-        "Can't reach PostgreSQL. Start it first (for example: sudo systemctl start postgresql).",
-      );
+    if (code === "ECONNREFUSED") throw new Stop(`Can't reach PostgreSQL. ${startPostgresHint()}.`);
     if (code === "3D000")
       throw new Stop(
-        "The database doesn't exist yet. Run: createdb zalfi, then npm run db:migrate.",
+        `The database doesn't exist yet. ${createDatabaseHint(new URL(url).pathname.slice(1) || "zalfi", "npm run db:migrate and npm run db:seed, then npm run admin again")}`,
       );
     if (code === "28P01") throw new Stop("PostgreSQL refused the password in DATABASE_URL (.env).");
     throw new Stop(`Can't connect to the database: ${err.message}`);

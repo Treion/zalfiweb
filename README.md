@@ -20,10 +20,10 @@ Everything runs on your computer without any paid account: a built-in **test gat
 
 ## Run it locally
 
-You need **Node.js 22 or newer** and **PostgreSQL 16**. The full guide, with install steps for macOS, Windows and Linux and fixes for common problems, is [`docs/guides/local-setup.md`](docs/guides/local-setup.md).
+You need **Node.js 22 or newer** and **PostgreSQL 16**. The full guide, with install steps for macOS, Windows and Linux and fixes for common problems, is [`docs/guides/local-setup.md`](docs/guides/local-setup.md). On **Windows**, starting from nothing, follow [`docs/guides/windows-setup.md`](docs/guides/windows-setup.md): every click and command, from installing Git to the running shop.
 
 ```bash
-git clone https://github.com/Treion/zalfiweb.git
+git clone -b claude/zalfi-backend https://github.com/Treion/zalfiweb.git   # the branch with the backend
 cd zalfiweb
 npm install
 

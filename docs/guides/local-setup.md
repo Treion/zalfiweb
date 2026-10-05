@@ -25,7 +25,7 @@ brew services start postgresql@16      # starts now and at every login
 
 Homebrew's PostgreSQL uses your Mac user name with no password. In step 3 you'll set `DATABASE_URL` to match.
 
-**Windows:**
+**Windows:** [`windows-setup.md`](windows-setup.md) walks through every click and command, from an empty computer. In short:
 
 1. Install Git from [git-scm.com](https://git-scm.com) and Node.js (the LTS) from [nodejs.org](https://nodejs.org).
 2. Install PostgreSQL 16 from [postgresql.org/download/windows](https://www.postgresql.org/download/windows/). Note the password you give the `postgres` user. Keep the port at 5432.
@@ -52,9 +52,8 @@ psql --version
 ## 2. Get the code
 
 ```bash
-git clone https://github.com/Treion/zalfiweb.git
+git clone -b claude/zalfi-backend https://github.com/Treion/zalfiweb.git   # the branch with the backend, until it's merged
 cd zalfiweb
-git checkout claude/zalfi-backend      # the branch with the backend, until it's merged
 npm install
 ```
 
