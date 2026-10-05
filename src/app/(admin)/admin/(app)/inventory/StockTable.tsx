@@ -34,6 +34,7 @@ import { formatPrice } from "@/lib/money";
 import type { InventoryRow } from "@/server/catalog/inventory";
 import { stockAdjustSchema } from "@/server/catalog/schema";
 import { adjustStockAction, setThresholdAction } from "./actions";
+import { sizeLabel } from "@/lib/size";
 
 type Reason = { value: string; label: string };
 
@@ -74,7 +75,7 @@ function AdjustDialog({
         setConfirming(false);
         return setError(res.error);
       }
-      toast.success(`${row.name} ${row.sizeMl} ml: ${res.data.stock} in stock`);
+      toast.success(`${row.name} ${sizeLabel(row.sizeMl, row.pieces)}: ${res.data.stock} in stock`);
       onClose();
     });
   }
@@ -84,7 +85,7 @@ function AdjustDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            Adjust {row.name} {row.sizeMl} ml
+            Adjust {row.name} {sizeLabel(row.sizeMl, row.pieces)}
           </DialogTitle>
           <DialogDescription>
             {row.stock} in stock{row.reserved > 0 ? `, ${row.reserved} held for unpaid orders` : ""}
@@ -217,7 +218,7 @@ function ThresholdCell({ row }: { row: InventoryRow }) {
       onBlur={save}
       onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()}
       disabled={pending}
-      aria-label={`Low-stock level for ${row.name} ${row.sizeMl} ml`}
+      aria-label={`Low-stock level for ${row.name} ${sizeLabel(row.sizeMl, row.pieces)}`}
       className="h-8 w-20 tabular-nums"
     />
   );
@@ -270,7 +271,14 @@ export function StockTable({
                 <TableCell className="pl-4">
                   <div className="font-medium">
                     {r.name}{" "}
-                    <span className="text-muted-foreground font-normal">{r.sizeMl} ml</span>
+                    <span className="text-muted-foreground font-normal">
+                      {sizeLabel(r.sizeMl, r.pieces)}
+                    </span>
+                    {r.setId !== null && (
+                      <Badge variant="neutral" className="ml-2 align-middle">
+                        Set
+                      </Badge>
+                    )}
                   </div>
                   <div className="text-muted-foreground font-mono text-xs">{r.sku}</div>
                 </TableCell>

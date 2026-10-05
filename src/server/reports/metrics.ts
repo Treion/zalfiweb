@@ -1,4 +1,5 @@
-import { and, eq, gte, lt, sql, type SQL } from "drizzle-orm";
+import { sizeLabel } from "@/lib/size";
+import { and, desc, eq, gte, lt, sql, type SQL } from "drizzle-orm";
 import { orderItems, orders, payments, shipments, stockMovements, variants } from "@/db/schema";
 import { poolDb, type Executor } from "@/server/db/pool";
 import { getIntegrations } from "@/server/integrations";
@@ -158,13 +159,15 @@ export async function byZone(from: Date, to: Date, exec: Executor = poolDb()) {
 
 export type FragranceSales = {
   fragranceId: number | null;
+  setId: number | null;
   name: string;
   bottles: number;
   revenue: number;
   orders: number;
 };
 
-/** Bottles and item sales per fragrance (bottle prices before order discounts), best first */
+/** Bottles and item sales per fragrance (bottle prices before order discounts), best first. A
+ *  discovery set is its own row, and counts one per box. */
 export async function byFragrance(
   from: Date,
   to: Date,
@@ -173,6 +176,7 @@ export async function byFragrance(
   const rows = await exec
     .select({
       fragranceId: orderItems.fragranceId,
+      setId: orderItems.setId,
       name: sql<string>`max(${orderItems.name})`,
       bottles: sql<number>`sum(${orderItems.qty})::int`,
       revenue: sql<number>`sum(${orderItems.lineTotal})::bigint`,
@@ -183,11 +187,13 @@ export async function byFragrance(
     .where(and(SOLD, placedIn(from, to)))
     .groupBy(
       orderItems.fragranceId,
-      sql`case when ${orderItems.fragranceId} is null then ${orderItems.name} end`,
+      orderItems.setId,
+      sql`case when ${orderItems.fragranceId} is null and ${orderItems.setId} is null then ${orderItems.name} end`,
     )
     .orderBy(sql`4 desc`, sql`3 desc`);
   return rows.map((r) => ({
     fragranceId: r.fragranceId,
+    setId: r.setId,
     name: r.name,
     bottles: n(r.bottles),
     revenue: n(r.revenue),
@@ -199,15 +205,22 @@ export async function bySize(from: Date, to: Date, exec: Executor = poolDb()) {
   const rows = await exec
     .select({
       sizeMl: orderItems.sizeMl,
+      pieces: orderItems.pieces,
       bottles: sql<number>`sum(${orderItems.qty})::int`,
       revenue: sql<number>`sum(${orderItems.lineTotal})::bigint`,
     })
     .from(orderItems)
     .innerJoin(orders, eq(orders.id, orderItems.orderId))
     .where(and(SOLD, placedIn(from, to)))
-    .groupBy(orderItems.sizeMl)
-    .orderBy(orderItems.sizeMl);
-  return rows.map((r) => ({ sizeMl: r.sizeMl, bottles: n(r.bottles), revenue: n(r.revenue) }));
+    .groupBy(orderItems.sizeMl, orderItems.pieces)
+    .orderBy(orderItems.pieces, desc(orderItems.sizeMl));
+  return rows.map((r) => ({
+    sizeMl: r.sizeMl,
+    pieces: r.pieces,
+    label: sizeLabel(r.sizeMl, r.pieces),
+    bottles: n(r.bottles),
+    revenue: n(r.revenue),
+  }));
 }
 
 /* ------------------------------------------------------------------------------------------- */
@@ -437,7 +450,7 @@ export async function attention(now: Date = new Date(), exec: Executor = poolDb(
       .filter((r) => r.active && r.published && r.level === "out")
       .map((r) => ({
         kind: "out_of_stock" as const,
-        title: `${r.name} ${r.sizeMl} ml`,
+        title: `${r.name} ${sizeLabel(r.sizeMl, r.pieces)}`,
         detail: r.reserved ? `Sold out (${r.reserved} held by unpaid orders)` : "Sold out",
         href: "/admin/inventory",
         at: null,

@@ -61,7 +61,8 @@ export type CouponRules = {
 
 export type PricedLine = {
   variantId: number;
-  fragranceId: number;
+  /** Null for a discovery set: a coupon for a fragrance doesn't reach the sets that hold it */
+  fragranceId: number | null;
   lineTotal: number;
 };
 
@@ -105,7 +106,9 @@ export function evaluateCoupon(c: CouponRules, ctx: CouponContext): CouponResult
   const restricted = c.fragranceIds.length > 0 || c.variantIds.length > 0;
   const eligible = restricted
     ? ctx.lines.filter(
-        (l) => c.fragranceIds.includes(l.fragranceId) || c.variantIds.includes(l.variantId),
+        (l) =>
+          (l.fragranceId !== null && c.fragranceIds.includes(l.fragranceId)) ||
+          c.variantIds.includes(l.variantId),
       )
     : ctx.lines;
   if (!eligible.length) return no("That code doesn't apply to these bottles.");

@@ -19,6 +19,8 @@ export const E2E = {
   slug: "zz-e2e",
   sku: "ZZ-E2E-50",
   name: "Zz Test",
+  /** The test discovery set: the test fragrance and two real ones, 3 × 3 ml, its own stock */
+  set: { slug: "zz-e2e-set", sku: "ZZ-E2E-SET", name: "Zz Test Set" },
   /** Customers' emails: zz-e2e+<n>@example.com */
   emailDomain: "example.com",
 } as const;
@@ -53,14 +55,14 @@ export async function withDb<T>(fn: (db: pg.Client) => Promise<T>) {
 export const one = async <T>(db: pg.Client, q: string, params: unknown[] = []) =>
   (await db.query(q, params)).rows[0] as T;
 
-/** The test fragrance's stock and what its ledger says (they must always agree) */
-export async function stockOf() {
+/** A sku's stock and what its ledger says (they must always agree); the test fragrance's by default */
+export async function stockOf(sku: string = E2E.sku) {
   return withDb((db) =>
     one<{ stock: number; ledger: number }>(
       db,
       `select v.stock, coalesce((select sum(delta) from stock_movements m where m.variant_id = v.id), 0)::int as ledger
          from variants v where v.sku = $1`,
-      [E2E.sku],
+      [sku],
     ),
   );
 }

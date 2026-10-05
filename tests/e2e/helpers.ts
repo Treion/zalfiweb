@@ -44,10 +44,12 @@ export async function fillBag(page: Page, qty = 1) {
 
 export type Method = "Pay online" | "Cash on delivery";
 
-/** Fills the checkout as a customer would, verifying the phone with the dev SMS code */
-export async function checkout(page: Page, method: Method) {
+/** Fills the checkout as a customer would, verifying the phone with the dev SMS code. `keepBag`:
+ *  check out what's already in the bag instead of the test bottle. */
+export async function checkout(page: Page, method: Method, { keepBag = false } = {}) {
   const c = customer();
-  await fillBag(page);
+  if (keepBag) await page.goto("/checkout");
+  else await fillBag(page);
   await page.getByLabel("Full name").fill(c.name);
   await page.getByLabel("Mobile number").fill(c.phone);
   await page.getByRole("button", { name: "Send code" }).click();

@@ -9,7 +9,7 @@ import { CartProvider } from "@/components/cart/cart-store";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { Nav } from "@/components/ui/Nav";
 import { Footer } from "@/components/sections/Footer";
-import { getFragrances } from "@/db/queries";
+import { getDiscoverySets, getFragrances } from "@/db/queries";
 import "./globals.css";
 import { countWord, listNames } from "@/lib/words";
 
@@ -45,10 +45,13 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const fragrances = await getFragrances();
-  const catalogue = Object.fromEntries(
-    fragrances.flatMap((f) => f.variants.map((v) => [v.sku, v.pricePoisha] as const)),
-  );
+  const [fragrances, sets] = await Promise.all([getFragrances(), getDiscoverySets()]);
+  // Every sku on sale, bottles and discovery sets: a saved bag keeps only these
+  const catalogue = Object.fromEntries([
+    ...fragrances.flatMap((f) => f.variants.map((v) => [v.sku, v.pricePoisha] as const)),
+    ...sets.flatMap((s) => (s.variant ? [[s.variant.sku, s.variant.pricePoisha] as const] : [])),
+  ]);
+  const discovery = sets.length > 0;
   const stageFragrances = fragrances.map(({ slug, name, palette, capFinish, bottle }) => ({
     slug,
     name,
@@ -68,10 +71,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <SkipLink />
         <SmoothScroll>
           <CartProvider catalogue={catalogue}>
-            <Nav />
+            <Nav discovery={discovery} />
             {children}
-            <Footer fragrances={fragrances} />
-            <CartDrawer worldCount={fragrances.length} />
+            <Footer fragrances={fragrances} discovery={discovery} />
+            <CartDrawer worldCount={fragrances.length} discovery={discovery} />
           </CartProvider>
         </SmoothScroll>
         <StageLoader fragrances={stageFragrances} />

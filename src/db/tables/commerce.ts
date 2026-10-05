@@ -15,7 +15,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { adminUsers } from "./admin";
-import { fragrances, variants } from "./catalogue";
+import { discoverySets, fragrances, variants } from "./catalogue";
 
 const ts = (name: string) => timestamp(name, { withTimezone: true });
 /** Money: integer poisha (1 taka = 100 poisha), BDT only */
@@ -299,9 +299,12 @@ export const orderItems = pgTable(
       .references(() => orders.id, { onDelete: "cascade" }),
     variantId: integer("variant_id").references(() => variants.id, { onDelete: "set null" }),
     fragranceId: integer("fragrance_id").references(() => fragrances.id, { onDelete: "set null" }),
+    setId: integer("set_id").references(() => discoverySets.id, { onDelete: "set null" }),
     sku: text("sku").notNull(),
     name: text("name").notNull(),
     sizeMl: integer("size_ml").notNull(),
+    /** Vials in the pack (3 for a discovery set), so the line reads "3 × 3 ml" */
+    pieces: integer("pieces").notNull().default(1),
     unitPrice: money("unit_price"),
     qty: integer("qty").notNull(),
     lineTotal: money("line_total"),

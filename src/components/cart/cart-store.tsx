@@ -15,10 +15,19 @@ export type CartLine = {
   slug: string;
   name: string;
   sizeMl: number;
+  /** Vials in a discovery set's pack (absent for a bottle) */
+  pieces?: number;
+  /** "set": a discovery set (it links to /discovery, not a product page) */
+  kind?: "set";
   pricePoisha: number;
+  /** The bottle, or the set's box */
   bottleImage: string;
   qty: number;
 };
+
+/** Where a bag line leads */
+export const lineHref = (l: Pick<CartLine, "kind" | "slug">) =>
+  l.kind === "set" ? `/discovery#${l.slug}` : `/fragrances/${l.slug}`;
 
 type State = { lines: CartLine[]; open: boolean; hydrated: boolean };
 

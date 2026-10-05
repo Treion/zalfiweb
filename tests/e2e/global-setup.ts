@@ -5,8 +5,8 @@ import { E2E, loadState, one, saveState, withDb } from "./db";
 /**
  * Sets the stage for the browser tests:
  *  - an owner and a manager to sign in as
- *  - a published test fragrance with its own stock (so the real catalogue's stock and ledger are
- *    never touched)
+ *  - a published test fragrance and a test discovery set, each with its own stock (so the real
+ *    catalogue's stock and ledger are never touched)
  *  - the test gateway and the test courier on, cash on delivery on, SMS on the dev stand-in
  * The settings and providers it changes are saved first and put back by the teardown.
  */
@@ -102,6 +102,30 @@ export default async function globalSetup() {
     await db.query(
       `insert into stock_movements (variant_id, delta, type, reason) values ($1, 40, 'initial', 'zz-e2e')`,
       [v.id],
+    );
+
+    // The test discovery set: the test fragrance with Reva and Riven, 20 boxes of 3 × 3 ml
+    const s = await one<{ id: number }>(
+      db,
+      `insert into discovery_sets (slug, name, tagline, image, image_alt, image_width, image_height, published, sort_order)
+       values ($1, $2, 'A test set.', '/images/sets/black.webp', 'A test box', 1086, 1448, true, 9999)
+       returning id`,
+      [E2E.set.slug, E2E.set.name],
+    );
+    await db.query(
+      `insert into discovery_set_items (set_id, fragrance_id, position)
+       select $1, f.id, x.pos from (values ($2::text, 0), ('reva', 1), ('riven', 2)) x(slug, pos)
+       join fragrances f on f.slug = x.slug`,
+      [s.id, E2E.slug],
+    );
+    const p = await one<{ id: number }>(
+      db,
+      `insert into variants (set_id, sku, size_ml, pieces, price_poisha, stock) values ($1, $2, 3, 3, 150000, 20) returning id`,
+      [s.id, E2E.set.sku],
+    );
+    await db.query(
+      `insert into stock_movements (variant_id, delta, type, reason) values ($1, 20, 'initial', 'zz-e2e')`,
+      [p.id],
     );
   });
 }

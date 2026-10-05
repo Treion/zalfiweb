@@ -1,5 +1,5 @@
 import { asc, desc, eq, ne, sql } from "drizzle-orm";
-import { coupons, fragrances, orders, variants } from "@/db/schema";
+import { coupons, discoverySets, fragrances, orders, variants } from "@/db/schema";
 import { audit, type Actor } from "@/server/audit";
 import { poolDb, withTx, type Executor } from "@/server/db/pool";
 import { isUniqueViolation } from "@/server/db/errors";
@@ -128,30 +128,57 @@ export async function deleteCoupon(id: number, actor: Actor) {
   });
 }
 
-/** Fragrances and their sizes, for "applies to" */
+/** Fragrances and their sizes, then the discovery sets and their packs, for "applies to" */
 export async function couponTargets(exec: Executor = poolDb()) {
-  const rows = await exec
-    .select({
-      id: fragrances.id,
-      name: fragrances.name,
-      published: fragrances.published,
-      variantId: variants.id,
-      sizeMl: variants.sizeMl,
-    })
-    .from(fragrances)
-    .leftJoin(variants, eq(variants.fragranceId, fragrances.id))
-    .orderBy(asc(fragrances.sortOrder), asc(fragrances.name), asc(variants.sizeMl));
+  const [rows, sets] = await Promise.all([
+    exec
+      .select({
+        id: fragrances.id,
+        name: fragrances.name,
+        published: fragrances.published,
+        variantId: variants.id,
+        sizeMl: variants.sizeMl,
+      })
+      .from(fragrances)
+      .leftJoin(variants, eq(variants.fragranceId, fragrances.id))
+      .orderBy(asc(fragrances.sortOrder), asc(fragrances.name), asc(variants.sizeMl)),
+    exec
+      .select({
+        id: discoverySets.id,
+        name: discoverySets.name,
+        published: discoverySets.published,
+        variantId: variants.id,
+        sizeMl: variants.sizeMl,
+        pieces: variants.pieces,
+      })
+      .from(discoverySets)
+      .innerJoin(variants, eq(variants.setId, discoverySets.id))
+      .orderBy(asc(discoverySets.sortOrder), asc(discoverySets.name)),
+  ]);
   const out: {
+    kind: "fragrance" | "set";
     id: number;
     name: string;
     published: boolean;
-    sizes: { id: number; sizeMl: number }[];
+    sizes: { id: number; sizeMl: number; pieces: number }[];
   }[] = [];
   for (const r of rows) {
     let f = out.find((x) => x.id === r.id);
-    if (!f) out.push((f = { id: r.id, name: r.name, published: r.published, sizes: [] }));
-    if (r.variantId) f.sizes.push({ id: r.variantId, sizeMl: r.sizeMl! });
+    if (!f)
+      out.push(
+        (f = { kind: "fragrance", id: r.id, name: r.name, published: r.published, sizes: [] }),
+      );
+    if (r.variantId) f.sizes.push({ id: r.variantId, sizeMl: r.sizeMl!, pieces: 1 });
   }
+  // A set is chosen by its pack (a coupon's variantIds): one for a fragrance never reaches it
+  for (const r of sets)
+    out.push({
+      kind: "set",
+      id: r.id,
+      name: r.name,
+      published: r.published,
+      sizes: [{ id: r.variantId, sizeMl: r.sizeMl, pieces: r.pieces }],
+    });
   return out;
 }
 

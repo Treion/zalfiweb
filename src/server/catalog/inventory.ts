@@ -1,7 +1,14 @@
 import { and, asc, count, desc, eq, gte, ilike, lt, or, sql, type SQL } from "drizzle-orm";
 import type { z } from "zod";
 import type { ListParams } from "@/components/admin/data-table/url-state";
-import { adminUsers, fragrances, orders, stockMovements, variants } from "@/db/schema";
+import {
+  adminUsers,
+  discoverySets,
+  fragrances,
+  orders,
+  stockMovements,
+  variants,
+} from "@/db/schema";
 import { audit, type Actor } from "@/server/audit";
 import { poolDb, withTx, type Executor } from "@/server/db/pool";
 import { getSettings } from "@/server/settings";
@@ -18,11 +25,14 @@ import {
 
 export type InventoryRow = {
   variantId: number;
-  fragranceId: number;
+  /** A fragrance's size, or (setId) a discovery set's pack */
+  fragranceId: number | null;
+  setId: number | null;
   name: string;
   slug: string;
   sku: string;
   sizeMl: number;
+  pieces: number;
   active: boolean;
   published: boolean;
   pricePoisha: number;
@@ -35,26 +45,39 @@ export type InventoryRow = {
   level: StockLevel;
 };
 
-/** Every size with its stock, reserved, available, threshold and stock value */
+/** The fragrance or discovery set a variant belongs to (variants join both, one matches) */
+const ownerName = sql<string>`coalesce(${fragrances.name}, ${discoverySets.name})`;
+const ownerSlug = sql<string>`coalesce(${fragrances.slug}, ${discoverySets.slug})`;
+const ownerPublished = sql<boolean>`coalesce(${fragrances.published}, ${discoverySets.published})`;
+
+/** Every size (and every discovery set's pack) with its stock, reserved, available, threshold and
+ *  stock value: the bottles first, then the sets */
 export async function listInventory(exec: Executor = poolDb()): Promise<InventoryRow[]> {
   const [rows, inv] = await Promise.all([
     exec
       .select({
         variantId: variants.id,
-        fragranceId: fragrances.id,
-        name: fragrances.name,
-        slug: fragrances.slug,
+        fragranceId: variants.fragranceId,
+        setId: variants.setId,
+        name: ownerName,
+        slug: ownerSlug,
         sku: variants.sku,
         sizeMl: variants.sizeMl,
+        pieces: variants.pieces,
         active: variants.active,
-        published: fragrances.published,
+        published: ownerPublished,
         pricePoisha: variants.pricePoisha,
         stock: variants.stock,
         ownThreshold: variants.lowStockThreshold,
       })
       .from(variants)
-      .innerJoin(fragrances, eq(fragrances.id, variants.fragranceId))
-      .orderBy(asc(fragrances.sortOrder), asc(variants.sizeMl)),
+      .leftJoin(fragrances, eq(fragrances.id, variants.fragranceId))
+      .leftJoin(discoverySets, eq(discoverySets.id, variants.setId))
+      .orderBy(
+        sql`${variants.setId} is not null`,
+        sql`coalesce(${fragrances.sortOrder}, ${discoverySets.sortOrder})`,
+        asc(variants.sizeMl),
+      ),
     getSettings("inventory", exec),
   ]);
   const reserved = await reservedBy(
@@ -147,7 +170,7 @@ function movementWhere(p: ListParams): SQL | undefined {
     parts.push(
       or(
         ilike(variants.sku, like),
-        ilike(fragrances.name, like),
+        ilike(ownerName, like),
         ilike(stockMovements.reason, like),
         ilike(orders.number, like),
       ),
@@ -178,14 +201,16 @@ export async function listMovements(p: ListParams, limit = p.pageSize, exec: Exe
         reason: stockMovements.reason,
         sku: variants.sku,
         sizeMl: variants.sizeMl,
-        name: fragrances.name,
+        pieces: variants.pieces,
+        name: ownerName,
         orderId: stockMovements.orderId,
         orderNumber: orders.number,
         by: adminUsers.name,
       })
       .from(stockMovements)
       .innerJoin(variants, eq(variants.id, stockMovements.variantId))
-      .innerJoin(fragrances, eq(fragrances.id, variants.fragranceId))
+      .leftJoin(fragrances, eq(fragrances.id, variants.fragranceId))
+      .leftJoin(discoverySets, eq(discoverySets.id, variants.setId))
       .leftJoin(orders, eq(orders.id, stockMovements.orderId))
       .leftJoin(adminUsers, eq(adminUsers.id, stockMovements.adminUserId));
   const [rows, [total]] = await Promise.all([
@@ -201,7 +226,8 @@ export async function listMovements(p: ListParams, limit = p.pageSize, exec: Exe
       .select({ n: count() })
       .from(stockMovements)
       .innerJoin(variants, eq(variants.id, stockMovements.variantId))
-      .innerJoin(fragrances, eq(fragrances.id, variants.fragranceId))
+      .leftJoin(fragrances, eq(fragrances.id, variants.fragranceId))
+      .leftJoin(discoverySets, eq(discoverySets.id, variants.setId))
       .leftJoin(orders, eq(orders.id, stockMovements.orderId))
       .where(w),
   ]);

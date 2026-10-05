@@ -11,12 +11,15 @@ import { countWord } from "@/lib/words";
 const pages = (group: InfoPage["group"]) =>
   INFO_PAGES.filter((p) => p.group === group).map((p) => ({ href: `/${p.slug}`, label: p.title }));
 
-const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
+const columns = (
+  discovery: boolean,
+): { title: string; links: { href: string; label: string }[] }[] => [
   {
     title: "The house",
     links: [
       ...pages("house"),
       { href: "/#collection", label: "The collection" },
+      ...(discovery ? [{ href: "/discovery", label: "Discovery sets" }] : []),
       { href: "/find", label: "Find your world" },
       { href: "/checkout", label: "Your bag" },
     ],
@@ -31,8 +34,11 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
  */
 export function Footer({
   fragrances,
+  discovery = false,
 }: {
   fragrances: Pick<Fragrance, "slug" | "name" | "mood">[];
+  /** Whether discovery sets are on sale (the house column links to them) */
+  discovery?: boolean;
 }) {
   return (
     <footer className="bg-noir px-gutter text-bone relative overflow-hidden pt-24 pb-8">
@@ -55,7 +61,7 @@ export function Footer({
           </ul>
         </nav>
 
-        {COLUMNS.map((col, i) => (
+        {columns(discovery).map((col, i) => (
           <nav
             key={col.title}
             aria-labelledby={`footer-${i}`}

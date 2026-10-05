@@ -27,6 +27,7 @@ import { poishaToTaka, takaToPoisha } from "@/lib/money";
 import { fromDhakaInput, toDhakaInput } from "@/lib/time";
 import { couponSchema, type CouponInput } from "@/server/coupons/schema";
 import type { CouponTarget } from "@/server/coupons";
+import { sizeLabel } from "@/lib/size";
 import { saveCouponAction } from "@/app/(admin)/admin/(app)/coupons/actions";
 
 /** What the form holds: money in taka and dates in Dhaka time, as typed */
@@ -399,38 +400,54 @@ export function CouponForm({
         <CardContent className="flex flex-col gap-4">
           <Toggle
             id="c-restrict"
-            label="Only some fragrances"
-            hint="Off: every fragrance and size."
+            label="Only some fragrances or sets"
+            hint="Off: every fragrance, size and discovery set. A fragrance doesn't include the sets that hold it."
             checked={d.restrict}
             onChange={(v) => set("restrict", v)}
           />
           {d.restrict && (
             <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
-              {targets.map((f) => (
-                <div key={f.id} className="flex flex-col gap-2">
-                  <label className="flex items-center gap-2 text-sm font-medium">
+              {targets.map((f) =>
+                f.kind === "set" ? (
+                  <label
+                    key={`set-${f.id}`}
+                    className="flex items-center gap-2 self-start text-sm font-medium"
+                  >
                     <Checkbox
-                      checked={d.fragranceIds.includes(f.id)}
-                      onCheckedChange={(v) => toggleIn("fragranceIds", f.id, !!v)}
+                      checked={d.variantIds.includes(f.sizes[0]!.id)}
+                      onCheckedChange={(v) => toggleIn("variantIds", f.sizes[0]!.id, !!v)}
                     />
                     {f.name}
-                    {!f.published && (
-                      <span className="text-muted-foreground text-xs">(hidden)</span>
-                    )}
+                    <span className="text-muted-foreground text-xs font-normal">
+                      Discovery set{!f.published && ", hidden"}
+                    </span>
                   </label>
-                  {f.sizes.length > 1 &&
-                    !d.fragranceIds.includes(f.id) &&
-                    f.sizes.map((s) => (
-                      <label key={s.id} className="ml-6 flex items-center gap-2 text-sm">
-                        <Checkbox
-                          checked={d.variantIds.includes(s.id)}
-                          onCheckedChange={(v) => toggleIn("variantIds", s.id, !!v)}
-                        />
-                        {s.sizeMl} ml only
-                      </label>
-                    ))}
-                </div>
-              ))}
+                ) : (
+                  <div key={f.id} className="flex flex-col gap-2">
+                    <label className="flex items-center gap-2 text-sm font-medium">
+                      <Checkbox
+                        checked={d.fragranceIds.includes(f.id)}
+                        onCheckedChange={(v) => toggleIn("fragranceIds", f.id, !!v)}
+                      />
+                      {f.name}
+                      {!f.published && (
+                        <span className="text-muted-foreground text-xs">(hidden)</span>
+                      )}
+                    </label>
+                    {f.sizes.length > 1 &&
+                      !d.fragranceIds.includes(f.id) &&
+                      f.sizes.map((s) => (
+                        <label key={s.id} className="ml-6 flex items-center gap-2 text-sm">
+                          <Checkbox
+                            checked={d.variantIds.includes(s.id)}
+                            onCheckedChange={(v) => toggleIn("variantIds", s.id, !!v)}
+                          />
+                          {sizeLabel(s.sizeMl, s.pieces)} only
+                        </label>
+                      ))}
+                  </div>
+                ),
+              )}
             </div>
           )}
         </CardContent>

@@ -6,6 +6,7 @@ import { HistoryIcon } from "lucide-react";
 import { DataTable, type ColumnMeta } from "@/components/admin/data-table/DataTable";
 import { Badge } from "@/components/admin/ui/badge";
 import { formatDateTime } from "@/lib/time";
+import { sizeLabel } from "@/lib/size";
 
 type Row = {
   id: number;
@@ -15,6 +16,7 @@ type Row = {
   reason: string | null;
   sku: string;
   sizeMl: number;
+  pieces: number;
   name: string;
   orderId: number | null;
   orderNumber: string | null;
@@ -62,7 +64,7 @@ export function HistoryTable({
       meta: meta({ label: "Size" }),
       cell: ({ row: { original: r } }) => (
         <span>
-          {r.name} <span className="text-muted-foreground">{r.sizeMl} ml</span>
+          {r.name} <span className="text-muted-foreground">{sizeLabel(r.sizeMl, r.pieces)}</span>
         </span>
       ),
     },

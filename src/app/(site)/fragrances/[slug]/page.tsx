@@ -9,7 +9,8 @@ import { ProductPurchase } from "@/components/product/ProductPurchase";
 import { ScentProfile } from "@/components/product/ScentProfile";
 import { StageAnchor } from "@/components/stage/StageAnchor";
 import { BOTTLE_MODELS } from "@/components/stage/model-manifest";
-import { getFragrance, getFragrances } from "@/db/queries";
+import { SetHint } from "@/components/discovery/SetHint";
+import { getDiscoverySets, getFragrance, getFragrances } from "@/db/queries";
 import { availability, withNotePhotos } from "@/lib/assets";
 import { NOTE_LAYERS, notesByLayer, worldVars } from "@/lib/fragrance";
 
@@ -42,7 +43,7 @@ export async function generateMetadata({
 
 export default async function FragrancePage({ params }: PageProps<"/fragrances/[slug]">) {
   const { slug } = await params;
-  const all = await getFragrances();
+  const [all, sets] = await Promise.all([getFragrances(), getDiscoverySets()]);
   const index = all.findIndex((x) => x.slug === slug);
   if (!all[index]) notFound();
   const f = withNotePhotos(all[index]);
@@ -131,6 +132,7 @@ export default async function FragrancePage({ params }: PageProps<"/fragrances/[
 
           <div className="mt-12 max-w-md" {...enter(4)}>
             <ProductPurchase fragrance={f} />
+            <SetHint sets={sets} slug={f.slug} className="mt-6 opacity-80" />
           </div>
 
           <div className="mt-20 max-w-md" {...enter(5)}>

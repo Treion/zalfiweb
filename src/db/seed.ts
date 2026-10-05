@@ -3,7 +3,8 @@
  *
  *   npm run db:seed          inserts anything missing (and fills empty scent profiles); never
  *                            overwrites your edits
- *   npm run db:seed -- --reset  overwrites fragrances, notes, prices and stock with the seed values
+ *   npm run db:seed -- --reset  overwrites fragrances, discovery sets, notes, prices and stock with
+ *                            the seed values
  *
  * Uses node-postgres directly (scripts run in Node, not on the edge).
  */
@@ -12,7 +13,7 @@ import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "./schema";
-import { FRAGRANCES, NOTES } from "./seed-data";
+import { DISCOVERY_SETS, FRAGRANCES, NOTES } from "./seed-data";
 
 const reset = process.argv.includes("--reset");
 
@@ -99,6 +100,62 @@ async function main() {
       }
     }
 
+    // Discovery sets: added when missing, never overwritten (unless --reset)
+    const fragranceIds = new Map(
+      (
+        await tx
+          .select({ id: schema.fragrances.id, slug: schema.fragrances.slug })
+          .from(schema.fragrances)
+      ).map((r) => [r.slug, r.id]),
+    );
+    for (const s of DISCOVERY_SETS) {
+      const values = {
+        slug: s.slug,
+        name: s.name,
+        tagline: s.tagline,
+        story: s.story,
+        image: s.image,
+        imageAlt: s.imageAlt,
+        imageWidth: s.width,
+        imageHeight: s.height,
+        sortOrder: s.sortOrder,
+      };
+      const [created] = await (reset
+        ? tx
+            .insert(schema.discoverySets)
+            .values(values)
+            .onConflictDoUpdate({
+              target: schema.discoverySets.slug,
+              set: { ...values, updatedAt: sql`now()` },
+            })
+            .returning({ id: schema.discoverySets.id })
+        : tx
+            .insert(schema.discoverySets)
+            .values(values)
+            .onConflictDoNothing()
+            .returning({ id: schema.discoverySets.id }));
+      // An existing set keeps the owner's contents and pack
+      if (!created) continue;
+      await tx
+        .delete(schema.discoverySetItems)
+        .where(sql`${schema.discoverySetItems.setId} = ${created.id}`);
+      await tx.insert(schema.discoverySetItems).values(
+        s.fragrances.map((f, position) => ({
+          setId: created.id,
+          fragranceId: fragranceIds.get(f.slug)!,
+          position,
+        })),
+      );
+      const v = s.variant!;
+      await tx
+        .insert(schema.variants)
+        .values({ ...v, setId: created.id })
+        .onConflictDoUpdate({
+          target: schema.variants.sku,
+          set: { pricePoisha: v.pricePoisha, stock: v.stock, sizeMl: v.sizeMl, pieces: v.pieces },
+        });
+    }
+
     // Keep the stock ledger true: any stock the seed set (new sizes, or a --reset) gets a ledger row,
     // so variants.stock always equals the sum of its movements
     await tx.execute(sql`
@@ -113,7 +170,7 @@ async function main() {
   });
 
   const counts = await db.execute(
-    sql`select (select count(*) from fragrances) f, (select count(*) from notes) n, (select count(*) from fragrance_notes) fn, (select count(*) from variants) v`,
+    sql`select (select count(*) from fragrances) f, (select count(*) from notes) n, (select count(*) from fragrance_notes) fn, (select count(*) from variants) v, (select count(*) from discovery_sets) s`,
   );
   console.log(reset ? "Seeded (reset)" : "Seeded", counts.rows[0]);
   await pool.end();

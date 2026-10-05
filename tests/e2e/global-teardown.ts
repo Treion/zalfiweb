@@ -12,6 +12,8 @@ export default async function globalTeardown() {
     if (orders.length)
       await db.query(`delete from orders where id = any($1)`, [orders.map((o) => o.id)]);
     await db.query(`delete from customers where email like 'zz-e2e+%'`);
+    // The set first: its box holds the test fragrance
+    await db.query(`delete from discovery_sets where slug = $1`, [E2E.set.slug]);
     await db.query(`delete from fragrances where slug = $1`, [E2E.slug]);
     const users = (
       await db.query(`select id from admin_users where email like 'zz-e2e-%'`)

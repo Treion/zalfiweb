@@ -213,10 +213,10 @@ describe("report numbers", () => {
       (r) => r.fragranceId === fragranceId,
     );
     expect(f).toEqual([
-      { fragranceId, name: "Zz Report", bottles: 4, revenue: 18_000 * T, orders: 3 },
+      { fragranceId, setId: null, name: "Zz Report", bottles: 4, revenue: 18_000 * T, orders: 3 },
     ]);
     expect(await m.bySize(range.from, range.to)).toEqual([
-      { sizeMl: 50, bottles: 4, revenue: 18_000 * T },
+      { sizeMl: 50, pieces: 1, label: "50 ml", bottles: 4, revenue: 18_000 * T },
     ]);
   });
 

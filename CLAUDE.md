@@ -128,6 +128,11 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
 ## Catalogue and house pages
 
 - **ZALFI sells one size: 50 ml.** The size chooser appears only if a fragrance ever has more than one variant. Migration `0002` retired the 100 ml rows.
+- **Discovery sets** (`discovery_sets`, `src/lib/discovery.ts`, `src/components/discovery`): three fragrances in small vials (3 × 3 ml), sold only as one box. Admin: **Products → Discovery sets**; stock in **Inventory**.
+  - A set sells through one variant of its own (`variants.set_id`, `pieces` = 3), with its own stock and ledger. Selling one never touches the bottles.
+  - Write every size with `sizeLabel()` (`src/lib/size.ts`), never `` `${sizeMl} ml` ``.
+  - Sets stay out of the home experience and the stage: no chapter, no world, no `StageAnchor`. They live on bone paper: the spread after the Story, `/discovery`, and one-line hints (`<SetHint />`) on product pages and the finder.
+  - Box photos (`public/images/sets/`, or uploaded) follow the bottle-photo rules: `object-contain`, quality 90, never cropped or recoloured.
 - **House pages** (`/about`, `/faq`, `/contact`, `/refunds`, `/payment-policy`, `/privacy`, `/terms`):
   - They are one route, `app/(info)/[slug]`, fed by `src/content/pages.ts`. The nav and footer list them from `src/content/info-nav.ts` (light, so the copy stays on the server).
   - **The copy is the owner's** (`docs/content/policies-original.md`), rewritten in the house voice at the owner's request: the same facts and terms. Never invent policy, and change the substance only with the owner.
@@ -177,7 +182,7 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
 ## Code conventions
 
 - Folders:
-  - `src/components/{motion,ui,media,brand,sections,stage,product,cart,finder}`
+  - `src/components/{motion,ui,media,brand,sections,stage,product,cart,finder,discovery}`
   - `src/db` (schema, client, queries, seed)
   - `src/lib` (domain types, helpers)
   - `src/server/*` (domain and infrastructure, no React), `src/content` (house-page copy)
@@ -193,7 +198,7 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
   1. Run `npm run check` (lint + typecheck + build), `npm test` (it includes the security checklist, `tests/unit/security.test.ts`), `npm run test:db` and, for anything touching checkout or the admin, `npm run test:e2e` (Playwright, test providers).
   2. Run the dev server and take Playwright screenshots at 1440px and 375px, plus one with reduced motion.
   3. Calm check, with `?stage=force`, once frames have settled:
-     - With no input, two screenshots 1.5s apart must be pixel-identical on the landing, the line-up, a chapter and a product page.
+     - With no input, two screenshots 1.5s apart must be pixel-identical on the landing, the line-up, a chapter, a product page and `/discovery`.
      - Moving the pointer (without hovering anything) must not change the stage.
   4. Commit and push to the working branch.
   5. Summarise for review.

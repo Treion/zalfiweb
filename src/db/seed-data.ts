@@ -5,6 +5,7 @@
  * Prices are taka placeholders until the owner sets real ones in the admin (Products).
  */
 import { resolveBottle } from "@/lib/bottle";
+import type { DiscoverySet } from "@/lib/discovery";
 import type {
   CapFinish,
   Fragrance,
@@ -321,5 +322,65 @@ export const FRAGRANCES: Fragrance[] = [
       seasons: ["autumn", "winter"],
       moments: ["evening", "night"],
     },
+  ),
+];
+
+/** Discovery sets: three fragrances in 3 ml vials, one boxed pack each. Prices are placeholders. */
+const discoverySet = (
+  sortOrder: number,
+  slug: string,
+  name: string,
+  box: string,
+  slugs: [string, string, string],
+  copy: { tagline: string; story: string },
+  price: number,
+): DiscoverySet => ({
+  slug,
+  name,
+  ...copy,
+  image: `/images/sets/${slug}.webp`,
+  imageAlt: `The ZALFI ${name}: a ${box} box with silver line art, open on three small vials with black sphere caps`,
+  width: 1086,
+  height: 1448,
+  sortOrder,
+  fragrances: slugs.map((f) => {
+    const { slug, name, tagline, bottleImage, bottleAlt } = FRAGRANCES.find((x) => x.slug === f)!;
+    return { slug, name, tagline, bottleImage, bottleAlt };
+  }),
+  variant: {
+    sku: `ZLF-SET-${slug.toUpperCase()}-3X3`,
+    sizeMl: 3,
+    pieces: 3,
+    pricePoisha: price * 100,
+    stock: 20,
+  },
+});
+
+export const DISCOVERY_SETS: DiscoverySet[] = [
+  discoverySet(
+    1,
+    "black",
+    "Black Set",
+    "matte black",
+    ["reva", "riven", "maree"],
+    {
+      tagline: "Frost, glass and tide. The cool side of the house.",
+      story:
+        "Reva, Riven and Maree in three 3 ml vials: a frosted fougère, a cold green and a seaside garden. Wear each for a day, then choose your 50 ml.",
+    },
+    1500,
+  ),
+  discoverySet(
+    2,
+    "navy",
+    "Navy Set",
+    "deep navy",
+    ["solea", "bond", "oudor"],
+    {
+      tagline: "Sun, iris and smoke. The warm side of the house.",
+      story:
+        "Solea, Bond and Oudor in three 3 ml vials: warm vanilla skin, tailored iris and saffron smoke. Wear each for a day, then choose your 50 ml.",
+    },
+    1500,
   ),
 ];

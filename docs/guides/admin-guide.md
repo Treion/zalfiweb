@@ -141,6 +141,17 @@ For couriers without a connection (Sundarban, SA Paribahan, Paperfly…), your o
 
 Changes show on the shop at once. **New fragrance** (top of Products) adds one; the home page gains a chapter by itself.
 
+### Discovery sets
+
+Below the fragrances, **Discovery sets** lists each set: three fragrances in small vials, sold only as one box. Each set has its own stock of boxes, separate from the bottles: selling a set never changes a 50 ml count. Open one to edit:
+
+- **Details:** name, tagline (under 15 words), a description of the box photo, a description for search engines, its order, and **On the shop** or hidden.
+- **In the box:** the three fragrances, one per vial, in order. Each fragrance's page points to the set it's in.
+- **Pack and price:** the size of each vial (3 ml today), the price in taka, the low-stock level, and whether it's on sale. Its SKU never changes.
+- **Box photo:** the box cut out on a transparent background (PNG or WebP, up to 4 MB). It's shown whole, never cropped.
+
+**New set** adds one. It starts hidden with no boxes: add stock in **Inventory**, then switch it on. A set can't be shown while its pack is off, and its pack can't be switched off while it's shown. Sets are never deleted (old orders refer to them); hide one instead.
+
 ## Notes
 
 **Notes** (under Catalogue) is the library of ingredients the fragrances are made of: each with its photo, and which fragrances use it.
@@ -152,7 +163,7 @@ Changes show on the shop at once. **New fragrance** (top of Products) adds one; 
 
 ## Stock
 
-**Inventory** shows every size:
+**Inventory** shows every size, and every discovery set (tagged **Set**; it counts boxes):
 - **In stock:** on the shelf.
 - **Held:** bottles reserved by unpaid online orders, for up to 30 minutes.
 - **Available:** what customers can buy.

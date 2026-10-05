@@ -1,5 +1,5 @@
 import { and, desc, ilike, or, sql } from "drizzle-orm";
-import { customers, fragrances, orders, variants } from "@/db/schema";
+import { customers, discoverySets, fragrances, orders, variants } from "@/db/schema";
 import { formatPrice } from "@/lib/money";
 import { formatPhone } from "@/lib/phone";
 import { formatDate } from "@/lib/time";
@@ -9,13 +9,13 @@ import { STATUS_LABELS } from "@/server/orders/state";
 
 /**
  * The admin's one search box: orders (by number, phone, name or email), customers (by name, phone
- * or email) and fragrances (by name, slug or SKU). Each group appears only to admins who may open
+ * or email), fragrances and discovery sets (by name, slug or SKU). Each group appears only to admins who may open
  * it. Phone numbers match however they're typed (01712-345678, +8801712345678, 1712345678).
  */
 
 export type SearchHit = { title: string; detail: string; href: string };
 export type SearchGroup = {
-  kind: "orders" | "customers" | "products";
+  kind: "orders" | "customers" | "products" | "sets";
   label: string;
   hits: SearchHit[];
   /** How many match in all (the list shows the first few) */
@@ -157,6 +157,44 @@ export async function globalSearch(
             .filter(Boolean)
             .join(" · "),
           href: `/admin/products/${f.id}`,
+        })),
+      })),
+    );
+
+    const ws = or(
+      ilike(discoverySets.name, like(q)),
+      ilike(discoverySets.slug, like(q)),
+      sql`exists (select 1 from ${variants} v where v.set_id = ${sql.raw(`"discovery_sets"."id"`)} and v.sku ilike ${like(q)})`,
+    );
+    const visible = and(ws, sql`${discoverySets.slug} not like 'zz-%'`);
+    tasks.push(
+      Promise.all([
+        exec
+          .select({
+            id: discoverySets.id,
+            name: discoverySets.name,
+            published: discoverySets.published,
+            contents: sql<string>`(select string_agg(f.name, ', ' order by i.position) from discovery_set_items i join fragrances f on f.id = i.fragrance_id where i.set_id = ${sql.raw(`"discovery_sets"."id"`)})`,
+          })
+          .from(discoverySets)
+          .where(visible)
+          .orderBy(discoverySets.sortOrder)
+          .limit(limit),
+        exec
+          .select({ n: sql<number>`count(*)::int` })
+          .from(discoverySets)
+          .where(visible),
+      ]).then(([rows, [c]]) => ({
+        kind: "sets" as const,
+        label: "Discovery sets",
+        total: c?.n ?? 0,
+        more: null,
+        hits: rows.map((r) => ({
+          title: r.name,
+          detail: [r.published ? null : "Hidden from the shop", r.contents]
+            .filter(Boolean)
+            .join(" · "),
+          href: `/admin/products/sets/${r.id}`,
         })),
       })),
     );

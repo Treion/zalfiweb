@@ -15,6 +15,7 @@ import {
 import { formatPrice } from "@/lib/money";
 import { formatPhone, normalisePhone } from "@/lib/phone";
 import { useCart } from "./cart-store";
+import { sizeLabel } from "@/lib/size";
 
 /**
  * The checkout: contact (with phone verification by SMS code), delivery address, payment, and a
@@ -517,7 +518,7 @@ export function CheckoutFlow({
                   <div>
                     <p className="font-display text-2xl leading-none">{l.name}</p>
                     <p className="text-smoke mt-1 text-sm">
-                      {l.sizeMl} ml × {l.qty}
+                      {sizeLabel(l.sizeMl, l.pieces)} × {l.qty}
                     </p>
                     {(soldOut || short) && (
                       <p className="text-alert mt-2 text-sm">

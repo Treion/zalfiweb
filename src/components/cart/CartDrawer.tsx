@@ -8,13 +8,21 @@ import { AnimatePresence, motion } from "motion/react";
 import { useLenis } from "@/components/motion/SmoothScroll";
 import { formatPrice } from "@/lib/money";
 import type { CheckoutResponse } from "@/app/api/checkout/route";
-import { useCart } from "./cart-store";
+import { lineHref, useCart } from "./cart-store";
 import { countWord } from "@/lib/words";
 import { HomeLink } from "@/components/sections/HomeLink";
+import { sizeLabel } from "@/lib/size";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
-export function CartDrawer({ worldCount = 6 }: { worldCount?: number }) {
+export function CartDrawer({
+  worldCount = 6,
+  discovery = false,
+}: {
+  worldCount?: number;
+  /** Whether discovery sets are on sale (the empty bag points to them) */
+  discovery?: boolean;
+}) {
   const cart = useCart();
   const { open, closeBag } = cart;
   const lenis = useLenis();
@@ -156,6 +164,18 @@ export function CartDrawer({ worldCount = 6 }: { worldCount?: number }) {
                   >
                     Discover the collection
                   </HomeLink>
+                  {discovery && (
+                    <p className="text-smoke text-sm">
+                      Not sure where to start?{" "}
+                      <Link
+                        href="/discovery"
+                        onClick={cart.closeBag}
+                        className="text-noir border-noir/40 border-b"
+                      >
+                        Discovery sets
+                      </Link>
+                    </p>
+                  )}
                 </div>
               ) : (
                 <ul className="divide-noir/10 divide-y">
@@ -178,18 +198,21 @@ export function CartDrawer({ worldCount = 6 }: { worldCount?: number }) {
                       </div>
                       <div className="min-w-0">
                         <Link
-                          href={`/fragrances/${l.slug}`}
+                          href={lineHref(l)}
                           onClick={cart.closeBag}
                           className="font-display text-2xl leading-none"
                         >
                           {l.name}
                         </Link>
-                        <p className="text-smoke mt-1 text-sm">Eau de parfum · {l.sizeMl} ml</p>
+                        <p className="text-smoke mt-1 text-sm">
+                          {l.kind === "set" ? "Discovery set" : "Eau de parfum"} ·{" "}
+                          {sizeLabel(l.sizeMl, l.pieces)}
+                        </p>
                         <div className="mt-4 flex items-center gap-4">
                           <div className="border-noir/20 flex items-center border">
                             <button
                               type="button"
-                              aria-label={`Remove one ${l.name} ${l.sizeMl} ml`}
+                              aria-label={`Remove one ${l.name} ${sizeLabel(l.sizeMl, l.pieces)}`}
                               onClick={() => cart.setQty(l.sku, l.qty - 1)}
                               className="grid size-8 place-items-center"
                             >
@@ -203,7 +226,7 @@ export function CartDrawer({ worldCount = 6 }: { worldCount?: number }) {
                             </span>
                             <button
                               type="button"
-                              aria-label={`Add one ${l.name} ${l.sizeMl} ml`}
+                              aria-label={`Add one ${l.name} ${sizeLabel(l.sizeMl, l.pieces)}`}
                               onClick={() => cart.setQty(l.sku, l.qty + 1)}
                               disabled={l.qty >= 10}
                               className="grid size-8 place-items-center disabled:opacity-30"

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Finder } from "@/components/finder/Finder";
-import { getFragrances } from "@/db/queries";
+import { getDiscoverySets, getFragrances } from "@/db/queries";
 
 export const revalidate = 300;
 
@@ -13,5 +13,6 @@ export const metadata: Metadata = {
 };
 
 export default async function FindPage() {
-  return <Finder fragrances={await getFragrances()} />;
+  const [fragrances, sets] = await Promise.all([getFragrances(), getDiscoverySets()]);
+  return <Finder fragrances={fragrances} sets={sets} />;
 }

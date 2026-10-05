@@ -59,6 +59,22 @@ for (const theme of ["light", "dark"] as const)
         });
         if ((await overflow(page)) > 1) wide.push("order");
       }
+      // And a discovery set's page
+      await page.goto("/admin/products", { waitUntil: "networkidle" });
+      const set = await page
+        .locator('#sets table a[href^="/admin/products/sets/"]')
+        .first()
+        .getAttribute("href")
+        .catch(() => null);
+      if (set) {
+        await page.goto(set, { waitUntil: "networkidle" });
+        await expect(page.getByText("In the box", { exact: true })).toBeVisible();
+        await page.screenshot({
+          path: `test-results/screens/set-${theme}-${w}.png`,
+          fullPage: true,
+        });
+        if ((await overflow(page)) > 1) wide.push("set");
+      }
       expect(wide, "pages wider than the screen").toEqual([]);
       await ctx.close();
     });

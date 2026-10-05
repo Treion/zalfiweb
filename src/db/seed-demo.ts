@@ -201,7 +201,7 @@ async function main() {
         sku: S.variants.sku,
         sizeMl: S.variants.sizeMl,
         price: S.variants.pricePoisha,
-        fragranceId: S.variants.fragranceId,
+        fragranceId: S.fragrances.id,
         name: S.fragrances.name,
         slug: S.fragrances.slug,
       })

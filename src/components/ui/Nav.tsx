@@ -18,11 +18,11 @@ const EASE = [0.22, 1, 0.36, 1] as const;
  * instead (html[data-room], see sections/room.ts). On the home page the wordmark waits while the
  * landing logo holds the screen, and the experience timeline fades it in (data-nav-logo).
  *
- * Where you are is a hairline box around the item: Fragrances while the line-up is open, Find
- * yours on the finder, Info on the house pages (or while its menu is open). It fades as you scroll
- * or navigate away. Only opacity changes.
+ * Where you are is a hairline box around the item: Fragrances while the line-up is open,
+ * Discovery on the discovery sets, Find yours on the finder, Info on the house pages (or while its
+ * menu is open). It fades as you scroll or navigate away. Only opacity changes.
  */
-export function Nav() {
+export function Nav({ discovery = false }: { discovery?: boolean }) {
   const { count, openBag } = useCart();
   const pathname = usePathname();
   const home = pathname === "/";
@@ -75,6 +75,17 @@ export function Nav() {
                 Fragrances
               </NavItem>
             </li>
+            {discovery && (
+              <li className="hidden sm:block">
+                <NavItem
+                  href="/discovery"
+                  active={pathname.startsWith("/discovery")}
+                  current="page"
+                >
+                  Discovery
+                </NavItem>
+              </li>
+            )}
             <li className="hidden sm:block">
               <NavItem href="/find" active={pathname.startsWith("/find")} current="page">
                 Find yours

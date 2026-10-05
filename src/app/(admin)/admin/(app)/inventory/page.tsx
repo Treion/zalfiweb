@@ -8,6 +8,7 @@ import { ADJUST_REASONS } from "@/server/catalog/schema";
 import { formatPrice } from "@/lib/money";
 import { HistoryTable } from "./HistoryTable";
 import { StockTable } from "./StockTable";
+import { sizeLabel } from "@/lib/size";
 
 export const metadata = { title: "Inventory" };
 
@@ -85,7 +86,7 @@ export default async function InventoryPage({ searchParams }: PageProps<"/admin/
           types={MOVEMENT_TYPES.map((t) => ({ value: t.value, label: t.label }))}
           sizes={rows.map((r) => ({
             value: String(r.variantId),
-            label: `${r.name} ${r.sizeMl} ml`,
+            label: `${r.name} ${sizeLabel(r.sizeMl, r.pieces)}`,
           }))}
         />
       )}

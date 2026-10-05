@@ -1,3 +1,4 @@
+import { sizeLabel } from "@/lib/size";
 import { and, desc, eq, gte, lt, sql } from "drizzle-orm";
 import { adminUsers, coupons, orderItems, orders, refunds, returns } from "@/db/schema";
 import { listInventory } from "@/server/catalog/inventory";
@@ -166,6 +167,7 @@ async function products(range: Range, exec: Executor): Promise<Report> {
     exec
       .select({
         id: orderItems.fragranceId,
+        setId: orderItems.setId,
         name: sql<string>`max(${orderItems.name})`,
         bottles: sql<number>`sum(${orderItems.qty})::int`,
         orders: sql<number>`count(distinct ${orderItems.orderId})::int`,
@@ -176,11 +178,13 @@ async function products(range: Range, exec: Executor): Promise<Report> {
       .where(and(SOLD, placedIn(range)))
       .groupBy(
         orderItems.fragranceId,
-        sql`case when ${orderItems.fragranceId} is null then ${orderItems.name} end`,
+        orderItems.setId,
+        sql`case when ${orderItems.fragranceId} is null and ${orderItems.setId} is null then ${orderItems.name} end`,
       ),
     exec
       .select({
         id: orderItems.fragranceId,
+        setId: orderItems.setId,
         name: sql<string>`max(${orderItems.name})`,
         bottles: sql<number>`sum(${orderItems.qty})::int`,
       })
@@ -189,11 +193,13 @@ async function products(range: Range, exec: Executor): Promise<Report> {
       .where(and(eq(orders.status, "returned"), placedIn(range)))
       .groupBy(
         orderItems.fragranceId,
-        sql`case when ${orderItems.fragranceId} is null then ${orderItems.name} end`,
+        orderItems.setId,
+        sql`case when ${orderItems.fragranceId} is null and ${orderItems.setId} is null then ${orderItems.name} end`,
       ),
   ]);
   const total = sold.reduce((s, r) => s + n(r.items), 0);
-  const keyOf = (r: { id: number | null; name: string }) => (r.id != null ? `#${r.id}` : r.name);
+  const keyOf = (r: { id: number | null; setId: number | null; name: string }) =>
+    r.id != null ? `#${r.id}` : r.setId != null ? `set#${r.setId}` : r.name;
   const returned = new Map(back.map((r) => [keyOf(r), n(r.bottles)]));
   const rows = sold
     .map((r) => ({
@@ -210,7 +216,7 @@ async function products(range: Range, exec: Executor): Promise<Report> {
     key: "products",
     title: "Fragrances",
     description:
-      "Bottles sold per fragrance, at bottle prices before order discounts. Returned bottles are from orders placed in the period that came back.",
+      "Bottles sold per fragrance, at bottle prices before order discounts. A discovery set is its own row and counts one per box. Returned bottles are from orders placed in the period that came back.",
     chart: {
       kind: "bars",
       title: "Item sales by fragrance",
@@ -250,6 +256,7 @@ async function sizes(range: Range, exec: Executor): Promise<Report> {
   const rows = await exec
     .select({
       size: orderItems.sizeMl,
+      pieces: orderItems.pieces,
       bottles: sql<number>`sum(${orderItems.qty})::int`,
       orders: sql<number>`count(distinct ${orderItems.orderId})::int`,
       items: sql<number>`sum(${orderItems.lineTotal})::bigint`,
@@ -257,12 +264,12 @@ async function sizes(range: Range, exec: Executor): Promise<Report> {
     .from(orderItems)
     .innerJoin(orders, eq(orders.id, orderItems.orderId))
     .where(and(SOLD, placedIn(range)))
-    .groupBy(orderItems.sizeMl)
-    .orderBy(orderItems.sizeMl);
+    .groupBy(orderItems.sizeMl, orderItems.pieces)
+    .orderBy(orderItems.pieces, desc(orderItems.sizeMl));
   const bottles = rows.reduce((s, r) => s + n(r.bottles), 0);
   const items = rows.reduce((s, r) => s + n(r.items), 0);
   const table = rows.map((r) => ({
-    size: `${r.size} ml`,
+    size: sizeLabel(r.size, r.pieces),
     bottles: n(r.bottles),
     bottleShare: share(n(r.bottles), bottles),
     orders: n(r.orders),
@@ -273,7 +280,7 @@ async function sizes(range: Range, exec: Executor): Promise<Report> {
     key: "sizes",
     title: "Sizes",
     description:
-      "Bottles sold per size. ZALFI sells 50 ml today; another size shows here as soon as it sells.",
+      "Bottles sold per size: 50 ml bottles, and discovery sets (3 × 3 ml) counted one per box. Another size shows here as soon as it sells.",
     chart: {
       kind: "split",
       title: "Bottles by size",
@@ -312,7 +319,7 @@ async function inventory(exec: Executor): Promise<Report> {
   const inv = await listInventory(exec);
   const rows = inv.map((r) => ({
     fragrance: r.name,
-    size: `${r.sizeMl} ml`,
+    size: sizeLabel(r.sizeMl, r.pieces),
     sku: r.sku,
     state:
       !r.active || !r.published

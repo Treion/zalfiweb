@@ -86,15 +86,59 @@ export const fragranceNotes = pgTable(
   ],
 );
 
+/**
+ * Discovery sets: three fragrances decanted into small vials, sold only as one boxed pack. A set
+ * is not a fragrance: it has no world, no chapter and no stage. It sells through one variant of
+ * its own (its `pieces` vials of `size_ml`), with its own stock and ledger.
+ */
+export const discoverySets = pgTable(
+  "discovery_sets",
+  {
+    id: serial("id").primaryKey(),
+    slug: text("slug").notNull(),
+    name: text("name").notNull(),
+    tagline: text("tagline").notNull(),
+    /** For search engines and the product data; not shown as a paragraph */
+    story: text("story").notNull().default(""),
+    /** The box photo (transparent PNG or WebP), shown whole, never cropped */
+    image: text("image").notNull(),
+    imageAlt: text("image_alt").notNull(),
+    imageWidth: integer("image_width").notNull(),
+    imageHeight: integer("image_height").notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+    published: boolean("published").notNull().default(true),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("discovery_sets_slug_idx").on(t.slug)],
+);
+
+/** What is in each set's box: three fragrances, in order */
+export const discoverySetItems = pgTable(
+  "discovery_set_items",
+  {
+    setId: integer("set_id")
+      .notNull()
+      .references(() => discoverySets.id, { onDelete: "cascade" }),
+    fragranceId: integer("fragrance_id")
+      .notNull()
+      .references(() => fragrances.id, { onDelete: "restrict" }),
+    position: integer("position").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.setId, t.fragranceId] })],
+);
+
 export const variants = pgTable(
   "variants",
   {
     id: serial("id").primaryKey(),
-    fragranceId: integer("fragrance_id")
-      .notNull()
-      .references(() => fragrances.id, { onDelete: "cascade" }),
+    /** A size of a fragrance, or (with set_id) the pack of a discovery set: exactly one is set */
+    fragranceId: integer("fragrance_id").references(() => fragrances.id, { onDelete: "cascade" }),
+    setId: integer("set_id").references(() => discoverySets.id, { onDelete: "cascade" }),
     sku: text("sku").notNull(),
+    /** Millilitres per bottle or vial */
     sizeMl: integer("size_ml").notNull(),
+    /** Vials in the pack: 1 for a bottle, 3 for a discovery set */
+    pieces: integer("pieces").notNull().default(1),
     /** Price in poisha (1 taka = 100 poisha). BDT only. Edited in the admin (Products). */
     pricePoisha: integer("price_poisha").notNull().default(0),
     stock: integer("stock").notNull().default(0),
@@ -108,6 +152,9 @@ export const variants = pgTable(
   (t) => [
     uniqueIndex("variants_sku_idx").on(t.sku),
     index("variants_fragrance_idx").on(t.fragranceId),
+    index("variants_set_idx").on(t.setId),
+    check("variants_one_owner", sql`num_nonnulls(${t.fragranceId}, ${t.setId}) = 1`),
+    check("variants_pieces_positive", sql`${t.pieces} >= 1`),
     check("variants_stock_nonnegative", sql`${t.stock} >= 0`),
     check("variants_price_nonnegative", sql`${t.pricePoisha} >= 0`),
   ],

@@ -453,15 +453,15 @@ export default async function OverviewPage({ searchParams }: PageProps<"/admin">
               <p className="text-sm">
                 <span className="text-2xl font-semibold">{formatCount(sizes[0]!.bottles)}</span>
                 <span className="text-muted-foreground ml-2">
-                  bottles, all {sizes[0]!.sizeMl} ml
+                  bottles, all {sizes[0]!.label}
                   {money ? ` · ${formatTaka(sizes[0]!.revenue)}` : ""}
                 </span>
               </p>
             ) : (
               <SplitBar
                 parts={sizes.map((s) => ({
-                  key: String(s.sizeMl),
-                  label: `${s.sizeMl} ml`,
+                  key: s.label,
+                  label: s.label,
                   value: s.bottles,
                   display: `${formatCount(s.bottles)}${money ? ` · ${formatTaka(s.revenue)}` : ""}`,
                 }))}

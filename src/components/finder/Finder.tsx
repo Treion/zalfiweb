@@ -5,9 +5,11 @@ import clsx from "clsx";
 import { useCallback, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCart } from "@/components/cart/cart-store";
+import { SetHint } from "@/components/discovery/SetHint";
 import { useLenis } from "@/components/motion/SmoothScroll";
 import { BottleImage, bottleAspect } from "@/components/media/BottleImage";
 import { StageAnchor } from "@/components/stage/StageAnchor";
+import type { DiscoverySet } from "@/lib/discovery";
 import { QUESTIONS, recommend } from "@/lib/finder";
 import { worldVars, type Fragrance } from "@/lib/fragrance";
 import { formatPrice } from "@/lib/money";
@@ -19,7 +21,14 @@ const EASE = [0.22, 1, 0.36, 1] as const;
  * stage washes the page into that world and the bottle fades in; Discover carries it across to its
  * product page.
  */
-export function Finder({ fragrances }: { fragrances: Fragrance[] }) {
+export function Finder({
+  fragrances,
+  sets = [],
+}: {
+  fragrances: Fragrance[];
+  /** Discovery sets, for the "try it first" line under the result */
+  sets?: DiscoverySet[];
+}) {
   const [answers, setAnswers] = useState<number[]>([]);
   const answered = useRef(false);
   const lenis = useLenis();
@@ -84,7 +93,13 @@ export function Finder({ fragrances }: { fragrances: Fragrance[] }) {
         <div className="col-span-12 md:col-span-8 md:col-start-5">
           <AnimatePresence mode="wait" initial={false}>
             {result ? (
-              <Result key="result" fragrance={result} heading={heading} onRestart={restart} />
+              <Result
+                key="result"
+                fragrance={result}
+                sets={sets}
+                heading={heading}
+                onRestart={restart}
+              />
             ) : (
               <motion.section
                 key={step}
@@ -147,9 +162,11 @@ export function Finder({ fragrances }: { fragrances: Fragrance[] }) {
 function Result({
   fragrance: f,
   heading,
+  sets,
   onRestart,
 }: {
   fragrance: Fragrance;
+  sets: DiscoverySet[];
   heading: (el: HTMLHeadingElement | null) => void;
   onRestart: () => void;
 }) {
@@ -205,6 +222,7 @@ function Result({
             </button>
           )}
         </div>
+        <SetHint sets={sets} slug={f.slug} className="mt-6 opacity-80" />
         <button
           type="button"
           onClick={onRestart}

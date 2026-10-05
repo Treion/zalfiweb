@@ -11,6 +11,7 @@ import { PayNow } from "@/components/cart/PayNow";
 import { ManualPay } from "@/components/cart/ManualPay";
 import { latestManualPayment, manualWallets } from "@/server/payments/manual";
 import { orderTracking } from "@/server/shipping/tracking-query";
+import { sizeLabel } from "@/lib/size";
 
 export const metadata: Metadata = {
   title: "Thank you",
@@ -133,7 +134,7 @@ export default async function ThanksPage({ searchParams }: PageProps<"/checkout/
                 <div>
                   <p className="font-display text-2xl leading-none">{i.name}</p>
                   <p className="text-smoke mt-1 text-sm">
-                    {i.sizeMl} ml × {i.qty}
+                    {sizeLabel(i.sizeMl, i.pieces)} × {i.qty}
                   </p>
                 </div>
                 <p className="tabular-nums">{formatPrice(i.lineTotal)}</p>

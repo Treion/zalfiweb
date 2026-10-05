@@ -15,6 +15,7 @@ export async function orderForCustomer(token: string) {
     .select({
       name: orderItems.name,
       sizeMl: orderItems.sizeMl,
+      pieces: orderItems.pieces,
       qty: orderItems.qty,
       lineTotal: orderItems.lineTotal,
       fragranceId: orderItems.fragranceId,

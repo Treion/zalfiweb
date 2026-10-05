@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { formatPrice } from "@/lib/money";
 import { useCart } from "./cart-store";
+import { sizeLabel } from "@/lib/size";
 
 export function CheckoutSummary() {
   const { lines, subtotalPoisha, hydrated } = useCart();
@@ -32,7 +33,7 @@ export function CheckoutSummary() {
             <div>
               <p className="font-display text-2xl leading-none">{l.name}</p>
               <p className="text-smoke mt-1 text-sm">
-                {l.sizeMl} ml × {l.qty}
+                {sizeLabel(l.sizeMl, l.pieces)} × {l.qty}
               </p>
             </div>
             <p className="tabular-nums">{formatPrice(l.pricePoisha * l.qty)}</p>

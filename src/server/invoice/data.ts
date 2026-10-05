@@ -10,6 +10,7 @@ import { getSettings } from "@/server/settings";
 import { includedVat } from "@/server/checkout/pricing";
 import { PAYMENT_STATUS_LABELS } from "@/server/orders/state";
 import { orderTracking } from "@/server/shipping/tracking-query";
+import { sizeLabel } from "@/lib/size";
 
 /**
  * Everything a receipt or invoice shows, already worded and formatted. The e-receipt email and the
@@ -87,7 +88,7 @@ export async function loadInvoice(orderId: number, exec: Executor = poolDb()) {
     address: [o.addressStreet, `${o.addressArea}, ${o.addressDistrict}`, ZONE_LABEL[o.zone]],
     items: items.map((i) => ({
       name: i.name,
-      size: `${i.sizeMl} ml`,
+      size: sizeLabel(i.sizeMl, i.pieces),
       qty: i.qty,
       unit: formatPrice(i.unitPrice),
       total: formatPrice(i.lineTotal),

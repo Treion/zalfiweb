@@ -1,11 +1,11 @@
 import { and, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { fragrances, stockReservations, variants } from "@/db/schema";
-import { FRAGRANCES } from "@/db/seed-data";
+import { discoverySets, fragrances, stockReservations, variants } from "@/db/schema";
+import { DISCOVERY_SETS, FRAGRANCES } from "@/db/seed-data";
 
 // Edge-portable (Web APIs and Neon's fetch driver only). Live stock for the bag and product pages.
 // `stock` is what can be bought now: stock minus bottles held for unpaid orders. Sizes that are
-// switched off, or belong to a hidden fragrance, aren't sold and don't appear.
+// switched off, or belong to a hidden fragrance or discovery set, aren't sold and don't appear.
 
 export async function GET(req: Request) {
   const skus = (new URL(req.url).searchParams.get("skus") ?? "")
@@ -37,13 +37,14 @@ export async function GET(req: Request) {
           pricePoisha: variants.pricePoisha,
         })
         .from(variants)
-        .innerJoin(fragrances, eq(fragrances.id, variants.fragranceId))
+        .leftJoin(fragrances, eq(fragrances.id, variants.fragranceId))
+        .leftJoin(discoverySets, eq(discoverySets.id, variants.setId))
         .leftJoin(held, eq(held.variantId, variants.id))
         .where(
           and(
             inArray(variants.sku, skus),
             eq(variants.active, true),
-            eq(fragrances.published, true),
+            sql`coalesce(${fragrances.published}, ${discoverySets.published}) = true`,
           ),
         );
     } catch (err) {
@@ -51,7 +52,10 @@ export async function GET(req: Request) {
       return Response.json({ error: "unavailable" }, { status: 503 });
     }
   } else {
-    rows = FRAGRANCES.flatMap((f) => f.variants).filter((v) => skus.includes(v.sku));
+    rows = [
+      ...FRAGRANCES.flatMap((f) => f.variants),
+      ...DISCOVERY_SETS.flatMap((s) => (s.variant ? [s.variant] : [])),
+    ].filter((v) => skus.includes(v.sku));
   }
 
   return Response.json(

@@ -94,6 +94,7 @@ export type Quote = {
     sku: string;
     name: string;
     sizeMl: number;
+    pieces: number;
     unitPrice: number;
     qty: number;
     lineTotal: number;

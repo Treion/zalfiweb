@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AA_TEXT, contrastRatio } from "@/lib/contrast";
+import { SET_SIZE } from "@/lib/discovery";
 import { MOMENTS, SEASONS, type ScentProfile } from "@/lib/fragrance";
 
 /**
@@ -145,3 +146,43 @@ export const stockAdjustSchema = z
     message: "Say why, in a few words",
     path: ["note"],
   });
+
+/* Discovery sets ------------------------------------------------------------------------------ */
+
+/** What's in the box: exactly three different fragrances, in box order */
+export const setFragrancesSchema = z
+  .array(z.number().int().positive())
+  .length(SET_SIZE, `Choose ${SET_SIZE} fragrances.`)
+  .refine((ids) => new Set(ids).size === ids.length, "Choose three different fragrances.");
+
+/** Everything about a set except its contents, photo and pack */
+export const setDetailsSchema = z
+  .object({
+    name: z.string().trim().min(1, "Give it a name").max(40),
+    tagline: z.string().trim().min(1, "Add a tagline").max(140),
+    story: z.string().trim().max(2000),
+    imageAlt: z.string().trim().min(10, "Describe the box for people who can't see it").max(200),
+    sortOrder: z.number().int().min(0).max(999),
+    published: z.boolean(),
+  })
+  .strict();
+
+/** The pack: the vial size and the price. It always holds one vial of each fragrance. */
+export const setPackSchema = z
+  .object({
+    sizeMl: z.number().int().min(1, "At least 1 ml").max(30, "Decants are 30 ml at most"),
+    pricePoisha: z.number().int().min(100, "At least ৳1").max(10_000_000),
+    lowStockThreshold: z.number().int().min(0).max(10_000).nullable(),
+    active: z.boolean(),
+  })
+  .strict();
+
+export const newSetSchema = setDetailsSchema
+  .pick({ name: true, tagline: true, imageAlt: true })
+  .extend({
+    slug: slugSchema,
+    fragranceIds: setFragrancesSchema,
+    sizeMl: setPackSchema.shape.sizeMl,
+    pricePoisha: setPackSchema.shape.pricePoisha,
+  })
+  .strict();

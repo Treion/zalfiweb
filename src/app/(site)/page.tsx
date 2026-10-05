@@ -1,6 +1,7 @@
 import { Experience } from "@/components/sections/Experience";
+import { DiscoverySpread } from "@/components/discovery/DiscoverySpread";
 import { Story } from "@/components/sections/Story";
-import { getFragrances } from "@/db/queries";
+import { getDiscoverySets, getFragrances } from "@/db/queries";
 import { NOTES } from "@/db/seed-data";
 import { availability, withNotePhotos } from "@/lib/assets";
 
@@ -8,7 +9,8 @@ import { availability, withNotePhotos } from "@/lib/assets";
 export const revalidate = 300;
 
 export default async function Home() {
-  const fragrances = (await getFragrances()).map(withNotePhotos);
+  const [all, sets] = await Promise.all([getFragrances(), getDiscoverySets()]);
+  const fragrances = all.map(withNotePhotos);
   const noteAvail = availability([
     ...new Set([...NOTES, ...fragrances.flatMap((f) => f.notes)].map((n) => n.image)),
   ]);
@@ -19,6 +21,7 @@ export default async function Home() {
         feature={fragrances.find((f) => f.slug === "bond") ?? fragrances[0]}
         count={fragrances.length}
       />
+      <DiscoverySpread sets={sets} />
     </main>
   );
 }

@@ -22,14 +22,14 @@ async function admin(page: Page) {
 async function shipAndDeliver(a: Page, number: string) {
   await openOrder(a, number);
   await a.getByRole("button", { name: "Mark packed" }).click();
-  await expect(a.getByText(`${number}: packed`)).toBeVisible();
+  await expect(a.getByText(`${number}: packed`, { exact: true })).toBeVisible();
   await a.getByRole("button", { name: "Send to courier" }).first().click();
   await expect(a.getByRole("dialog").getByText("Test courier")).toBeVisible();
   await a.getByRole("dialog").getByRole("button", { name: /^Send/ }).click();
   await expect(a.getByText(/Sent: consignment/)).toBeVisible();
   await a.getByRole("button", { name: /Courier update/ }).click();
   await a.getByRole("menuitem", { name: "Delivered" }).click();
-  await expect(a.getByText("Courier: delivered")).toBeVisible();
+  await expect(a.getByText("Courier: delivered", { exact: true })).toBeVisible();
 }
 
 test("pays online, gets the e-receipt, and is packed, sent and delivered", async ({ page }) => {
@@ -107,7 +107,7 @@ test("cancelling an order puts its bottles back, through the ledger", async ({ p
   await expect(dialog.getByText("Put the bottles back in stock")).toBeVisible();
   await dialog.getByLabel("Reason (on the timeline)").fill("The customer changed their mind");
   await dialog.getByRole("button", { name: "Cancel order" }).click();
-  await expect(a.getByText(`${number}: cancelled`)).toBeVisible();
+  await expect(a.getByText(`${number}: cancelled`, { exact: true })).toBeVisible();
 
   expect((await orderByNumber(number)).status).toBe("cancelled");
   const after = await stockOf();

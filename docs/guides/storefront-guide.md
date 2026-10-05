@@ -18,14 +18,17 @@ What customers see, how they buy, and where each piece of the shop is changed: i
 2. **The line-up:** scroll, and the logo sinks back as the six bottles rise into a row, each with its name, price and **Add**. Hovering a bottle fills the room with its world's colours.
 3. **The chapters:** scrolling on, Reva steps forward into its world, then each fragrance follows. Each chapter has its name above the bottle, a tagline, its top, heart and base notes, and **Discover** and **Add to bag**. The bottle is the real photograph, relit live (WebGL). Pointing at it lifts it a touch, and clicking it opens its page. Every world is a deep dusk in its own colour, so the text stays light from the first chapter to the last.
 4. **The index** on the right (on a computer) lists the chapters. Click one to jump straight there: the screen washes to that world's colour, rather than scrolling through the others. The logo and **Fragrances** in the top bar jump the same way.
-5. The story, and the footer with the house pages, contact details and socials.
+5. The story, on bone paper.
+6. **Discovery sets:** on the same bone paper, the boxes side by side, each with what's inside, its price and **Add the set**. No pinning and no stage: the boxes only rise a little as they scroll in.
+7. The footer, with the house pages, contact details and socials.
 
 **Other pages**
 
 | Page | What's there |
 |---|---|
 | `/fragrances/reva` (and each other name) | The bottle large, price, live stock, Add to bag (it stays at the bottom of the screen as you scroll), the scent profile, the notes, and more photos |
-| `/find` | Find your world: three questions, then the fragrance that fits, lit on the stage |
+| `/find` | Find your world: three questions, then the fragrance that fits, lit on the stage, and the discovery set it's in |
+| `/discovery` (**Discovery** in the top bar) | The discovery sets: each box large, the three fragrances inside (each to its own page), the price and **Add the set**. Each fragrance's page has one line pointing to its set ("Try it first: in the Black Set, with Riven and Maree") |
 | **Info** in the top bar | The house pages: About, FAQ, Contact, Refunds, Payment policy, Privacy, Terms |
 | The cart icon (top right) | The bag, as a drawer: change quantities, then **Checkout** |
 | `/checkout` | The checkout, then the confirmation page |
@@ -55,6 +58,7 @@ These show on the shop at once, with no deploy:
 
 - **Fragrances:** name, tagline, story, mood, notes, scent profile, the world's colours, the cap, and published or hidden (**Products**). A new fragrance gets its own chapter on the home page by itself; the count words ("six worlds") follow.
 - **Prices, sizes and stock** (**Products**, **Inventory**). "Sold out" shows by itself when available stock reaches 0.
+- **Discovery sets:** name, tagline, the three fragrances, vial size, price, box photo, shown or hidden (**Products → Discovery sets**), and their boxes in stock (**Inventory**).
 - **Photos:** the bottle photo and gallery images (**Products**).
 - **Shipping fees**, Dhaka areas, free shipping, payment methods (**Settings**).
 - **Payment gateways, couriers, SMS and email:** keys, sandbox or live, on or off (**Integrations**).
@@ -84,6 +88,7 @@ The design rules (type, colour, motion, what never to do) are in `CLAUDE.md`. Ke
 | The logo | `public/brand/logo.png` (the original artwork) | `npm run assets:logo` traces it into the site's vector logo and the email logo |
 | The six bottles | `public/images/bottles/{reva,riven,maree,solea,bond,oudor}.png`: 2000 × 2000 px, transparent | `npm run assets:bottles` bakes the lighting maps. A photo uploaded in the admin is baked by itself |
 | Note photos (lavender, vanilla…) | Admin → Notes, or `public/images/notes/{note}.png` | None: they show as soon as they're there |
+| Discovery set boxes | Admin → Products → a set → Box photo, or `public/images/sets/{set}.webp`: transparent | None: shown whole, on bone paper |
 | 3D models (optional) | `assets/models/`, see its README | `npm run models:ingest` |
 
 **Bottles:** never crop, recolour or retouch them; the site shows them whole and relights them itself.

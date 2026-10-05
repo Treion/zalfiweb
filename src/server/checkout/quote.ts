@@ -1,6 +1,6 @@
 import { and, asc, count, eq, inArray, ne, sql } from "drizzle-orm";
 import type { z } from "zod";
-import { coupons, fragrances, orders, variants } from "@/db/schema";
+import { coupons, discoverySets, fragrances, orders, variants } from "@/db/schema";
 import type { PaymentMethod, Quote, quoteSchema } from "@/lib/checkout";
 import { poolDb, type Executor } from "@/server/db/pool";
 import { getSettings, type Settings } from "@/server/settings";
@@ -23,9 +23,11 @@ import {
  */
 
 export type BagLine = PricedLine & {
+  setId: number | null;
   sku: string;
   name: string;
   sizeMl: number;
+  pieces: number;
   unitPrice: number;
   qty: number;
   available: number;
@@ -56,17 +58,24 @@ export async function priceBag(
     .select({
       variantId: variants.id,
       fragranceId: fragrances.id,
+      setId: discoverySets.id,
       sku: variants.sku,
-      name: fragrances.name,
+      // A fragrance's size, or a discovery set's pack: whichever owns the variant must be published
+      name: sql<string>`coalesce(${fragrances.name}, ${discoverySets.name})`,
       sizeMl: variants.sizeMl,
+      pieces: variants.pieces,
       unitPrice: variants.pricePoisha,
       stock: variants.stock,
-      sortOrder: fragrances.sortOrder,
     })
     .from(variants)
-    .innerJoin(fragrances, eq(fragrances.id, variants.fragranceId))
+    .leftJoin(fragrances, eq(fragrances.id, variants.fragranceId))
+    .leftJoin(discoverySets, eq(discoverySets.id, variants.setId))
     .where(
-      and(inArray(variants.sku, skus), eq(variants.active, true), eq(fragrances.published, true)),
+      and(
+        inArray(variants.sku, skus),
+        eq(variants.active, true),
+        sql`coalesce(${fragrances.published}, ${discoverySets.published}) = true`,
+      ),
     );
   const reserved = await reservedBy(
     exec,
@@ -80,9 +89,11 @@ export async function priceBag(
       {
         variantId: r.variantId,
         fragranceId: r.fragranceId,
+        setId: r.setId,
         sku,
         name: r.name,
         sizeMl: r.sizeMl,
+        pieces: r.pieces,
         unitPrice: r.unitPrice,
         qty,
         lineTotal: r.unitPrice * qty,
@@ -211,10 +222,11 @@ export async function quoteBag(
     input.district && input.area ? shippingZone(input.district, input.area, rules) : null;
   const t = totals(subtotal, discount, zone, rules, freeShipping);
   return {
-    lines: lines.map(({ sku, name, sizeMl, unitPrice, qty, lineTotal, available }) => ({
+    lines: lines.map(({ sku, name, sizeMl, pieces, unitPrice, qty, lineTotal, available }) => ({
       sku,
       name,
       sizeMl,
+      pieces,
       unitPrice,
       qty,
       lineTotal,

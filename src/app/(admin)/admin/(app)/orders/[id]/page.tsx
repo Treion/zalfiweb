@@ -24,6 +24,7 @@ import { getSettings } from "@/server/settings";
 import { availableCouriers } from "@/server/shipping/couriers";
 import { orderShipments } from "@/server/shipping/service";
 import { ShipmentPanel } from "./ShipmentPanel";
+import { sizeLabel } from "@/lib/size";
 
 export async function generateMetadata({ params }: PageProps<"/admin/orders/[id]">) {
   return { title: `Order ${(await params).id}` };
@@ -139,7 +140,10 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
                   {items.map((i) => (
                     <tr key={i.id}>
                       <td className="py-2.5">
-                        {i.name} <span className="text-muted-foreground">{i.sizeMl} ml</span>
+                        {i.name}{" "}
+                        <span className="text-muted-foreground">
+                          {sizeLabel(i.sizeMl, i.pieces)}
+                        </span>
                       </td>
                       <td className="text-muted-foreground py-2.5 font-mono text-xs">{i.sku}</td>
                       <td className="py-2.5 text-right tabular-nums">{i.qty}</td>

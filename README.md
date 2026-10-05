@@ -65,6 +65,7 @@ On a **preview** deployment (any branch except production) the test gateway and 
 | `/` | Lands on the ZALFI logo. Scroll and the six bottles rise into a line-up (hover one to fill the room with its world), then each fragrance gets its own chapter: name, tagline, notes, Add to bag. The chapter index on the right jumps between them. |
 | `/fragrances/[name]` | Each fragrance: the bottle (drag to turn it where a 3D model exists), price, live stock, scent profile, notes, Add to bag. |
 | `/find` | Find your world: three questions, and the answer lit on the stage. |
+| `/discovery` | The discovery sets: three fragrances in 3 ml vials, one box each, with what's inside and Add the set. Also a spread on the home page after the story. |
 | `/checkout` | Guest checkout: contact, phone code, delivery address, payment. Then the confirmation page with the order number. |
 | `/about`, `/faq`, `/contact`, `/refunds`, `/payment-policy`, `/privacy`, `/terms` | The house pages, under **Info** in the top bar. |
 
@@ -80,7 +81,7 @@ Visitors who prefer reduced motion, and devices without a graphics card, get a c
 | Payments | Every online payment and refund |
 | Shipping | Parcels by courier, failed deliveries, returns, cash each courier owes you |
 | Coupons | Discount codes and how they perform |
-| Products, Inventory | Fragrances, prices, photos, stock and its history |
+| Products, Inventory | Fragrances, discovery sets, prices, photos, stock and its history |
 | Reports | Sales, fragrances, sizes, stock value, coupons, zones, refunds, with CSV |
 | Settings, Team, Activity log | Store details, fees, payment methods; managers; who did what |
 
