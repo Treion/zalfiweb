@@ -9,6 +9,7 @@ import { poolDb, withTx, type Tx } from "@/server/db/pool";
 import { UserFacingError } from "@/server/errors";
 import { addEvent } from "@/server/orders/events";
 import { transitionOrder } from "@/server/orders/manage";
+import { inBackground } from "@/server/background";
 import { sendReceipt } from "@/server/orders/receipt";
 import { maskPhone } from "@/server/request";
 import { noteFailure, noteWorking, getIntegration } from "@/server/integrations";
@@ -453,7 +454,7 @@ export async function applyValidation(
   });
 
   if (r.confirmed) {
-    void sendReceipt(r.orderId).catch((e: Error) => console.error("[receipt]", e.message));
+    inBackground("receipt", () => sendReceipt(r.orderId));
     await revalidateStorefront();
   }
   return r.outcome;

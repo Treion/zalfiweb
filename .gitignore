@@ -48,3 +48,6 @@ next-env.d.ts
 # Playwright end-to-end runs
 /test-results/
 /playwright-report/
+
+# Local Netlify folder
+.netlify

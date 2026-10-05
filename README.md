@@ -10,7 +10,7 @@ Everything runs on your computer without any paid account: a built-in **test gat
 | I want to… | Read |
 |---|---|
 | Run it on my computer | [Run it locally](#run-it-locally), then [`docs/guides/local-setup.md`](docs/guides/local-setup.md) |
-| Put it online | [Put it on Vercel](#put-it-on-vercel), then [`docs/guides/deploy-vercel.md`](docs/guides/deploy-vercel.md) |
+| Put it online | [Put it on Vercel](#put-it-on-vercel) ([`deploy-vercel.md`](docs/guides/deploy-vercel.md)), or [on Netlify](#or-put-it-on-netlify) ([`deploy-netlify.md`](docs/guides/deploy-netlify.md)) |
 | Use the admin day to day | [`docs/guides/admin-guide.md`](docs/guides/admin-guide.md) |
 | Change the shop (copy, photos, fragrances) | [`docs/guides/storefront-guide.md`](docs/guides/storefront-guide.md) |
 | Find my way around the code | [`docs/reference/architecture.md`](docs/reference/architecture.md) |
@@ -55,6 +55,17 @@ The step-by-step guide, including every key you will need to go live, is [`docs/
 7. **Go live** in **Admin → Integrations**: enter the keys for a gateway (SSLCommerz or aamarPay), SMS (BulkSMSBD, SSL Wireless, Alpha SMS or MiMSMS), email (Resend, Brevo, Postmark or your mailbox) and a courier (Pathao, Steadfast, RedX or CarryBee), test each and switch it on, as the guide explains.
 
 On a **preview** deployment (any branch except production) the test gateway and test courier work, so you can try the whole flow online. On **production** they never run.
+
+### Or put it on Netlify
+
+The step-by-step guide is [`docs/guides/deploy-netlify.md`](docs/guides/deploy-netlify.md). In short:
+
+1. **Create a Neon database** (Singapore) at neon.tech.
+2. **Import** this repository in Netlify. `netlify.toml` sets the build.
+3. **Set the environment variables** `DATABASE_URL`, `BETTER_AUTH_SECRET`, `CRON_SECRET`, `NEXT_PUBLIC_SITE_URL`, and `SITE_ENV=production` for Production only.
+4. **Prepare the database** from your computer, as for Vercel, then deploy.
+5. **Schedule the three background jobs** on cron-job.org, with the `CRON_SECRET` header.
+6. **Go live** in **Admin → Integrations**, the same as on Vercel. Uploaded photos go to Netlify Blobs by themselves.
 
 ## Using the website
 

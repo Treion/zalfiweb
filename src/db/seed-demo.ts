@@ -13,6 +13,7 @@
  * idempotency keys start with "demo-", customers' emails end with "@demo.zalfi.test", coupons have
  * "[demo]" in their description.
  */
+import { isLiveSite } from "@/lib/env";
 import "dotenv/config";
 import { randomBytes } from "node:crypto";
 import { eq, inArray, like, sql } from "drizzle-orm";
@@ -51,7 +52,7 @@ const DAY = 86_400_000;
 const args = new Set(process.argv.slice(2));
 
 function guard(url: string) {
-  if (process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production")
+  if (process.env.NODE_ENV === "production" || isLiveSite())
     throw new Error("Refusing to seed demo data in production.");
   const host = new URL(url).hostname;
   if (!["localhost", "127.0.0.1", "db.localtest.me"].includes(host) && !args.has("--allow-remote"))

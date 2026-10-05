@@ -158,7 +158,7 @@ The test gateway and test courier exist only on your computer and on preview sit
 
 ## 8. Trying real providers locally
 
-Each provider works locally as soon as its keys are in `.env` (restart `npm run dev` afterwards). [`deploy-vercel.md`](deploy-vercel.md) explains where to get each key.
+Each provider works locally as soon as its keys are in `.env` (restart `npm run dev` afterwards). [`deploy-vercel.md`](deploy-vercel.md) explains where to get each key (the same on Netlify: [`deploy-netlify.md`](deploy-netlify.md)).
 
 - **SSLCommerz sandbox:**
   1. Set `SSLCOMMERZ_STORE_ID`, `SSLCOMMERZ_STORE_PASSWORD` and `SSLCOMMERZ_IS_LIVE=false`.

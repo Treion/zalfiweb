@@ -13,6 +13,7 @@ import { confirmationUrl, startPayment } from "@/server/payments/service";
 import { shippingZone, totals } from "@/server/checkout/pricing";
 import { revalidateStorefront } from "@/server/catalog/products";
 import { addEvent } from "./events";
+import { inBackground } from "@/server/background";
 import { sendReceipt } from "./receipt";
 
 export type PlacedOrder = {
@@ -196,7 +197,7 @@ export async function placeOrder(
       };
     }).then(async ({ id, ...p }) => {
       if (cod) {
-        void sendReceipt(id).catch((e: Error) => console.error("[receipt]", e.message));
+        inBackground("receipt", () => sendReceipt(id));
         return p;
       }
       // bKash or Nagad: the order's page shows where to send the money, and takes the TrxID

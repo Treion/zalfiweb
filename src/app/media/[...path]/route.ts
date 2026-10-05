@@ -1,7 +1,7 @@
-import { readLocal } from "@/server/providers/storage";
+import { readUpload } from "@/server/providers/storage";
 
-// Serves files the admin uploaded to local storage (.data/uploads). With Vercel Blob, files are
-// served from Blob's own URLs and this route isn't used.
+// Serves files the admin uploaded: from local storage (.data/uploads), or from Netlify Blobs on
+// Netlify. With Vercel Blob, files are served from Blob's own URLs and this route isn't used.
 export const dynamic = "force-dynamic";
 
 const TYPES: Record<string, string> = {
@@ -18,7 +18,7 @@ export async function GET(_req: Request, ctx: RouteContext<"/media/[...path]">) 
   const type = TYPES[key.split(".").pop()?.toLowerCase() ?? ""];
   if (!type) return new Response("Not found", { status: 404 });
   try {
-    const body = await readLocal(key);
+    const body = await readUpload(key);
     return new Response(new Uint8Array(body), {
       headers: {
         "Content-Type": type,

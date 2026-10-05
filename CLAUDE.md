@@ -10,6 +10,11 @@ The build plan lives in `docs/reference/storefront-plan.md`, and the note photo 
 
 - Next.js 16 App Router, React Server Components, TypeScript strict. **Next 16 differs from older versions.** Read `node_modules/next/dist/docs/` before using an API you are unsure of (for example, `next/image` uses `preload`, not the deprecated `priority`, and `images.qualities` must allowlist every quality used).
 - Tailwind CSS v4. Tokens are in `src/app/(site)/globals.css` (`@theme`); the admin has its own in `src/app/(admin)/admin.css`.
+- **Hosting:** Vercel (`vercel.json`, `docs/guides/deploy-vercel.md`) or Netlify (`netlify.toml`, `docs/guides/deploy-netlify.md`). Keep the code host-neutral:
+  - "Is this the live shop?" is `isLiveSite()` (`src/lib/env.ts`), never `VERCEL_ENV` directly.
+  - Uploads go through `storageProvider()`: Vercel Blob, Netlify Blobs (served at `/media/…`), or local files.
+  - Work after the response goes through `inBackground()` (`src/server/background.ts`, `after()`), never a bare `void promise`.
+  - The cron routes are plain GETs with `Authorization: Bearer $CRON_SECRET`; on Netlify an outside cron service calls them.
 - Route handlers for `/api/*`, written to be edge-portable (Web APIs + Neon's fetch driver only). Next 16 deprecates `runtime = "edge"`, so it is not exported; add it back per route to pin a handler to the Edge. Exceptions run on Node: checkout (`/api/checkout/*`: transactions, `node:crypto`), admin, cron and invoice PDFs.
 - PostgreSQL + Drizzle ORM. The Neon HTTP driver is used everywhere. In dev, `npm run db:proxy` serves Neon's HTTP protocol against local Postgres 16. `src/db/seed-data.ts` is the typed catalogue source and the fallback when `DATABASE_URL` is missing. The seed never overwrites owner edits unless `--reset` is passed.
 - GSAP + ScrollTrigger for scroll-scrubbed sequences. **Import from `@/components/motion/gsap`**, never from `gsap` directly.

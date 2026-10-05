@@ -1,3 +1,4 @@
+import { isLiveSite } from "@/lib/env";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -13,10 +14,10 @@ export const metadata: Metadata = { title: "Lab", robots: { index: false, follow
 
 /**
  * Internal review page: design foundations, the six worlds, baked lighting maps, and asset status.
- * It is hidden on the production deployment. Vercel previews and local dev can see it.
+ * It is hidden on the live site (isLiveSite()). Previews and local dev can see it.
  */
 export default function LabPage() {
-  if (process.env.VERCEL_ENV === "production") notFound();
+  if (isLiveSite()) notFound();
 
   const noteAvail = availability(NOTES.map((n) => n.image));
   const missing = NOTES.filter((n) => !noteAvail[n.image]).length;

@@ -1,3 +1,4 @@
+import { isLiveSite } from "@/lib/env";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -9,7 +10,7 @@ export const metadata: Metadata = { title: "Stage lab", robots: { index: false, 
 
 /** Internal: one relit bottle in its world. Move the pointer to move the key light. */
 export default async function StageLab({ searchParams }: PageProps<"/lab/stage">) {
-  if (process.env.VERCEL_ENV === "production") notFound();
+  if (isLiveSite()) notFound();
   const { slug = "reva" } = await searchParams;
   const all = await getFragrances();
   const f = all.find((x) => x.slug === slug) ?? all[0];

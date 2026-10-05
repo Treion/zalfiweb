@@ -6,7 +6,7 @@ import sharp from "sharp";
 import { ImageResponse } from "next/og";
 import { LOGO_PARTS, LOGO_VIEWBOX, WORDMARK_VIEWBOX } from "@/components/brand/logo-paths";
 import type { Fragrance } from "@/lib/fragrance";
-import { readLocal } from "@/server/providers/storage";
+import { readUpload } from "@/server/providers/storage";
 import { countWord } from "@/lib/words";
 
 export const OG_SIZE = { width: 1200, height: 630 };
@@ -31,7 +31,7 @@ const fonts = async () => [
 /** The bottle photo's bytes, wherever it lives (the repo, local uploads, or Vercel Blob) */
 async function bottleBytes(src: string) {
   if (/^https?:\/\//.test(src)) return Buffer.from(await (await fetch(src)).arrayBuffer());
-  if (src.startsWith("/media/")) return readLocal(src.slice("/media/".length));
+  if (src.startsWith("/media/")) return readUpload(src.slice("/media/".length));
   return readFile(path.join(root, "public", src));
 }
 
