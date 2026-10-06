@@ -199,10 +199,8 @@ test("photos and a badge set in Products show on the product page", async ({ bro
   await shopCtx.close();
 
   if (!process.env.KEEP_CONTENT)
-    await withDb((db) =>
-      db.query(
-        `delete from fragrance_images where fragrance_id = $1; update fragrances set badge = null where id = $1`,
-        [id],
-      ),
-    );
+    await withDb(async (db) => {
+      await db.query(`delete from fragrance_images where fragrance_id = $1`, [id]);
+      await db.query(`update fragrances set badge = null where id = $1`, [id]);
+    });
 });

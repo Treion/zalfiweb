@@ -45,7 +45,9 @@ The build plan lives in `docs/reference/storefront-plan.md`, and the note photo 
   - Sizes: `text-mega`, `text-display`, `text-headline`.
   - `eyebrow` for small uppercase tracked labels.
 - Film grain overlay (`<Grain />`) stays on every page. It is still, like grain in a print: moving grain reads as flicker.
-- The nav marks where you are with a hairline box (opacity only): Fragrances while the line-up is open (`nav-section.ts`, set by the experience timeline), Discovery on `/discovery`, Find yours on `/find`, Info on the house pages or while its menu is open. **Info** opens the house pages menu. Below `sm` the bar has no room for the shop links, so Info reads **Menu** and the same panel lists All fragrances, Discovery sets, Find yours, Track your order and WhatsApp above the house pages.
+- The nav: **Shop** (`/fragrances`, md+), **The worlds** (`/#collection`, lg+), **Discovery** and **Find yours** (md+), **Info**, search (always) and the bag.
+  - Below `md`, Info reads **Menu**. The panel's shop group (Shop, The worlds, Discovery sets, Find yours, Track your order, WhatsApp) shows below `lg`, minus the links the bar already shows at that width.
+  - It marks where you are with a hairline box (opacity only): Shop on `/fragrances*`, The worlds while the line-up is open (`nav-section.ts`, set by the experience timeline), Discovery on `/discovery`, Find yours on `/find`, Info on the house pages or while its menu is open.
 - Custom cursor (`<Cursor />`): a small dot at rest, a ring over links. Mark interactive elements with `data-cursor="Discover"` to show a word in the cursor. It is disabled on touch devices and with reduced motion.
 - Hairlines (`border-current/20`) over boxes. Square corners. No rounded cards.
 - Copy: short, sensual, confident, like a niche perfume house. Sentences under 15 words. Sensory nouns over adjectives.
@@ -87,8 +89,10 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
 - `Experience` is one sticky viewport holding the `Landing` logo, the `Lineup` and six `FragranceChapter`s over the stage. A single master GSAP timeline, where 1 unit = 1vh of scroll, is scrubbed by ScrollTrigger. Its segment timings live in `components/stage/config.ts` and are shared by the DOM timeline and `stage/choreography.ts`, so type and light never drift. Change timings there, and only there.
 - Each chapter renders two views of the same data: the motion layout, and a static spread shown by the `static:` variant (reduced motion, or no WebGL via `html.static-experience`).
 - **The site lands on the logo:** the ZALFI emblem and wordmark alone in the dark (`Landing`). On load the emblem assembles and the letters rise (time-based, once), then everything is still. There is no emblem → bottle morph and no hero.
+  - Under the logo, three ways in (`[data-intro-choices]`): **Shop** (`/fragrances`), **Explore the worlds** (glides to `#collection`), **Not sure? Find yours** (`/find`), and "Or scroll". They fade in with the intro and out with `EXP.intro_.choices` (`autoAlpha`, so they can't be clicked while invisible). The row is `pointer-events-auto` inside the `pointer-events-none` landing layer.
   - Scrolling (`EXP.intro_`): the logo sinks back and fades, the nav wordmark (`data-nav-logo`) takes over, and the six bottles rise into the line-up one after another (`EXP.lineup_.arrive`). The DOM moves each slot; the stage follows its rect and fades the render in step (`lineupState().arrive`).
-  - `#collection` is a marker at the scroll offset where the line-up stands complete, so every "Fragrances" link lands past the logo.
+  - `#collection` is a marker at the scroll offset where the line-up stands complete, so every "The worlds" link lands past the logo.
+  - After the experience and before the Story, the **Home** banners from Admin → Content ("From the house"), each whole; none, nothing shows.
 - **The line-up:** all six bottles (`<StageAnchor kind="lineup">`), each with name, price and a one-tap Add.
   - Hovering a bottle lifts it and fills the room with its world (`sections/room.ts`). The line-up's words and the nav take that world's `ink` over the same time, so text always reads. The stage colour uses a critically damped follow (`PaletteFollow`, `ROOM_FOLLOW_S`), and the DOM transitions the registered `--room-ink` property on a matched curve. `html[data-room]` switches the nav from its blend mode to plain ink, and is cleared only once the room is back in the house dark.
   - Hover only counts while the line-up is open (`lineupOpen`). Scrolling away closes the preview.
@@ -96,7 +100,7 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
   - Inside the experience, a rig's source is always the experience anchor, so this never triggers a page-to-page glide.
   - The static layout shows the logo as a first screen, then the same line-up as a normal section. Its bottles rise into view with a scroll-driven `view()` timeline. With reduced motion, nothing moves.
 - **Chapter names** (the WebGL masthead) sit just above the bottle, like a magazine masthead, with only the foot of the letters behind the cap, so they always read (`MASTHEAD_*` in `stage/director.ts`). Keep floating notes clear of that band.
-- **Few words, straight to buying:** chapters show name, tagline and notes, plus Discover / Add to bag from the start of the chapter (`ch.cta`). No story paragraphs on the home page or the product page (`story` stays in the data for SEO).
+- **Few words, straight to buying:** chapters show name, tagline and notes, plus Discover / Add to bag from the start of the chapter (`ch.cta`). No story paragraphs on the home page; on the product page the story stays folded under About until opened.
 - `data-reveal` elements are hidden until their timeline runs, but only with JS and motion allowed (`html.js`, set before paint).
 - `ChapterIndex` (desktop) lists every chapter. A jump never scrolls through the worlds in between:
   1. A `WorldVeil` in the destination's colour fades in.
@@ -125,6 +129,7 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
 
 ## Performance, SEO, accessibility
 
+- Keep zod out of the shop's client bundle: a module a storefront client component imports holds no schemas (`lib/content.ts` for the helpers, `lib/content-schema.ts` for the admin's forms). One stray import added 89 KB to `/fragrances`.
 - `next/image` everywhere with accurate `sizes`. Only the hero bottle gets `preload`. Preload the next chapter's images.
 - Lighthouse desktop 85+, CLS about 0 (reserve space with aspect ratios).
 - `generateMetadata` per page, OG images from bottle photos, `sitemap.ts`, `robots.ts`, JSON-LD Product.
@@ -142,6 +147,16 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
   - They are one route, `app/(info)/[slug]`, fed by `src/content/pages.ts`. The nav and footer list them from `src/content/info-nav.ts` (light, so the copy stays on the server).
   - **The copy is the owner's** (`docs/content/policies-original.md`), rewritten in the house voice at the owner's request: the same facts and terms. Never invent policy, and change the substance only with the owner.
   - Each page is a list of blocks (`InfoBlock`): a lead line, "in short" points, sections that open (`<details>`, with "Open all"), the FAQ with a search, the refund case chooser, the About timeline and three words, the 50/50 preorder split. They are rendered by `src/components/info`. Opened text fades in (`.info-reveal`); nothing slides. A page with no blocks shows a short "being written" note with the contact details.
+- **The shop and campaign content** (owner's request: the conveniences of the big houses, in the house's look):
+  - **Shop is `/fragrances`**, on bone paper with no stage: shop banners, a services line (`Services`: only what Settings make true), sort and filters kept in the URL (`lib/collection.ts`), cards with badge, stars and a hover photo, videos, the sets and Recently viewed.
+  - **Banners and videos** come from Admin → Content (`src/server/content`, `src/lib/content.ts`, `src/components/content`). Nothing shows until one is added and switched on.
+    - Banners are shown whole at their own shape (`<picture>` with the phone picture below `md`), quality 90. The box keeps the first slide's aspect, so CLS stays 0. Only the shop's first banner loads eagerly.
+    - **Carousels never move on their own:** arrows, dots, swipe and keys only; slides crossfade (opacity).
+    - A video is a still cover with a play mark (`i.ytimg.com`); the `youtube-nocookie.com` player loads only after a tap.
+  - **Perfume photos** (Products → Photos: models, campaign, lifestyle) are `object-contain` in the product gallery and the viewer (`ProductGallery`, `Lightbox`), and `object-cover` only in thumbnails and the shop card's hover photo. The photo layer sits over the stage anchor and never moves it.
+  - Product pages fold their long text (`Folds`, on `<details>`): About (`story`), How to wear it (`how_to_wear` or `HOW_TO_WEAR`), Delivery and returns. A badge (`BADGE_LABELS`) shows on cards and above the name.
+  - **Search** (`SearchPanel`, loaded once opened; `/` opens it): a slim index built in the site layout (`buildSearchIndex`, `src/lib/shop-search.ts`), matched on the client.
+  - **Recently viewed** lives in the shopper's browser (`zalfi.viewed.v1`, the last 8).
 - **Contact details and socials** live in `src/lib/contact.ts`, used by the footer, `/contact` and `<ContactIcons />`. The icons are hairline marks drawn in-house. WhatsApp (`whatsappUrl()`) is offered in context (menu, delivery note, bag, `/track`, order page), never as a floating bubble.
 - **Shopper pages** (the study and gap chart: `docs/reference/ux-study.md`), all on bone paper, outside the stage:
   - `/fragrances`: every fragrance with filters (`lib/collection.ts`) kept in the URL; no motion when the list changes. `similarWorlds()` (`lib/finder.ts`) picks two for each product page.
@@ -193,7 +208,7 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
 ## Code conventions
 
 - Folders:
-  - `src/components/{motion,ui,media,brand,sections,stage,product,cart,finder,discovery}`
+  - `src/components/{motion,ui,media,brand,sections,stage,product,cart,finder,discovery,content}`
   - `src/db` (schema, client, queries, seed)
   - `src/lib` (domain types, helpers)
   - `src/server/*` (domain and infrastructure, no React), `src/content` (house-page copy)
@@ -209,7 +224,7 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
   1. Run `npm run check` (lint + typecheck + build), `npm test` (it includes the security checklist, `tests/unit/security.test.ts`), `npm run test:db` and, for anything touching checkout or the admin, `npm run test:e2e` (Playwright, test providers).
   2. Run the dev server and take Playwright screenshots at 1440px and 375px, plus one with reduced motion.
   3. Calm check, with `?stage=force`, once frames have settled:
-     - With no input, two screenshots 1.5s apart must be pixel-identical on the landing, the line-up, a chapter, a product page and `/discovery`.
+     - With no input, two screenshots 1.5s apart must be pixel-identical on the landing, the line-up, a chapter, a product page, `/fragrances` (with banners) and `/discovery`.
      - Moving the pointer (without hovering anything) must not change the stage.
   4. Commit and push to the working branch.
   5. Summarise for review.

@@ -11,6 +11,7 @@ A guide for the owner and the managers: how to run the shop from `/admin`. It fo
 - [Cancelling and refunding](#cancelling-and-refunding)
 - [Products, photos and prices](#products-photos-and-prices)
 - [Notes](#notes)
+- [Banners and videos](#banners-and-videos)
 - [Stock](#stock)
 - [Reviews](#reviews)
 - [Coupons](#coupons)
@@ -30,7 +31,7 @@ Go to `https://your-domain/admin` and sign in with your email and password. You'
 
 ## Finding your way
 
-- **The sidebar:** Overview; then Sell (Orders, Customers, Payments, Shipping, Coupons); Catalogue (Products, Notes, Inventory, Reviews); Insight (Reports); Admin (Settings, Integrations, Team, Activity log). You see only what your role allows.
+- **The sidebar:** Overview; then Sell (Orders, Customers, Payments, Shipping, Coupons); Catalogue (Products, Notes, Inventory, Content, Reviews); Insight (Reports); Admin (Settings, Integrations, Team, Activity log). You see only what your role allows.
 - **The numbers in the sidebar:** next to Orders, the orders waiting to be packed; next to Inventory, the sizes low or sold out; next to Reviews, the reviews waiting to be read.
 - **Search** (top bar, or press `/` anywhere): an order number (`ZLF-002063`, or just `2063`), a phone number typed any way (`01712-345678`, `+880 1712 345678`), a name or email, a fragrance or a SKU. Arrow keys and Enter open a result. Enter alone shows every match.
 - **Every list** has search, filters, sorting (click a column heading), pages, a **Columns** button to hide columns, and a **CSV** download of what you're looking at. Downloads are recorded in the Activity log, because they contain customer details.
@@ -135,10 +136,17 @@ For couriers without a connection (Sundarban, SA Paribahan, Paperfly…), your o
 
 **Products** lists each fragrance with its sizes, prices and stock. Open one to edit:
 
-- **Details:** name, tagline, mood, story, the scent profile (family, longevity, sillage, seasons, moments), and **Published** (on the shop or hidden).
+- **Details:** name, tagline, mood, the scent profile (family, longevity, sillage, seasons, moments), and **Published** (on the shop or hidden). Also:
+  - **Story:** on the product page under "About Reva", folded until opened. Search engines read it too.
+  - **How to wear it:** a few lines, folded on the product page. Leave it empty and the page gives the house's plain advice.
+  - **Badge:** None, New, Bestseller or Limited edition. The word shows on the perfume's card in the shop and above its name.
 - **World and cap:** the fragrance's colours on the shop, with a preview, and the cap finish.
-- **Bottle photo:** the main photograph: a cut-out bottle on a transparent background, as PNG or WebP, at least 600 × 600 px (2000 × 2000 is best). Upload a new one and the site checks it and bakes its lighting maps itself.
-- **Gallery:** more photos, with descriptions for screen readers. Drag them into order.
+- **Bottle photo** (under Details): the main photograph: a cut-out bottle on a transparent background, as PNG or WebP, at least 600 × 600 px (2000 × 2000 is best). Upload a new one and the site checks it and bakes its lighting maps itself.
+- **Photos:** models, campaign and lifestyle pictures (a hand holding the bottle, Reva on a pineapple). JPG, PNG, WebP or AVIF, up to 4 MB each. Give each a description for screen readers, and drag them into order. On the shop:
+  - they make the gallery beside the bottle on the product page: thumbnails under the bottle, and a tap opens the photo full screen;
+  - the first one shows on the perfume's card in the shop when a shopper points at it (on a computer; phones show the bottle).
+
+  Photos are kept whole and never cropped in the gallery; the small thumbnails and the card show the middle of the picture.
 - **Notes:** top, heart and base notes. Pick each from the notes library (its photo comes with it) and write how this fragrance names it, e.g. "Crushed Wild Mint". The picker's **New note…** adds a note to the library without leaving the page. The home page shows up to three notes per layer (two on phones); the product page shows them all.
 - **Sizes and prices:** each size's price (in taka), SKU, whether it's on sale, and its low-stock level.
 
@@ -163,6 +171,37 @@ Below the fragrances, **Discovery sets** lists each set: three fragrances in sma
 - **Open a note** to rename it, describe it, or **Replace the photo**. Changes show on the shop at once. The name here is the ingredient; each fragrance can word it its own way (Products → Notes).
 - **Delete** works once no fragrance uses the note. Take it out of those fragrances first; the note's page lists them.
 - **No empty spaces on the shop:** a note whose photo is missing is simply left out, and the others close up.
+
+## Banners and videos
+
+**Content** (under Catalogue) holds the pictures a designer made and YouTube videos about your perfumes. Nothing shows on the shop until you add it and switch it on.
+
+### Banners
+
+Two places, each its own list:
+
+- **Top of the shop:** across the top of the Shop page (`/fragrances`). With two or more, shoppers move between them with arrows, dots or a swipe. They never change by themselves.
+- **Home, after the worlds:** on the home page, after the six worlds and before the Story, one under the other.
+
+**Add a banner**: choose the wide picture (JPG, PNG, WebP or AVIF, under 4 MB) and say what it shows (read aloud to people who can't see it). Then, on its card:
+
+- **Phone:** an optional upright picture for phones. Without one, phones show the wide picture.
+- **Headline, Line under it, Button** (all optional) are drawn over the picture. **Words in** picks light words (for a dark picture) or dark words (for a light picture).
+- **The words are in the picture:** tick it when the designer put them in; the shop draws none.
+- **Leads to:** where a tap goes. A page on the site, like `/fragrances/reva` or `/discovery`, or a full `https://` address.
+- **From / Until** (optional, Dhaka time): it shows only between these dates. Good for an Eid campaign.
+- **On the shop:** the switch. Off keeps it here, hidden.
+- **Move up / Move down** set the order; **Delete** removes it and its pictures.
+
+Sizes that work well: a wide picture about 2400 × 1000 px, a phone picture about 1080 × 1350 px. Any shape works: the shop shows each picture whole, at its own proportions, never cropped. Keep the important part away from the edges.
+
+### Videos
+
+**Add a video**: paste a YouTube link (any kind: `youtu.be/…`, `watch?v=…`, Shorts). Give it a **Title**, **Who made it** (the channel, optional) and **About**: one perfume, or the house.
+
+- Every video shows on the Shop page under "On YouTube". A video about one perfume also shows on that perfume's page.
+- Shoppers see a still cover with a play mark. Nothing loads from YouTube and nothing moves until they tap it.
+- **On the shop**, **Move up / Move down** and **Delete** work as for banners.
 
 ## Stock
 
