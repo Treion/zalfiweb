@@ -294,3 +294,24 @@ Judgement calls made while building the backend and admin, newest last. Each one
     - **The live site:** `isLiveSite()` (`lib/env.ts`) replaces the `VERCEL_ENV` checks (test providers, `/lab`, the demo seed). It accepts Vercel's `VERCEL_ENV`, Netlify's `CONTEXT`, or `SITE_ENV=production`, which the guide sets on Netlify's Production context because `CONTEXT` isn't guaranteed while functions run.
     - **E-receipts run through `after()`** (`server/background.ts`, `inBackground()`), not a bare promise: a serverless function (Netlify or Vercel) can freeze once the response is sent. Outside a request (scripts, tests) the task just starts.
     - **Checked with Netlify's own build** (`netlify build`, `@netlify/plugin-nextjs`): it packs one server function (about 160 MB, under the 250 MB limit) and runs `proxy.ts` as a Node edge handler. The built function served the shop, `/discovery`, the admin, the cron routes (401 without the secret, 200 with it), `/lab` as 404 on the live site, and a photo from a local Netlify Blobs server. The edge handler itself couldn't be run here (its Deno runtime download is blocked in the build sandbox); Netlify's builders have it.
+
+## Shopper-first changes (owner's request: "customers get in and find what they want")
+
+The study behind these, and the gap chart, is `docs/reference/ux-study.md`.
+
+129. **Find and browse without the scroll.** The experience stays the front door, but every fragrance is also one tap away.
+    - **`/fragrances`** lists them all on bone paper (no stage, no `StageAnchor`), with filters for moment, season and note. Filters are OR within a group and AND across groups (`lib/collection.ts`), kept in the address with `history.replaceState` (Next keeps `useSearchParams` in step), and change the list at once with no motion. Eight products need no search box; the filters do that job.
+    - **On phones, Info becomes Menu**, the same panel with the shop links on top. No hamburger icon and no floating bar: the word, as the rest of the nav.
+    - **Similar worlds** (`similarWorlds()`): shared moments weigh 3, shared notes 2, shared seasons 1; ties go to the nearest in the line-up.
+130. **Say delivery and payment where people decide.** Baymard: most shoppers look for the shipping cost on the product page, and a date beats a speed. So the product page, `/discovery` and the bag say the fee and the usual days inside and outside Dhaka, free delivery, and how to pay, all read from Settings (`getShopTerms()`). The days are free text the owner sets ("1–2"), never computed dates: couriers don't promise dates. Without a database it claims no payment method, so it never promises what checkout won't offer.
+    - **WhatsApp in context, never a floating bubble:** the menu, the delivery note, the bag, `/track` and the order page. A bubble would be one more thing on screen that isn't the bottle.
+131. **After the order.**
+    - **`/track`:** number + phone → the order's own page (the access-token page the receipt already links to). No accounts. A miss never says which part was wrong; 12 tries per 15 minutes per address.
+    - **Notify me:** one open request per phone and size (a partial unique index), 10 per hour per address and 5 per day per phone. The text goes out when `adjustStock()` takes a size from none to some. It runs in the background and first takes a share lock on the variant row, so it waits for the stock change to commit and sends nothing if it rolls back. A failed text stays waiting for the next restock.
+    - **The gift note** is free (owner's choice) and printed by the team: an A6 PDF in Bodoni italic with no prices, the label marked GIFT, the receipt and invoice saying it's included. Bangla in a note stays upright (Noto Sans Bengali's regular face is registered as its italic too).
+132. **Reviews from verified buyers only, read before they show.**
+    - Written from the delivered order's own page (the access token is the proof), one per order line (unique `order_item_id`). Rate-limited per address and per order.
+    - Pending until approved in Admin → Reviews (`products.manage`); approve, take off the shop and reply are audited. Pending reviews count in the sidebar and in Needs attention.
+    - The product page shows nothing until there's an approved review, then the average beside the name, "Worn by" with the replies, and `aggregateRating` in the JSON-LD. Sets show theirs on `/discovery`. Stars are drawn in-house in the site's hairline.
+    - **One email after delivery** asks for a review. It's sent once (`orders.review_asked_at`, claimed before sending), not when a declined return puts the order back to delivered, and it waits for the delivery to commit. Settings → Reviews can switch off the email, and reviews on the shop.
+    - Not built (see the study): accounts and wishlists, a newsletter, Bangla, analytics, engraving.

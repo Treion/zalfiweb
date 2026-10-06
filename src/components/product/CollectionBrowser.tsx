@@ -178,12 +178,7 @@ export function FragranceList({ fragrances }: { fragrances: Fragrance[] }) {
         const soldOut = !!v && v.stock <= 0;
         return (
           <li key={f.slug}>
-            <Link
-              href={`/fragrances/${f.slug}`}
-              data-cursor="Discover"
-              className="group block"
-              aria-label={`${f.name}: ${f.tagline}`}
-            >
+            <Link href={`/fragrances/${f.slug}`} data-cursor="Discover" className="group block">
               <span className="block transition-transform duration-700 ease-(--ease-cinema) group-hover:-translate-y-1.5">
                 <BottleImage fragrance={f} sizes="(min-width: 768px) 28vw, 45vw" />
               </span>

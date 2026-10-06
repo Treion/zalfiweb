@@ -26,31 +26,36 @@ What customers see, how they buy, and where each piece of the shop is changed: i
 
 | Page | What's there |
 |---|---|
-| `/fragrances/reva` (and each other name) | The bottle large, price, live stock, Add to bag (it stays at the bottom of the screen as you scroll), the scent profile, the notes, and more photos |
+| `/fragrances` (**All fragrances**) | Every fragrance on one page, on bone paper: bottle, name, mood, top notes, price and **Add**. Filters for **Wear it** (day, evening, night), **Season** and **By note** narrow the list at once; the choice stays in the address, so a filtered list can be shared. The discovery sets close the page |
+| `/fragrances/reva` (and each other name) | The bottle large, price, live stock, Add to bag (it stays at the bottom of the screen as you scroll), and under it the delivery fees and usual times, how to pay, and WhatsApp. Then the scent profile, the notes, more photos, **Worn by** (approved reviews, once there are any), and two **similar worlds**. Sold out, Add becomes **Notify me**: a phone number, and one SMS when it's back |
+| `/track` (**Track your order**) | The order number and the phone it was placed with open the order's own page: its status, its parcel, and how to pay if it's still waiting |
 | `/find` | Find your world: three questions, then the fragrance that fits, lit on the stage, and the discovery set it's in |
 | `/discovery` (**Discovery** in the top bar) | The discovery sets: each box large, the three fragrances inside (each to its own page), the price and **Add the set**. Each fragrance's page has one line pointing to its set ("Try it first: in the Black Set, with Riven and Maree") |
 | **Info** in the top bar | The house pages: About, FAQ, Contact, Refunds, Payment policy, Privacy, Terms |
+| **Menu** in the top bar (phones) | On a phone, Info becomes **Menu**: All fragrances, Discovery sets, Find yours, Track your order and WhatsApp on top, the house pages below |
 | The cart icon (top right) | The bag, as a drawer: change quantities, then **Checkout** |
 | `/checkout` | The checkout, then the confirmation page |
 
 ## How a customer buys
 
-1. **The bag:** Add to bag anywhere; the cart icon shows the count. The bag is kept on their device.
+1. **The bag:** Add to bag anywhere; the cart icon shows the count. The bag is kept on their device. It says how far they are from free delivery (when Settings has a threshold), and whether there's cash on delivery.
 2. **Contact:** name, mobile number and email.
 3. **The code:** a 6-digit code by SMS to their mobile. It's valid for 5 minutes, with 5 tries; a new one can be sent after 60 seconds. Once verified, the number stays verified on that device for 24 hours.
 4. **Delivery:** district (all 64), area or thana, and house, road and street. The shipping fee follows: inside Dhaka (the areas listed in Settings → Shipping) or outside.
-5. **A coupon**, if they have one.
-6. **Payment:** whichever is switched on:
+5. **A gift?** "This is a gift" (free) takes a note of up to 200 characters. The team prints it on a card for the box; the receipt and the order's page show it.
+6. **A coupon**, if they have one.
+7. **Payment:** whichever is switched on:
    - **Pay online:** cards, bKash, Nagad and Rocket through SSLCommerz or aamarPay (whichever the owner puts first; the other takes over if it can't open);
    - **bKash or Nagad (Send Money):** the customer sends the money themselves and gives the transaction ID on their order's page; the team confirms it;
    - **Cash on delivery.**
-7. **Place order:** the price, stock and fees are checked again on the server, never trusted from the browser.
+8. **Place order:** the price, stock and fees are checked again on the server, never trusted from the browser.
    - **Online:** they go to SSLCommerz and come back to the confirmation page. If the payment fails, the order waits 30 minutes for them to try again (**Pay now**), holding their bottles.
    - **bKash or Nagad:** to the order's page, which shows the number to send to, the amount and the reference, and takes the transaction ID. The bottles are held for 24 hours, and as long as the team needs to check a transaction ID.
    - **Cash on delivery:** straight to the confirmation page.
-8. **The confirmation page** shows the order number, and a tracking link once the parcel is with the courier. The **e-receipt** (with the PDF invoice) arrives by email.
+9. **The confirmation page** is the order's own page from then on: the order number, its status, and a tracking link once the parcel is with the courier. `/track` finds it again from the order number and the phone. The **e-receipt** (with the PDF invoice) arrives by email.
+10. **Delivered:** one short email asks how it wears, with the link back to the order's page, which now offers **Review your fragrances** (stars, a few words, how to sign it). A review shows on the shop once the team approves it.
 
-There are no customer accounts and no marketing emails. The receipt is the only email ZALFI sends; payment and delivery messages come from SSLCommerz and the courier.
+There are no customer accounts and no marketing emails. ZALFI sends the receipt, the one review email after delivery, and a "back in stock" SMS to those who asked; payment and delivery messages come from the gateway and the courier.
 
 ## What you change in the admin
 
@@ -60,7 +65,8 @@ These show on the shop at once, with no deploy:
 - **Prices, sizes and stock** (**Products**, **Inventory**). "Sold out" shows by itself when available stock reaches 0.
 - **Discovery sets:** name, tagline, the three fragrances, vial size, price, box photo, shown or hidden (**Products → Discovery sets**), and their boxes in stock (**Inventory**).
 - **Photos:** the bottle photo and gallery images (**Products**).
-- **Shipping fees**, Dhaka areas, free shipping, payment methods (**Settings**).
+- **Shipping fees**, delivery times, Dhaka areas, free shipping, payment methods (**Settings**). The product pages, Discovery and the bag say what these say.
+- **Reviews:** which show (**Reviews**), and whether reviews show at all or are asked for (**Settings → Reviews**).
 - **Payment gateways, couriers, SMS and email:** keys, sandbox or live, on or off (**Integrations**).
 - **Coupons** (**Coupons**).
 

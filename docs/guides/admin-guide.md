@@ -12,6 +12,7 @@ A guide for the owner and the managers: how to run the shop from `/admin`. It fo
 - [Products, photos and prices](#products-photos-and-prices)
 - [Notes](#notes)
 - [Stock](#stock)
+- [Reviews](#reviews)
 - [Coupons](#coupons)
 - [Customers](#customers)
 - [The Overview and Reports](#the-overview-and-reports)
@@ -29,8 +30,8 @@ Go to `https://your-domain/admin` and sign in with your email and password. You'
 
 ## Finding your way
 
-- **The sidebar:** Overview; then Sell (Orders, Customers, Payments, Shipping, Coupons); Catalogue (Products, Inventory); Insight (Reports); Admin (Settings, Integrations, Team, Activity log). You see only what your role allows.
-- **The number next to Orders** is how many orders are waiting to be packed.
+- **The sidebar:** Overview; then Sell (Orders, Customers, Payments, Shipping, Coupons); Catalogue (Products, Notes, Inventory, Reviews); Insight (Reports); Admin (Settings, Integrations, Team, Activity log). You see only what your role allows.
+- **The numbers in the sidebar:** next to Orders, the orders waiting to be packed; next to Inventory, the sizes low or sold out; next to Reviews, the reviews waiting to be read.
 - **Search** (top bar, or press `/` anywhere): an order number (`ZLF-002063`, or just `2063`), a phone number typed any way (`01712-345678`, `+880 1712 345678`), a name or email, a fragrance or a SKU. Arrow keys and Enter open a result. Enter alone shows every match.
 - **Every list** has search, filters, sorting (click a column heading), pages, a **Columns** button to hide columns, and a **CSV** download of what you're looking at. Downloads are recorded in the Activity log, because they contain customer details.
 
@@ -52,6 +53,8 @@ Open the order (click its row). You'll see:
 - **Payment** and **Shipment** panels;
 - the **Timeline** of everything that happened, where you can add **notes** for the team (customers never see them).
 
+**A gift?** The order shows an **A gift** card at the top of the right-hand column, with the customer's note. Press **Print gift card**: an A6 card with the logo and their words, no prices. Put it in the box. The label says **GIFT · NOTE CARD INSIDE**, and the customer's receipt says the note is included.
+
 When the bottles are boxed, press **Mark packed**. For several at once: tick them in **Orders**, then **Mark packed**.
 
 ### 3. Send it to the courier
@@ -69,7 +72,7 @@ For several at once: tick them in **Orders**, then **Send to courier** and choos
 
 ### 5. Let the courier do the rest
 
-As the courier reports back, the order moves along by itself (**Shipped**, **Out for delivery**, **Delivered**), and each step lands on the timeline. A cash-on-delivery order becomes **Paid** on delivery. **Check** on the order asks the courier at once; otherwise the site asks every 30 minutes.
+As the courier reports back, the order moves along by itself (**Shipped**, **Out for delivery**, **Delivered**), and each step lands on the timeline. A cash-on-delivery order becomes **Paid** on delivery. Once delivered, the customer gets one short email asking how it wears, with the link to review it (see [Reviews](#reviews); Settings → Reviews switches it off). The timeline notes it. **Check** on the order asks the courier at once; otherwise the site asks every 30 minutes.
 
 If the courier isn't connected, or you deliver yourself, send it with **Other courier** and record its updates (see [below](#sending-with-another-courier-or-your-own-rider)). The buttons at the top (**Mark shipped**, **Out for delivery**, **Mark delivered**, or **More**) also move an order by hand, without a parcel record.
 
@@ -179,6 +182,19 @@ Low and sold-out sizes are highlighted.
   Removing asks you to press again to confirm.
 - **Low at:** type a size's own low-stock level in its row. Leave it empty to use the default (Settings → Inventory).
 - **History** (the second tab) lists every change ever made, with who made it and why: sales, cancellations, returns, adjustments. Stock always equals this history.
+- **"3 waiting for a back-in-stock text":** shoppers who left their number on a sold-out size (**Notify me** on the shop). When you add stock to it, each gets one SMS, "ZALFI: Reva is back.", with the link. It goes through the SMS gateways in Integrations; one that fails is tried again the next time stock comes back.
+
+## Reviews
+
+Only someone who bought and received a fragrance can review it: their order's own page shows **Review your fragrances** once it's delivered, one review per bottle or set. Nothing shows on the shop until you've read it.
+
+**Reviews** (under Catalogue) has three lists: **To read**, **On the shop**, **Not shown**. Each review shows its stars, the words, how the customer signed it, their name and the order.
+
+- **Approve:** it goes on the fragrance's page (or the set's, on Discovery), and counts in the average shown beside the name.
+- **Don't show:** it stays here, never on the shop. You can approve it later, and **Take off the shop** works the same way on an approved one.
+- **Reply:** a few words from the house, shown under the review. Save it empty to remove it.
+
+A fragrance with no approved review shows no reviews section at all. Every approval, rejection and reply is in the **Activity log**.
 
 ## Coupons
 
@@ -216,7 +232,7 @@ One coupon per order. Each coupon's row shows its uses, the discount given and t
   - inside or outside Dhaka;
   - bottle sizes.
   **Show the numbers** under each chart gives its table.
-- **Needs attention:** unpaid orders about to lapse, failed payments, failed deliveries, return requests, sold-out sizes.
+- **Needs attention:** unpaid orders about to lapse, failed payments, failed deliveries, return requests, sold-out sizes, and reviews waiting to be read.
 
 **What counts as revenue:** orders placed in the period, less refunds. Orders waiting for payment, cancelled or returned don't count. Cash-on-delivery orders count the day they're placed.
 
@@ -230,10 +246,12 @@ The owner changes settings; managers can read some of them.
 - **Invoice:** business name and address, trade licence number, BIN, VAT (on and its rate), and a footer note. Each appears on receipts and invoices when filled in.
 - **Shipping:**
   - the inside- and outside-Dhaka fees, and free shipping above an amount (optional);
+  - **delivery times** inside and outside Dhaka ("1–2", "3–5"), shown on every product page and on Discovery as "usually 1–2 days". Leave one empty to say nothing;
   - which Dhaka areas pay the inside fee;
   - the default courier (from those switched on in Integrations).
-- **Payments:** online payment on or off, cash on delivery on or off, and how long an unpaid online order holds its bottles. The gateways themselves, and bKash and Nagad by hand, are in **Integrations**.
+- **Payments:** online payment on or off, cash on delivery on or off, and how long an unpaid online order holds its bottles. The gateways themselves, and bKash and Nagad by hand, are in **Integrations**. The shop's product pages and bag say how customers can pay (and whether there's cash on delivery) from these switches.
 - **Inventory:** the default low-stock level.
+- **Reviews:** whether approved reviews show on the shop, and whether a delivered order gets the email asking for one.
 - **Permissions** (owner only): whether managers may issue refunds, and whether they see revenue figures.
 
 Payment gateways, couriers, SMS and email are set up in **Integrations**, below.

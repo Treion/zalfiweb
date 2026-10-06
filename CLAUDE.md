@@ -45,7 +45,7 @@ The build plan lives in `docs/reference/storefront-plan.md`, and the note photo 
   - Sizes: `text-mega`, `text-display`, `text-headline`.
   - `eyebrow` for small uppercase tracked labels.
 - Film grain overlay (`<Grain />`) stays on every page. It is still, like grain in a print: moving grain reads as flicker.
-- The nav marks where you are with a hairline box (opacity only): Fragrances while the line-up is open (`nav-section.ts`, set by the experience timeline), Find yours on `/find`, Info on the house pages or while its menu is open. **Info** opens the house pages menu.
+- The nav marks where you are with a hairline box (opacity only): Fragrances while the line-up is open (`nav-section.ts`, set by the experience timeline), Discovery on `/discovery`, Find yours on `/find`, Info on the house pages or while its menu is open. **Info** opens the house pages menu. Below `sm` the bar has no room for the shop links, so Info reads **Menu** and the same panel lists All fragrances, Discovery sets, Find yours, Track your order and WhatsApp above the house pages.
 - Custom cursor (`<Cursor />`): a small dot at rest, a ring over links. Mark interactive elements with `data-cursor="Discover"` to show a word in the cursor. It is disabled on touch devices and with reduced motion.
 - Hairlines (`border-current/20`) over boxes. Square corners. No rounded cards.
 - Copy: short, sensual, confident, like a niche perfume house. Sentences under 15 words. Sensory nouns over adjectives.
@@ -142,7 +142,13 @@ Each fragrance has a palette (`bg`, `deep`, `accent`, `ink`) in `seed-data.ts` /
   - They are one route, `app/(info)/[slug]`, fed by `src/content/pages.ts`. The nav and footer list them from `src/content/info-nav.ts` (light, so the copy stays on the server).
   - **The copy is the owner's** (`docs/content/policies-original.md`), rewritten in the house voice at the owner's request: the same facts and terms. Never invent policy, and change the substance only with the owner.
   - Each page is a list of blocks (`InfoBlock`): a lead line, "in short" points, sections that open (`<details>`, with "Open all"), the FAQ with a search, the refund case chooser, the About timeline and three words, the 50/50 preorder split. They are rendered by `src/components/info`. Opened text fades in (`.info-reveal`); nothing slides. A page with no blocks shows a short "being written" note with the contact details.
-- **Contact details and socials** live in `src/lib/contact.ts`, used by the footer, `/contact` and `<ContactIcons />`. The icons are hairline marks drawn in-house.
+- **Contact details and socials** live in `src/lib/contact.ts`, used by the footer, `/contact` and `<ContactIcons />`. The icons are hairline marks drawn in-house. WhatsApp (`whatsappUrl()`) is offered in context (menu, delivery note, bag, `/track`, order page), never as a floating bubble.
+- **Shopper pages** (the study and gap chart: `docs/reference/ux-study.md`), all on bone paper, outside the stage:
+  - `/fragrances`: every fragrance with filters (`lib/collection.ts`) kept in the URL; no motion when the list changes. `similarWorlds()` (`lib/finder.ts`) picks two for each product page.
+  - `<DeliveryNote />` says fees, usual days, free delivery and ways to pay from Settings (`getShopTerms()`); never promise what Settings don't say.
+  - `/track`: order number + phone → the order's own page. Notify me: a sold-out size takes a phone; `adjustStock()` texts it when stock returns (`catalog/restock.ts`).
+  - Reviews (`server/reviews`): verified buyers only, from the delivered order's page; nothing shows until approved in Admin → Reviews; the section is absent until the first approved one. One email after delivery asks for it (Settings → Reviews).
+  - The free gift note (`orders.gift_message`): checkout, the A6 gift card PDF (`invoice/gift-card.tsx`), GIFT on the label, a line on the receipt.
 
 ## Backend and admin
 

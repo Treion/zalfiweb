@@ -74,11 +74,13 @@ The step-by-step guide is [`docs/guides/deploy-netlify.md`](docs/guides/deploy-n
 | Page | What it is |
 |---|---|
 | `/` | Lands on the ZALFI logo. Scroll and the six bottles rise into a line-up (hover one to fill the room with its world), then each fragrance gets its own chapter: name, tagline, notes, Add to bag. The chapter index on the right jumps between them. |
-| `/fragrances/[name]` | Each fragrance: the bottle (drag to turn it where a 3D model exists), price, live stock, scent profile, notes, Add to bag. |
+| `/fragrances` | All fragrances on one page, with filters (when to wear it, season, note) and one-tap Add. |
+| `/fragrances/[name]` | Each fragrance: the bottle (drag to turn it where a 3D model exists), price, live stock, Add to bag (or Notify me when sold out), delivery fees and times, ways to pay, scent profile, notes, approved reviews, and two similar worlds. |
 | `/find` | Find your world: three questions, and the answer lit on the stage. |
 | `/discovery` | The discovery sets: three fragrances in 3 ml vials, one box each, with what's inside and Add the set. Also a spread on the home page after the story. |
-| `/checkout` | Guest checkout: contact, phone code, delivery address, payment. Then the confirmation page with the order number. |
-| `/about`, `/faq`, `/contact`, `/refunds`, `/payment-policy`, `/privacy`, `/terms` | The house pages, under **Info** in the top bar. |
+| `/checkout` | Guest checkout: contact, phone code, delivery address, an optional free gift note, payment. Then the order's own page: its status, tracking, and (once delivered) Review your fragrances. |
+| `/track` | Track your order: the order number and phone open the order's page. |
+| `/about`, `/faq`, `/contact`, `/refunds`, `/payment-policy`, `/privacy`, `/terms` | The house pages, under **Info** in the top bar (**Menu** on a phone, with the shop links). |
 
 Visitors who prefer reduced motion, and devices without a graphics card, get a calm static version of the same pages.
 
@@ -92,9 +94,10 @@ Visitors who prefer reduced motion, and devices without a graphics card, get a c
 | Payments | Every online payment and refund |
 | Shipping | Parcels by courier, failed deliveries, returns, cash each courier owes you |
 | Coupons | Discount codes and how they perform |
-| Products, Inventory | Fragrances, discovery sets, prices, photos, stock and its history |
+| Products, Notes, Inventory | Fragrances, discovery sets, notes, prices, photos, stock and its history, and who waits for a back-in-stock text |
+| Reviews | Read buyers' reviews, approve them for the shop, reply |
 | Reports | Sales, fragrances, sizes, stock value, coupons, zones, refunds, with CSV |
-| Settings, Team, Activity log | Store details, fees, payment methods; managers; who did what |
+| Settings, Team, Activity log | Store details, fees and delivery times, payment methods, reviews; managers; who did what |
 
 Search everything from the top bar (or press `/`).
 
