@@ -18,7 +18,7 @@ const columns = (
     title: "The house",
     links: [
       ...pages("house"),
-      { href: "/#collection", label: "The collection" },
+      { href: "/fragrances", label: "All fragrances" },
       ...(discovery ? [{ href: "/discovery", label: "Discovery sets" }] : []),
       { href: "/find", label: "Find your world" },
       { href: "/checkout", label: "Your bag" },

@@ -68,3 +68,26 @@ export function recommend<F extends Pick<Fragrance, "slug" | "sortOrder">>(
       a.sortOrder - b.sortOrder,
   )[0];
 }
+
+type Kin = Pick<Fragrance, "slug" | "sortOrder" | "profile" | "notes">;
+
+/**
+ * The fragrances closest to this one, for "Similar worlds" on its page: shared moments weigh most
+ * (when you'd wear it), then shared notes, then shared seasons. Ties go to the nearest in the
+ * collection's order. Pure, so the choice is predictable and testable.
+ */
+export function similarWorlds<F extends Kin>(f: F, all: F[], count = 2): F[] {
+  const notes = new Set(f.notes.map((n) => n.slug));
+  const moments = new Set(f.profile?.moments ?? []);
+  const seasons = new Set(f.profile?.seasons ?? []);
+  const score = (o: F) =>
+    (o.profile?.moments ?? []).filter((m) => moments.has(m)).length * 3 +
+    new Set(o.notes.map((n) => n.slug).filter((s) => notes.has(s))).size * 2 +
+    (o.profile?.seasons ?? []).filter((s) => seasons.has(s)).length;
+  return all
+    .filter((o) => o.slug !== f.slug)
+    .map((o) => ({ o, s: score(o), d: Math.abs(o.sortOrder - f.sortOrder) }))
+    .sort((a, b) => b.s - a.s || a.d - b.d || a.o.sortOrder - b.o.sortOrder)
+    .slice(0, count)
+    .map((x) => x.o);
+}

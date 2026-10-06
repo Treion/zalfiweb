@@ -7,11 +7,13 @@ import { BottleImage, bottleAspect } from "@/components/media/BottleImage";
 import { NotesPyramid } from "@/components/product/NotesPyramid";
 import { ProductPurchase } from "@/components/product/ProductPurchase";
 import { ScentProfile } from "@/components/product/ScentProfile";
+import { SimilarWorlds } from "@/components/product/SimilarWorlds";
 import { StageAnchor } from "@/components/stage/StageAnchor";
 import { BOTTLE_MODELS } from "@/components/stage/model-manifest";
 import { SetHint } from "@/components/discovery/SetHint";
 import { getDiscoverySets, getFragrance, getFragrances } from "@/db/queries";
 import { availability, withNotePhotos } from "@/lib/assets";
+import { similarWorlds } from "@/lib/finder";
 import { NOTE_LAYERS, notesByLayer, worldVars } from "@/lib/fragrance";
 
 export const revalidate = 300;
@@ -105,8 +107,8 @@ export default async function FragrancePage({ params }: PageProps<"/fragrances/[
 
         <div className="col-span-12 pb-24 md:col-span-5 md:pt-40">
           <nav aria-label="Breadcrumb" className="eyebrow opacity-70" {...enter(0)}>
-            <Link href="/#collection" className="border-b border-current/40 pb-0.5">
-              Collection
+            <Link href="/fragrances" className="border-b border-current/40 pb-0.5">
+              All fragrances
             </Link>
             <span className="mx-3">/</span>
             <span aria-current="page" className="tabular-nums">
@@ -169,10 +171,14 @@ export default async function FragrancePage({ params }: PageProps<"/fragrances/[
             </section>
           )}
 
+          <div className="mt-16">
+            <SimilarWorlds worlds={similarWorlds(f, all)} />
+          </div>
+
           <Link
             href={`/fragrances/${next.slug}`}
             data-cursor="Next"
-            className="group mt-24 flex items-end justify-between border-t border-current/15 pt-8"
+            className="group mt-16 flex items-end justify-between border-t border-current/15 pt-8"
           >
             <span>
               <span className="eyebrow block opacity-60">Next world</span>

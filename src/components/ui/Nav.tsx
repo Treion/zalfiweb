@@ -21,6 +21,9 @@ const EASE = [0.22, 1, 0.36, 1] as const;
  * Where you are is a hairline box around the item: Fragrances while the line-up is open,
  * Discovery on the discovery sets, Find yours on the finder, Info on the house pages (or while its
  * menu is open). It fades as you scroll or navigate away. Only opacity changes.
+ *
+ * On a phone there's no room for the shop links in the bar, so Info becomes Menu: the same panel,
+ * with All fragrances, Discovery sets and Find yours on top of the house pages.
  */
 export function Nav({ discovery = false }: { discovery?: boolean }) {
   const { count, openBag } = useCart();
@@ -100,7 +103,8 @@ export function Nav({ discovery = false }: { discovery?: boolean }) {
                 onClick={() => setInfoOpen((o) => !o)}
                 className="eyebrow relative block"
               >
-                Info
+                <span className="sm:hidden">Menu</span>
+                <span className="hidden sm:inline">Info</span>
                 <Outline on={infoOpen || isInfoPath(pathname)} />
               </button>
             </li>
@@ -137,6 +141,7 @@ export function Nav({ discovery = false }: { discovery?: boolean }) {
       </header>
       <InfoMenu
         id={menuId}
+        discovery={discovery}
         open={infoOpen}
         pathname={pathname}
         onClose={closeInfo}
@@ -205,18 +210,27 @@ function NavItem({
 
 const GROUPS: InfoGroup[] = ["house", "help", "legal"];
 
+/** The shop's way in, shown in the menu on phones only (the bar has them on larger screens) */
+const shopLinks = (discovery: boolean) => [
+  { href: "/fragrances", title: "All fragrances" },
+  ...(discovery ? [{ href: "/discovery", title: "Discovery sets" }] : []),
+  { href: "/find", title: "Find yours" },
+];
+
 /**
  * The house pages, in a small panel under the nav. It sits outside the nav's blend layer so it
  * reads as a plain dark sheet. Esc, a click outside, or choosing a page closes it.
  */
 function InfoMenu({
   id,
+  discovery,
   open,
   pathname,
   onClose,
   anchor,
 }: {
   id: string;
+  discovery: boolean;
   open: boolean;
   pathname: string;
   onClose: (refocus: boolean) => void;
@@ -226,7 +240,14 @@ function InfoMenu({
 
   useEffect(() => {
     if (!open) return;
-    const t = setTimeout(() => panel.current?.querySelector<HTMLElement>("a")?.focus(), 30);
+    // The first link that's showing (the shop links are hidden on larger screens)
+    const t = setTimeout(
+      () =>
+        [...(panel.current?.querySelectorAll<HTMLElement>("a") ?? [])]
+          .find((a) => a.offsetParent !== null)
+          ?.focus(),
+      30,
+    );
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose(true);
     };
@@ -250,22 +271,41 @@ function InfoMenu({
           ref={panel}
           id={id}
           role="region"
-          aria-label="Information pages"
+          aria-label="Menu"
           data-lenis-prevent
-          className="bg-noir text-bone border-bone/15 px-gutter fixed inset-x-0 top-16 z-[71] border-y py-8 sm:right-[var(--gutter)] sm:left-auto sm:w-[22rem] sm:border sm:px-8 md:top-20"
+          className="bg-noir text-bone border-bone/15 px-gutter fixed inset-x-0 top-16 z-[71] max-h-[calc(100svh-4rem)] overflow-y-auto border-y py-8 sm:right-[var(--gutter)] sm:left-auto sm:w-[22rem] sm:border sm:px-8 md:top-20"
           initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.35, ease: EASE }}
           onKeyDown={(e) => {
             if (e.key !== "Tab") return;
-            const links = panel.current?.querySelectorAll<HTMLElement>("a");
-            if (!links?.length) return;
+            const links = [...(panel.current?.querySelectorAll<HTMLElement>("a") ?? [])].filter(
+              (a) => a.offsetParent !== null,
+            );
+            if (!links.length) return;
             const last = links[links.length - 1];
             if (!e.shiftKey && document.activeElement === last) onClose(true);
           }}
         >
           <div className="space-y-7">
+            <div className="sm:hidden">
+              <p className="eyebrow text-bone-dim">Shop</p>
+              <ul className="mt-3 space-y-1.5">
+                {shopLinks(discovery).map((l) => (
+                  <li key={l.href}>
+                    <Link
+                      href={l.href}
+                      aria-current={pathname === l.href ? "page" : undefined}
+                      onClick={() => onClose(false)}
+                      className="font-display block text-3xl leading-snug transition-opacity hover:opacity-70 aria-[current=page]:italic"
+                    >
+                      {l.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
             {GROUPS.map((g) => (
               <div key={g}>
                 <p className="eyebrow text-bone-dim">{INFO_GROUP_LABELS[g]}</p>

@@ -10,7 +10,6 @@ import { formatPrice } from "@/lib/money";
 import type { CheckoutResponse } from "@/app/api/checkout/route";
 import { lineHref, useCart } from "./cart-store";
 import { countWord } from "@/lib/words";
-import { HomeLink } from "@/components/sections/HomeLink";
 import { sizeLabel } from "@/lib/size";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -157,13 +156,13 @@ export function CartDrawer({
                   <p className="text-smoke">
                     {`${countWord(worldCount, true)} worlds are waiting. Start with the one you can smell from here.`}
                   </p>
-                  <HomeLink
-                    to="collection"
+                  <Link
+                    href="/fragrances"
                     onClick={cart.closeBag}
                     className="eyebrow border-noir self-start border-b pb-1"
                   >
-                    Discover the collection
-                  </HomeLink>
+                    See every fragrance
+                  </Link>
                   {discovery && (
                     <p className="text-smoke text-sm">
                       Not sure where to start?{" "}
