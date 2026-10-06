@@ -101,6 +101,8 @@ const fragrance = (
   notes: pyramid(notes),
   variants: variants(slug, price),
   images: [],
+  badge: null,
+  howToWear: null,
 });
 
 const capLabel: Record<CapFinish, string> = {

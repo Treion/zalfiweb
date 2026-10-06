@@ -38,8 +38,12 @@ const nextConfig: NextConfig = {
     // Next 16 requires an explicit allowlist. 90 is reserved for the bottles, which are the hero of the site.
     qualities: [75, 90],
     deviceSizes: [375, 640, 828, 1080, 1440, 1920, 2560],
-    // Product photos uploaded in the admin, when stored on Vercel Blob
-    remotePatterns: [{ protocol: "https", hostname: "*.public.blob.vercel-storage.com" }],
+    remotePatterns: [
+      // Product photos and banners uploaded in the admin, when stored on Vercel Blob
+      { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
+      // YouTube video covers (Admin → Content → Videos)
+      { protocol: "https", hostname: "i.ytimg.com", pathname: "/vi/**" },
+    ],
   },
 };
 

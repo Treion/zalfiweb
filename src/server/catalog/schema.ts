@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { AA_TEXT, contrastRatio } from "@/lib/contrast";
 import { SET_SIZE } from "@/lib/discovery";
-import { MOMENTS, SEASONS, type ScentProfile } from "@/lib/fragrance";
+import { BADGES, MOMENTS, SEASONS, type ScentProfile } from "@/lib/fragrance";
 
 /**
  * The catalogue's input rules, shared by the admin forms (instant feedback) and the server (which
@@ -65,6 +65,9 @@ export const fragranceDetailsSchema = z
     profile: profileSchema.nullable(),
     sortOrder: z.number().int().min(0).max(999),
     published: z.boolean(),
+    badge: z.enum(BADGES).nullable(),
+    /** Blank: the house's default advice */
+    howToWear: z.string().trim().max(600),
   })
   .strict();
 

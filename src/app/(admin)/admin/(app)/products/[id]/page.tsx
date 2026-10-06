@@ -67,7 +67,7 @@ export default async function ProductPage({
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
           <TabsTrigger value="sizes">Sizes and prices</TabsTrigger>
-          <TabsTrigger value="images">Images</TabsTrigger>
+          <TabsTrigger value="images">Photos</TabsTrigger>
         </TabsList>
         <TabsContent value="details" className="flex flex-col gap-6">
           <DetailsForm
@@ -83,6 +83,8 @@ export default async function ProductPage({
               profile: f.profile ?? null,
               sortOrder: f.sortOrder,
               published: f.published,
+              badge: f.badge ?? null,
+              howToWear: f.howToWear ?? "",
             }}
           />
           <BottlePhotoCard id={f.id} src={f.bottleImage} alt={f.bottleAlt} bg={f.palette.bg} />

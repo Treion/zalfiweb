@@ -17,6 +17,8 @@ import type { BottleMeta } from "@/components/stage/bottle-meta";
 import type { Palette, ScentProfile } from "@/lib/fragrance";
 
 export const noteLayer = pgEnum("note_layer", ["top", "heart", "base"]);
+/** A word on the product card and page (null: none) */
+export const productBadge = pgEnum("product_badge", ["new", "bestseller", "limited"]);
 export const capFinish = pgEnum("cap_finish", [
   "silver",
   "gunmetal",
@@ -49,6 +51,10 @@ export const fragrances = pgTable(
     /** Family, longevity, sillage, seasons and moments (see ScentProfile). Null hides it. */
     profile: jsonb("profile").$type<ScentProfile>(),
     published: boolean("published").notNull().default(true),
+    /** New, Bestseller or Limited edition, on the shop card and the product page */
+    badge: productBadge("badge"),
+    /** "How to wear it" on the product page (null: the house's plain default) */
+    howToWear: text("how_to_wear"),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex("fragrances_slug_idx").on(t.slug)],

@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { and, asc, eq, inArray, ne, sql } from "drizzle-orm";
 import sharp from "sharp";
 import type { z } from "zod";
@@ -15,6 +14,7 @@ import { poolDb, withTx, type Executor } from "@/server/db/pool";
 import { UserFacingError } from "@/server/errors";
 import { storageProvider } from "@/server/providers/storage";
 import { bakeBottle, checkBottlePhoto } from "./bake";
+import { MAX_UPLOAD_BYTES, hash8, storeWebp } from "./upload";
 import type {
   fragranceDetailsSchema,
   newFragranceSchema,
@@ -28,7 +28,7 @@ import { adjustStock, reservedBy } from "./stock";
  * the storefront is refreshed (revalidateStorefront), so edits show on the site at once.
  */
 
-export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+export { MAX_UPLOAD_BYTES } from "./upload";
 
 /** Refreshes every storefront page (they are statically generated and re-generated on demand) */
 export async function revalidateStorefront() {
@@ -40,7 +40,6 @@ export async function revalidateStorefront() {
   }
 }
 
-const hash8 = (b: Buffer) => createHash("sha256").update(b).digest("hex").slice(0, 10);
 
 async function storage() {
   return storageProvider();
@@ -246,7 +245,7 @@ export async function updateFragrance(
     }
     await tx
       .update(fragrances)
-      .set({ ...input, updatedAt: new Date() })
+      .set({ ...input, howToWear: input.howToWear || null, updatedAt: new Date() })
       .where(eq(fragrances.id, id));
     const pick = (o: typeof before) => ({
       name: o.name,
@@ -259,6 +258,8 @@ export async function updateFragrance(
       profile: o.profile,
       sortOrder: o.sortOrder,
       published: o.published,
+      badge: o.badge,
+      howToWear: o.howToWear,
     });
     await audit(tx, actor, "product.update", {
       entity: "fragrance",
@@ -402,25 +403,13 @@ export async function updateVariant(
 /* Gallery images                                                                                   */
 
 export async function addImage(fragranceId: number, file: Buffer, alt: string, actor: Actor) {
-  if (file.byteLength > MAX_UPLOAD_BYTES) throw new UserFacingError("That file is over 4 MB.");
-  const meta = await sharp(file)
-    .metadata()
-    .catch(() => null);
-  if (!meta?.width || !meta.height || !["jpeg", "png", "webp", "avif"].includes(meta.format ?? ""))
-    throw new UserFacingError("Use a JPG, PNG, WebP or AVIF image.");
-  // Stored as WebP, at most 2400 px on the long side, never upscaled or cropped
-  const img = sharp(file)
-    .rotate()
-    .resize({ width: 2400, height: 2400, fit: "inside", withoutEnlargement: true });
-  const { data, info } = await img.webp({ quality: 90 }).toBuffer({ resolveWithObject: true });
   const [f] = await poolDb()
     .select({ slug: fragrances.slug })
     .from(fragrances)
     .where(eq(fragrances.id, fragranceId));
   if (!f) throw new UserFacingError("That fragrance no longer exists.");
-  const { url } = await (
-    await storage()
-  ).put(`products/${f.slug}-${hash8(data)}.webp`, data, "image/webp");
+  // Stored as WebP, at most 2400 px on the long side, never upscaled or cropped
+  const { url, width, height } = await storeWebp(file, `products/${f.slug}`);
   await withTx(async (tx) => {
     const [{ pos }] = (await tx
       .select({ pos: sql<number>`coalesce(max(${fragranceImages.position}), -1) + 1` })
@@ -433,8 +422,8 @@ export async function addImage(fragranceId: number, file: Buffer, alt: string, a
         url,
         alt,
         position: Number(pos),
-        width: info.width,
-        height: info.height,
+        width,
+        height,
       })
       .returning({ id: fragranceImages.id });
     await audit(tx, actor, "product.image.add", {

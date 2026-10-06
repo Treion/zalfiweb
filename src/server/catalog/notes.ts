@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { asc, eq, ne } from "drizzle-orm";
 import type { z } from "zod";
 import { fragranceNotes, fragrances, notes } from "@/db/schema";
@@ -7,7 +6,8 @@ import { poolDb, withTx, type Executor } from "@/server/db/pool";
 import { UserFacingError } from "@/server/errors";
 import { storageProvider } from "@/server/providers/storage";
 import { checkNotePhoto, frameNoteWebp } from "./note-photo";
-import { MAX_UPLOAD_BYTES, revalidateStorefront } from "./products";
+import { revalidateStorefront } from "./products";
+import { MAX_UPLOAD_BYTES, dropUpload, hash8 } from "./upload";
 import { noteSlugOf, type noteDetailsSchema } from "./schema";
 
 /**
@@ -22,7 +22,6 @@ import { noteSlugOf, type noteDetailsSchema } from "./schema";
 
 type Details = z.output<typeof noteDetailsSchema>;
 const LAYER = { top: "Top", heart: "Heart", base: "Base" } as const;
-const hash8 = (b: Buffer) => createHash("sha256").update(b).digest("hex").slice(0, 10);
 
 export async function listNotesAdmin(exec: Executor = poolDb()) {
   const [rows, uses] = await Promise.all([
@@ -68,13 +67,6 @@ async function storePhoto(slug: string, file: Buffer) {
   return url;
 }
 
-/** An uploaded photo can go once nothing points to it; the original files stay in the repo */
-async function dropUpload(url: string) {
-  if (url.startsWith("/images/")) return;
-  await storageProvider()
-    .remove(url)
-    .catch(() => {});
-}
 
 async function freeSlug(name: string, exec: Executor) {
   const base = noteSlugOf(name);

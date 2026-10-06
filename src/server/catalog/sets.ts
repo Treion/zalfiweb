@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import sharp from "sharp";
 import type { z } from "zod";
@@ -7,7 +6,8 @@ import { audit, type Actor } from "@/server/audit";
 import { poolDb, withTx, type Executor, type Tx } from "@/server/db/pool";
 import { UserFacingError } from "@/server/errors";
 import { storageProvider } from "@/server/providers/storage";
-import { MAX_UPLOAD_BYTES, revalidateStorefront } from "./products";
+import { revalidateStorefront } from "./products";
+import { MAX_UPLOAD_BYTES, hash8 } from "./upload";
 import type { newSetSchema, setDetailsSchema, setFragrancesSchema, setPackSchema } from "./schema";
 import { availableOf, reservedBy } from "./stock";
 
@@ -20,7 +20,6 @@ import { availableOf, reservedBy } from "./stock";
 /** Every set holds one vial of each of its fragrances */
 const PIECES = 3;
 
-const hash8 = (b: Buffer) => createHash("sha256").update(b).digest("hex").slice(0, 10);
 
 const skuFor = (slug: string, sizeMl: number) =>
   `ZLF-SET-${slug.toUpperCase()}-${PIECES}X${sizeMl}`;

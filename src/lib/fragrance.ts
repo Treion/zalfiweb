@@ -78,9 +78,26 @@ export type Fragrance = {
   profile: ScentProfile | null;
   notes: FragranceNote[];
   variants: Variant[];
-  /** Gallery photos added in the admin, in order (none at launch) */
+  /** Photos added in the admin (models, campaign, lifestyle), in order (none at launch). They make
+   *  the product page gallery, and the first one shows when the shop card is hovered. */
   images: { url: string; alt: string; width: number | null; height: number | null }[];
+  /** New, Bestseller or Limited edition (null: none) */
+  badge: Badge | null;
+  /** "How to wear it", as the owner wrote it (null: HOW_TO_WEAR) */
+  howToWear: string | null;
 };
+
+export const BADGES = ["new", "bestseller", "limited"] as const;
+export type Badge = (typeof BADGES)[number];
+export const BADGE_LABELS: Record<Badge, string> = {
+  new: "New",
+  bestseller: "Bestseller",
+  limited: "Limited edition",
+};
+
+/** The plain advice every product page shows until the owner writes their own */
+export const HOW_TO_WEAR =
+  "Spray from a hand's width away on the pulse points: wrists, neck, behind the ears. Let it settle; don't rub it in. Two or three sprays are enough.";
 
 export const notesByLayer = (f: Pick<Fragrance, "notes">, layer: NoteLayer) =>
   f.notes.filter((n) => n.layer === layer).sort((a, b) => a.position - b.position);

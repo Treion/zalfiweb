@@ -121,10 +121,12 @@ export function ImagesEditor({ fragranceId, images }: { fragranceId: number; ima
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Gallery</CardTitle>
+        <CardTitle>Photos</CardTitle>
         <CardDescription>
-          Extra photos for the product page and receipts. Drag to reorder (or use the arrow keys on
-          the handle).
+          Models, campaign and lifestyle pictures: a hand holding the bottle, Reva on a pineapple.
+          They make the gallery beside the bottle on the product page, and the first one shows when
+          a shopper points at the perfume in the shop. Drag to reorder (or use the arrow keys on the
+          handle).
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-6">

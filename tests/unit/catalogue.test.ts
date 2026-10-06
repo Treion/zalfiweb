@@ -81,6 +81,8 @@ describe("catalogue rules", () => {
       profile: f.profile,
       sortOrder: f.sortOrder,
       published: true,
+      badge: null,
+      howToWear: "",
     });
     expect(r.success).toBe(true);
   });

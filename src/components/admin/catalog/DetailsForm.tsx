@@ -23,7 +23,15 @@ import {
 } from "@/components/admin/ui/select";
 import { Switch } from "@/components/admin/ui/switch";
 import { Textarea } from "@/components/admin/ui/textarea";
-import { MOMENTS, SEASONS, type ScentProfile } from "@/lib/fragrance";
+import {
+  BADGE_LABELS,
+  BADGES,
+  HOW_TO_WEAR,
+  MOMENTS,
+  SEASONS,
+  type Badge,
+  type ScentProfile,
+} from "@/lib/fragrance";
 import { CAP_FINISHES, fragranceDetailsSchema } from "@/server/catalog/schema";
 import { updateDetailsAction } from "@/app/(admin)/admin/(app)/products/actions";
 import { CAP_LABELS } from "./labels";
@@ -40,6 +48,8 @@ export type Details = {
   profile: ScentProfile | null;
   sortOrder: number;
   published: boolean;
+  badge: Badge | null;
+  howToWear: string;
 };
 
 const EMPTY_PROFILE: ScentProfile = {
@@ -184,13 +194,33 @@ export function DetailsForm({ id, initial }: { id: number; initial: Details }) {
             </Field>
           </div>
           <div className="md:col-span-2">
-            <Field id="d-story" label="Story" hint="Not shown on the shop; search engines read it.">
+            <Field
+              id="d-story"
+              label="Story"
+              hint="On the product page under About (folded until opened); search engines read it too."
+            >
               <Textarea
                 id="d-story"
                 rows={4}
                 value={d.story}
                 onChange={(e) => set("story", e.target.value)}
                 maxLength={2000}
+              />
+            </Field>
+          </div>
+          <div className="md:col-span-2">
+            <Field
+              id="d-wear"
+              label="How to wear it"
+              hint="On the product page, folded. Leave empty for the house's plain advice."
+            >
+              <Textarea
+                id="d-wear"
+                rows={3}
+                value={d.howToWear}
+                placeholder={HOW_TO_WEAR}
+                onChange={(e) => set("howToWear", e.target.value)}
+                maxLength={600}
               />
             </Field>
           </div>
@@ -350,6 +380,28 @@ export function DetailsForm({ id, initial }: { id: number; initial: Details }) {
               onCheckedChange={(v) => set("published", v)}
             />
           </div>
+          <Field
+            id="d-badge"
+            label="Badge"
+            hint="A word on its card in the shop and above its name."
+          >
+            <Select
+              value={d.badge ?? "none"}
+              onValueChange={(v) => set("badge", v === "none" ? null : (v as Badge))}
+            >
+              <SelectTrigger id="d-badge" className="w-full max-w-56">
+                <SelectValue>{d.badge ? BADGE_LABELS[d.badge] : "None"}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                {BADGES.map((b) => (
+                  <SelectItem key={b} value={b}>
+                    {BADGE_LABELS[b]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
           <Field id="d-order" label="Order in the collection" hint="Lower numbers come first.">
             <Input
               id="d-order"

@@ -92,6 +92,8 @@ export async function getFragrances(): Promise<Fragrance[]> {
       images: imageRows
         .filter((i) => i.fragranceId === f.id)
         .map(({ url, alt, width, height }) => ({ url, alt, width, height })),
+      badge: f.badge ?? null,
+      howToWear: f.howToWear ?? null,
     }));
   } catch (err) {
     console.warn("[db] getFragrances failed, using seed data:", (err as Error).message);
