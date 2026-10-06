@@ -61,3 +61,47 @@ export function notesInUse(fragrances: Pick<Fragrance, "notes">[]) {
     .map(([slug, name]) => ({ slug, name }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
+
+/* ---------------------------------------------------------------------------------------------- */
+/* Sort                                                                                             */
+
+export const SORTS = ["featured", "price-asc", "price-desc", "rating"] as const;
+export type Sort = (typeof SORTS)[number];
+export const SORT_LABELS: Record<Sort, string> = {
+  featured: "Featured",
+  "price-asc": "Price, low to high",
+  "price-desc": "Price, high to low",
+  rating: "Top rated",
+};
+
+/** Approved reviews per fragrance, by slug (only those that have some) */
+export type Ratings = Record<string, { average: number; count: number }>;
+
+/** ?sort=price-asc; "featured" (the house's own order) when absent or unknown */
+export function parseSort(params: { get(name: string): string | null }): Sort {
+  const raw = params.get("sort");
+  return (SORTS as readonly string[]).includes(raw ?? "") ? (raw as Sort) : "featured";
+}
+
+/** The filters' query with the sort added (left out when it's the house's own order) */
+export function queryWithSort(filtersQuery: string, sort: Sort) {
+  if (sort === "featured") return filtersQuery;
+  return filtersQuery ? `${filtersQuery}&sort=${sort}` : `?sort=${sort}`;
+}
+
+type Sortable = Pick<Fragrance, "slug" | "sortOrder" | "variants">;
+
+/** The list in the chosen order; ties keep the house's order */
+export function sortFragrances<T extends Sortable>(list: T[], sort: Sort, ratings: Ratings = {}) {
+  const price = (f: T) => f.variants[0]?.pricePoisha ?? Number.MAX_SAFE_INTEGER;
+  const rated = (f: T) => ratings[f.slug];
+  const by: Record<Sort, (a: T, b: T) => number> = {
+    featured: () => 0,
+    "price-asc": (a, b) => price(a) - price(b),
+    "price-desc": (a, b) => price(b) - price(a),
+    rating: (a, b) =>
+      (rated(b)?.average ?? 0) - (rated(a)?.average ?? 0) ||
+      (rated(b)?.count ?? 0) - (rated(a)?.count ?? 0),
+  };
+  return [...list].sort((a, b) => by[sort](a, b) || a.sortOrder - b.sortOrder);
+}

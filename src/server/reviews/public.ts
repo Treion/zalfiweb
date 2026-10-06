@@ -1,8 +1,9 @@
 import "server-only";
 import { cache } from "react";
-import { and, desc, eq } from "drizzle-orm";
+import { and, avg, count, desc, eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { discoverySets, fragrances, reviews } from "@/db/schema";
+import type { Ratings } from "@/lib/collection";
 import { averageOf, type ReviewSummary } from "@/lib/reviews";
 import { getSettings } from "@/server/settings";
 
@@ -55,3 +56,28 @@ export const getReviews = cache(
     }
   },
 );
+
+/** Every fragrance's average and count from approved reviews, for the shop's cards and "Top rated" */
+export const getRatingSummaries = cache(async (): Promise<Ratings> => {
+  const db = getDb();
+  if (!db) return {};
+  try {
+    const { show } = await getSettings("reviews");
+    if (!show) return {};
+    const rows = await db
+      .select({ slug: fragrances.slug, average: avg(reviews.rating), count: count() })
+      .from(reviews)
+      .innerJoin(fragrances, eq(fragrances.id, reviews.fragranceId))
+      .where(eq(reviews.status, "approved"))
+      .groupBy(fragrances.slug);
+    return Object.fromEntries(
+      rows.map((r) => [
+        r.slug,
+        { average: Math.round(Number(r.average) * 10) / 10, count: Number(r.count) },
+      ]),
+    );
+  } catch (err) {
+    console.warn("[reviews] ratings not shown:", (err as Error).message);
+    return {};
+  }
+});

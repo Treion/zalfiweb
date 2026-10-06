@@ -2,11 +2,19 @@ import type { CSSProperties } from "react";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BannerCarousel } from "@/components/content/BannerCarousel";
+import { Services } from "@/components/content/Services";
+import { VideoCard } from "@/components/content/VideoCard";
 import { DiscoverySpread } from "@/components/discovery/DiscoverySpread";
 import { CollectionBrowser, FragranceList } from "@/components/product/CollectionBrowser";
+import { RecentlyViewed } from "@/components/product/RecentlyViewed";
 import { getDiscoverySets, getFragrances } from "@/db/queries";
 import { notesInUse } from "@/lib/collection";
+import { viewedItems } from "@/lib/viewed";
 import { countWord, listNames } from "@/lib/words";
+import { getShopTerms } from "@/server/checkout/terms";
+import { getBanners, getVideos } from "@/server/content/public";
+import { getRatingSummaries } from "@/server/reviews/public";
 
 // Catalogue edits (prices, notes, stock) appear within 5 minutes, no redeploy needed
 export const revalidate = 300;
@@ -20,7 +28,7 @@ const enter = (order: number) => ({
 export async function generateMetadata(): Promise<Metadata> {
   const all = await getFragrances();
   return {
-    title: "All fragrances",
+    title: "Shop all fragrances",
     description: `${countWord(all.length, true)} ZALFI eaux de parfum, 50 ml: ${listNames(all.map((f) => f.name))}. Choose by moment, season or note.`,
     alternates: { canonical: "/fragrances" },
     openGraph: { title: "All fragrances | ZALFI" },
@@ -28,11 +36,20 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * Every fragrance on one calm page, on bone paper, with filters (when to wear it, season, notes):
- * the quick way in, next to the home page's slow one. The discovery sets close the page.
+ * The shop: every fragrance on one calm page, on bone paper. The owner's banners open it (Admin →
+ * Content), then the house's services, then the fragrances with filters and a sort. Videos, the
+ * discovery sets and what this visitor looked at recently close it. Each part shows only when it
+ * has something in it.
  */
 export default async function AllFragrancesPage() {
-  const [fragrances, sets] = await Promise.all([getFragrances(), getDiscoverySets()]);
+  const [fragrances, sets, banners, terms, ratings, videos] = await Promise.all([
+    getFragrances(),
+    getDiscoverySets(),
+    getBanners("shop"),
+    getShopTerms(),
+    getRatingSummaries(),
+    getVideos(),
+  ]);
   const site = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
   const jsonLd = {
     "@context": "https://schema.org",
@@ -52,8 +69,16 @@ export default async function AllFragrancesPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
+      {banners.length > 0 && (
+        // Below the header bar, so the nav never sits on the picture
+        <div className="px-gutter pt-20 md:pt-24">
+          <BannerCarousel banners={banners} eager label="From the house" />
+        </div>
+      )}
       <div className="px-gutter pb-32">
-        <header className="grid grid-cols-12 gap-x-4 gap-y-8 pt-36 pb-12 md:pt-48 md:pb-16">
+        <header
+          className={`grid grid-cols-12 gap-x-4 gap-y-8 pb-10 md:pb-12 ${banners.length ? "pt-16 md:pt-24" : "pt-36 md:pt-48"}`}
+        >
           <p className="eyebrow text-smoke col-span-12 md:col-span-2" {...enter(0)}>
             The collection
           </p>
@@ -76,11 +101,31 @@ export default async function AllFragrancesPage() {
             choose for you.
           </p>
         </header>
-        <Suspense fallback={<FragranceList fragrances={fragrances} />}>
-          <CollectionBrowser fragrances={fragrances} notes={notesInUse(fragrances)} />
+        <Services terms={terms} sets={sets.length > 0} className="mb-6" />
+        <Suspense fallback={<FragranceList fragrances={fragrances} ratings={ratings} />}>
+          <CollectionBrowser
+            fragrances={fragrances}
+            notes={notesInUse(fragrances)}
+            ratings={ratings}
+          />
         </Suspense>
+        {videos.length > 0 && (
+          <section aria-labelledby="videos-title" className="border-noir/15 mt-32 border-t pt-8">
+            <h2 id="videos-title" className="eyebrow text-smoke">
+              On YouTube
+            </h2>
+            <div className="mt-8 grid gap-x-8 gap-y-12 md:grid-cols-2">
+              {videos.slice(0, 4).map((v) => (
+                <VideoCard key={v.id} video={v} />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
       <DiscoverySpread sets={sets} />
+      <div className="px-gutter pb-24">
+        <RecentlyViewed items={viewedItems(fragrances)} />
+      </div>
     </main>
   );
 }

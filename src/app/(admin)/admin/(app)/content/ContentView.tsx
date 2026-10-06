@@ -305,7 +305,7 @@ function BannerCard({ b, first, last }: { b: AdminBanner; first: boolean; last: 
     );
 
   return (
-    <Card>
+    <Card role="group" aria-label={`Banner: ${saved.alt}`}>
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <CardTitle className="text-base">{saved.headline || saved.alt}</CardTitle>
