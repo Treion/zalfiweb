@@ -281,6 +281,11 @@ export function StockTable({
                     )}
                   </div>
                   <div className="text-muted-foreground font-mono text-xs">{r.sku}</div>
+                  {r.waiting > 0 && (
+                    <div className="text-muted-foreground mt-1 text-xs">
+                      {r.waiting} waiting for a back-in-stock text
+                    </div>
+                  )}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">{r.stock}</TableCell>
                 <TableCell className="text-right tabular-nums">{r.reserved || "—"}</TableCell>

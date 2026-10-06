@@ -72,6 +72,14 @@ export const quoteSchema = z
   })
   .strict();
 
+/** The free gift note: up to 200 characters, kept as written (line breaks too) */
+export const GIFT_MESSAGE_MAX = 200;
+export const giftMessageSchema = z
+  .string()
+  .trim()
+  .max(GIFT_MESSAGE_MAX, `Keep the note under ${GIFT_MESSAGE_MAX} characters.`)
+  .transform((v) => v.replace(/\r\n?/g, "\n").replace(/\n{3,}/g, "\n\n") || null);
+
 export const placeOrderSchema = z
   .object({
     ...contactSchema.shape,
@@ -79,6 +87,8 @@ export const placeOrderSchema = z
     items: bagSchema,
     coupon: couponCodeSchema.optional(),
     paymentMethod: z.enum(PAYMENT_METHODS),
+    /** A gift: the note printed on a card in the box (free). Blank is no gift. */
+    giftMessage: giftMessageSchema.optional(),
     /** The total the customer saw. If the server's differs (a price changed), nothing is placed. */
     expectedTotal: z.number().int().min(0),
     /** One per checkout attempt: the same key never creates a second order */

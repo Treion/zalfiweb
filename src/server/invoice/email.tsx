@@ -132,6 +132,27 @@ export function ReceiptEmail({ data }: { data: InvoiceData }) {
               <Text style={body}>{data.date}</Text>
             </Column>
           </Row>
+          {data.giftMessage && (
+            <Section style={{ marginTop: "24px" }}>
+              <Text style={eyebrow}>A gift</Text>
+              <Text style={{ ...body, color: SMOKE }}>
+                Your note goes in the box, printed on a card:
+              </Text>
+              <Text
+                style={{
+                  ...body,
+                  fontFamily: serif,
+                  fontStyle: "italic",
+                  fontSize: "18px",
+                  lineHeight: "26px",
+                  marginTop: "8px",
+                  whiteSpace: "pre-line",
+                }}
+              >
+                {data.giftMessage}
+              </Text>
+            </Section>
+          )}
           {data.trackingUrl && (
             <Section style={{ marginTop: "24px" }}>
               <Link

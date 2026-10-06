@@ -31,6 +31,8 @@ export type InvoiceData = {
   totals: { label: string; value: string; strong?: boolean }[];
   payment: { method: string; status: string };
   trackingUrl: string | null;
+  /** The free gift note, printed on a card in the box (null: not a gift) */
+  giftMessage: string | null;
   footerNote: string;
 };
 
@@ -102,6 +104,7 @@ export async function loadInvoice(orderId: number, exec: Executor = poolDb()) {
           : PAYMENT_STATUS_LABELS[o.paymentStatus],
     },
     trackingUrl: (await orderTracking(o.id, exec))?.url ?? null,
+    giftMessage: o.giftMessage,
     footerNote: inv.footerNote,
   };
   return { order: o, data };

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { DISTRICTS } from "@/lib/bd-geo";
 import {
+  GIFT_MESSAGE_MAX,
   PAYMENT_LABELS,
   addressSchema,
   contactSchema,
@@ -95,6 +96,8 @@ export function CheckoutFlow({
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [refresh, setRefresh] = useState(0);
+  const [gift, setGift] = useState(false);
+  const [giftNote, setGiftNote] = useState("");
   const idempotencyKey = useRef<string>("");
 
   useEffect(() => {
@@ -240,6 +243,7 @@ export function CheckoutFlow({
       items,
       ...(coupon && quote.coupon?.ok ? { coupon } : {}),
       paymentMethod: method,
+      ...(gift && giftNote.trim() ? { giftMessage: giftNote } : {}),
       expectedTotal: quote.total,
       idempotencyKey: idempotencyKey.current,
     }).catch(() => null);
@@ -454,6 +458,39 @@ export function CheckoutFlow({
               aria-describedby={errors.street ? `${uid}-street-err` : undefined}
             />
           </Field>
+          <div>
+            <label className="flex cursor-pointer items-center gap-4">
+              <input
+                type="checkbox"
+                checked={gift}
+                onChange={(e) => setGift(e.target.checked)}
+                aria-controls={`${uid}-gift`}
+                className="border-noir/40 checked:border-noir checked:bg-noir size-4 shrink-0 appearance-none border checked:shadow-[inset_0_0_0_3px_var(--color-bone)]"
+              />
+              <span className="font-display text-2xl">This is a gift</span>
+              <span className="text-smoke text-sm">Free</span>
+            </label>
+            {gift && (
+              <div id={`${uid}-gift`} className="info-reveal mt-6">
+                <Field
+                  id={`${uid}-gift-note`}
+                  label="Your note"
+                  hint={`Printed on a card in the box. ${GIFT_MESSAGE_MAX - giftNote.length} characters left.`}
+                >
+                  <textarea
+                    id={`${uid}-gift-note`}
+                    rows={3}
+                    maxLength={GIFT_MESSAGE_MAX}
+                    value={giftNote}
+                    onChange={(e) => setGiftNote(e.target.value)}
+                    placeholder="For you, with love."
+                    className={`${inputCls} resize-none`}
+                    aria-describedby={`${uid}-gift-note-hint`}
+                  />
+                </Field>
+              </div>
+            )}
+          </div>
         </Section>
 
         <Section n="03" title="Payment">

@@ -14,13 +14,14 @@ const label = (number: string, cod: number): LabelData => ({
   zone: "Inside Dhaka",
   items: "Reva ×2, Oudor",
   bottles: 3,
+  gift: false,
   from: { phone: "+880 1810-524672", address: "Kakrail, Dhaka 1214" },
 });
 
 describe("shipping labels", () => {
   it("render one 4 × 6 inch page per order", async () => {
     const pdf = Buffer.from(
-      await renderLabels([label("ZLF-001234", 457_000), label("ZLF-001235", 0)]),
+      await renderLabels([label("ZLF-001234", 457_000), { ...label("ZLF-001235", 0), gift: true }]),
     );
     expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
     const text = pdf.toString("latin1");

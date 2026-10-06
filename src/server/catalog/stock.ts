@@ -1,6 +1,7 @@
 import { and, asc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import { stockMovements, stockReservations, variants } from "@/db/schema";
 import type { Executor, Tx } from "@/server/db/pool";
+import { inBackground } from "@/server/background";
 import { UserFacingError } from "@/server/errors";
 
 /**
@@ -96,6 +97,12 @@ export async function adjustStock(
     orderId: m.orderId ?? null,
     adminUserId: m.adminUserId ?? null,
   });
+  // Back from sold out: text whoever asked to be told. notifyRestocked waits for this transaction
+  // and reads the stock again, so a change that's rolled back sends nothing.
+  if (locked.stock <= 0 && next > 0) {
+    const { notifyRestocked } = await import("./restock");
+    inBackground("restock", () => notifyRestocked(m.variantId));
+  }
   return next;
 }
 

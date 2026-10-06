@@ -4,6 +4,7 @@ import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { useCart } from "@/components/cart/cart-store";
+import { NotifyMe } from "@/components/product/NotifyMe";
 import type { DiscoverySet } from "@/lib/discovery";
 import { formatPrice } from "@/lib/money";
 import { sizeLabel } from "@/lib/size";
@@ -78,6 +79,7 @@ export function SetBuy({
           {soldOut ? "Sold out" : added ? "In your bag" : "Add the set"}
         </motion.span>
       </button>
+      {soldOut && <NotifyMe sku={v.sku} name={set.name} className="basis-full" />}
     </div>
   );
 }

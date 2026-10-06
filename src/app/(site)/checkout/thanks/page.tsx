@@ -194,6 +194,14 @@ export default async function ThanksPage({ searchParams }: PageProps<"/checkout/
               <p className="mt-3">{formatDateTime(order.createdAt)}</p>
             </div>
           </div>
+          {order.giftMessage && (
+            <div className="border-noir/15 mt-8 border-t pt-8">
+              <p className="eyebrow text-smoke">A gift · your note goes in the box</p>
+              <p className="display-italic mt-3 text-2xl leading-snug whitespace-pre-line">
+                {order.giftMessage}
+              </p>
+            </div>
+          )}
         </section>
       </div>
     </main>

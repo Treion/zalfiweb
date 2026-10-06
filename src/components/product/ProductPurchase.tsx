@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import clsx from "clsx";
 import { AnimatePresence, motion } from "motion/react";
 import { useCart } from "@/components/cart/cart-store";
+import { NotifyMe } from "./NotifyMe";
 import { worldVars, type Fragrance } from "@/lib/fragrance";
 import { formatPrice } from "@/lib/money";
 
@@ -202,6 +203,7 @@ export function ProductPurchase({ fragrance: f }: { fragrance: Fragrance }) {
           {soldOut ? "Sold out" : added ? "Added to your bag" : "Add to bag"}
         </motion.span>
       </button>
+      {soldOut && <NotifyMe sku={v.sku} name={f.name} className="mt-6" />}
 
       {client && createPortal(bar, document.body)}
     </div>

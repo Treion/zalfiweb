@@ -45,8 +45,13 @@ export async function fillBag(page: Page, qty = 1) {
 export type Method = "Pay online" | "Cash on delivery";
 
 /** Fills the checkout as a customer would, verifying the phone with the dev SMS code. `keepBag`:
- *  check out what's already in the bag instead of the test bottle. */
-export async function checkout(page: Page, method: Method, { keepBag = false } = {}) {
+ *  check out what's already in the bag instead of the test bottle; `gift`: send it as a gift, with
+ *  this note. */
+export async function checkout(
+  page: Page,
+  method: Method,
+  { keepBag = false, gift }: { keepBag?: boolean; gift?: string } = {},
+) {
   const c = customer();
   if (keepBag) await page.goto("/checkout");
   else await fillBag(page);
@@ -62,6 +67,10 @@ export async function checkout(page: Page, method: Method, { keepBag = false } =
   await page.getByLabel("District").selectOption("Dhaka");
   await page.getByLabel("Area or thana").selectOption("Dhanmondi");
   await page.getByLabel("House, road and street").fill("House 12, Road 5");
+  if (gift) {
+    await page.getByLabel("This is a gift").check();
+    await page.getByLabel("Your note").fill(gift);
+  }
   await page.getByLabel(method).check();
   // The total is re-quoted with Dhaka's shipping: place the order once that quote is in
   await expect(page.getByText("Shipping, inside Dhaka")).toBeVisible();

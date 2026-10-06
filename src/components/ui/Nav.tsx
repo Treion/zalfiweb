@@ -216,6 +216,7 @@ const shopLinks = (discovery: boolean) => [
   { href: "/fragrances", title: "All fragrances" },
   ...(discovery ? [{ href: "/discovery", title: "Discovery sets" }] : []),
   { href: "/find", title: "Find yours" },
+  { href: "/track", title: "Track your order" },
 ];
 
 /**

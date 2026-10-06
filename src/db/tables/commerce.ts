@@ -254,6 +254,8 @@ export const orders = pgTable(
     total: money("total"),
     couponId: integer("coupon_id").references(() => coupons.id, { onDelete: "set null" }),
     couponCode: text("coupon_code"),
+    /** A gift: the note for the card (empty when there's no message). Null: not a gift. */
+    giftMessage: text("gift_message"),
 
     paymentMethod: paymentMethod("payment_method").notNull(),
     paymentStatus: paymentStatus("payment_status").notNull().default("unpaid"),
@@ -442,4 +444,27 @@ export const webhookEvents = pgTable(
     receivedAt: ts("received_at").notNull().defaultNow(),
   },
   (t) => [uniqueIndex("webhook_events_unique_idx").on(t.provider, t.eventId)],
+);
+
+/**
+ * "Notify me": a phone waiting for a sold-out size (or discovery set) to come back. One SMS when
+ * stock returns, then it's marked notified; one open request per phone per size.
+ */
+export const restockRequests = pgTable(
+  "restock_requests",
+  {
+    id: serial("id").primaryKey(),
+    variantId: integer("variant_id")
+      .notNull()
+      .references(() => variants.id, { onDelete: "cascade" }),
+    phone: text("phone").notNull(),
+    createdAt: ts("created_at").notNull().defaultNow(),
+    notifiedAt: ts("notified_at"),
+  },
+  (t) => [
+    uniqueIndex("restock_requests_open_idx")
+      .on(t.variantId, t.phone)
+      .where(sql`${t.notifiedAt} is null`),
+    index("restock_requests_variant_idx").on(t.variantId),
+  ],
 );

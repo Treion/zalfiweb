@@ -13,6 +13,7 @@ import { audit, type Actor } from "@/server/audit";
 import { poolDb, withTx, type Executor } from "@/server/db/pool";
 import { getSettings } from "@/server/settings";
 import { revalidateStorefront } from "./products";
+import { waitingByVariant } from "./restock";
 import { ADJUST_REASONS, type stockAdjustSchema } from "./schema";
 import {
   adjustStock,
@@ -43,6 +44,8 @@ export type InventoryRow = {
   ownThreshold: number | null;
   value: number;
   level: StockLevel;
+  /** Phones waiting for a "back in stock" text */
+  waiting: number;
 };
 
 /** The fragrance or discovery set a variant belongs to (variants join both, one matches) */
@@ -80,10 +83,11 @@ export async function listInventory(exec: Executor = poolDb()): Promise<Inventor
       ),
     getSettings("inventory", exec),
   ]);
-  const reserved = await reservedBy(
-    exec,
-    rows.map((r) => r.variantId),
-  );
+  const ids = rows.map((r) => r.variantId);
+  const [reserved, waiting] = await Promise.all([
+    reservedBy(exec, ids),
+    waitingByVariant(ids, exec),
+  ]);
   return rows.map((r) => {
     const res = reserved.get(r.variantId) ?? 0;
     const available = availableOf(r.stock, res);
@@ -94,6 +98,7 @@ export async function listInventory(exec: Executor = poolDb()): Promise<Inventor
       available,
       threshold,
       value: r.stock * r.pricePoisha,
+      waiting: waiting.get(r.variantId) ?? 0,
       level: r.active ? stockLevel(available, threshold) : "ok",
     };
   });

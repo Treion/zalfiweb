@@ -107,7 +107,9 @@ export function NewNoteDialog({
               placeholder="A halved bergamot with its leaves"
               onChange={(e) => setAlt(e.target.value)}
             />
-            <p className="text-muted-foreground text-xs">Read aloud to people who can&rsquo;t see it.</p>
+            <p className="text-muted-foreground text-xs">
+              Read aloud to people who can&rsquo;t see it.
+            </p>
           </div>
         </div>
         <DialogFooter>

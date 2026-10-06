@@ -34,6 +34,12 @@ export function registerFonts() {
     fonts: [
       { src: path.join(fonts, "NotoSansBengali-Regular.woff"), fontWeight: 400 },
       { src: path.join(fonts, "NotoSansBengali-SemiBold.woff"), fontWeight: 600 },
+      // Bangla has no italic: inside italic serif text (a gift note) it stays upright
+      {
+        src: path.join(fonts, "NotoSansBengali-Regular.woff"),
+        fontWeight: 400,
+        fontStyle: "italic",
+      },
     ],
   });
   Font.register({
@@ -113,6 +119,12 @@ export function InvoiceDocument({ data }: { data: InvoiceData }) {
             <Text style={s.eyebrow}>Payment</Text>
             <Text>{data.payment.method}</Text>
             <Text style={s.muted}>{data.payment.status}</Text>
+            {data.giftMessage ? (
+              <>
+                <Text style={[s.eyebrow, { marginTop: 8 }]}>Gift</Text>
+                <Text>Note card included</Text>
+              </>
+            ) : null}
           </View>
           <View style={s.col}>
             <Text style={s.eyebrow}>From</Text>

@@ -24,7 +24,8 @@ import {
 export { alphaSms, bulkSmsBd, mimSms, sslWireless, type SmsGateway, type SmsResult };
 
 /**
- * Sending SMS, behind one interface. ZALFI sends one kind: the checkout's verification code.
+ * Sending SMS, behind one interface. ZALFI sends two kinds: the checkout's verification code, and
+ * "it's back" to shoppers who asked to be told (catalog/restock.ts).
  *  - dev (default): prints the message (code included) to the console and .data/sms.log
  *  - BulkSMSBD, SSL Wireless, Alpha SMS, MiMSMS (gateways.ts): set up and switched on in Admin →
  *    Integrations. With several on, they are tried in the owner's order (integrations.smsOrder):

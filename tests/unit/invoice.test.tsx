@@ -36,6 +36,7 @@ const data: InvoiceData = {
   ],
   payment: { method: "Cash on delivery", status: "Pay on delivery" },
   trackingUrl: null,
+  giftMessage: null,
   footerNote: "Thank you for choosing ZALFI.",
 };
 
@@ -57,6 +58,14 @@ describe("invoice", () => {
       expect(r.html).toContain(s);
     expect(r.text).toContain("৳13,480");
     if (preview) writeFileSync(path.join(preview, "receipt.html"), r.html);
+  });
+
+  it("says the note is in the box when the order is a gift", async () => {
+    const plain = await renderReceipt(data);
+    expect(plain.html).not.toContain("A gift");
+    const r = await renderReceipt({ ...data, giftMessage: "Happy birthday, Apu.\nWear it often." });
+    expect(r.html).toContain("A gift");
+    expect(r.html).toContain("Happy birthday, Apu.");
   });
 
   it("renders the PDF invoice", async () => {

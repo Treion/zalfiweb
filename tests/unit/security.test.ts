@@ -83,6 +83,8 @@ describe("the security checklist, in the code", () => {
       "app/api/checkout/quote/route.ts",
       "app/api/payments/start/route.ts",
       "app/api/payments/manual/route.ts",
+      "app/api/track/route.ts",
+      "app/api/restock/route.ts",
     ];
     for (const f of limited) expect(routes.find((r) => r.f === f)?.src, f).toMatch(/await hit\(/);
     // The phone code: per phone and per IP (send), per IP and per code (verify)
@@ -105,6 +107,7 @@ describe("the security checklist, in the code", () => {
       /^app\/api\/payments\/(start|manual)\/route\.ts$/,
       /^app\/api\/payments\/mock\//,
       /^app\/api\/stock\/route\.ts$/, // public stock counts only
+      /^app\/api\/(track|restock)\/route\.ts$/, // order lookup by number + phone; "Notify me"
       /^app\/media\/\[\.\.\.path\]\/route\.ts$/, // uploaded photos, by hashed key
     ];
     for (const r of routes)
@@ -122,6 +125,8 @@ describe("the security checklist, in the code", () => {
       "app/api/checkout/quote/route.ts",
       "app/api/payments/start/route.ts",
       "app/api/payments/manual/route.ts",
+      "app/api/track/route.ts",
+      "app/api/restock/route.ts",
     ]) {
       const src = routes.find((r) => r.f === f)!.src;
       // A shared strict schema from src/lib/checkout.ts, read through readBody(req, schema)

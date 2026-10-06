@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeftIcon } from "lucide-react";
+import { ArrowLeftIcon, GiftIcon, PrinterIcon } from "lucide-react";
+import { Button } from "@/components/admin/ui/button";
 import { PageHeader } from "@/components/admin/shell/PageHeader";
 import { PaymentBadge, StatusBadge } from "@/components/admin/orders/badges";
 import {
@@ -227,6 +228,28 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
         </div>
 
         <div className="flex flex-col gap-6">
+          {o.giftMessage && (
+            <Card className="border-foreground/40">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <GiftIcon className="size-4" /> A gift
+                </CardTitle>
+                <CardDescription>
+                  Print the note and put it in the box. The label says so too.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
+                <p className="font-serif text-lg leading-snug whitespace-pre-line italic">
+                  {o.giftMessage}
+                </p>
+                <Button variant="outline" size="sm" className="self-start" asChild>
+                  <a href={`/api/admin/orders/${o.id}/gift-card`} target="_blank" rel="noreferrer">
+                    <PrinterIcon /> Print gift card
+                  </a>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
           <Card>
             <CardHeader>
               <CardTitle>Customer</CardTitle>

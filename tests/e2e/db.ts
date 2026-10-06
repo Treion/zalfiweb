@@ -69,10 +69,14 @@ export async function stockOf(sku: string = E2E.sku) {
 
 export async function orderByNumber(number: string) {
   return withDb((db) =>
-    one<{ id: number; status: string; payment_status: string; total: number }>(
-      db,
-      `select id, status, payment_status, total from orders where number = $1`,
-      [number],
-    ),
+    one<{
+      id: number;
+      status: string;
+      payment_status: string;
+      total: number;
+      gift_message: string | null;
+    }>(db, `select id, status, payment_status, total, gift_message from orders where number = $1`, [
+      number,
+    ]),
   );
 }

@@ -37,6 +37,8 @@ export type LabelData = {
   zone: string;
   items: string;
   bottles: number;
+  /** A gift: the note card goes in the box */
+  gift: boolean;
   from: { phone: string; address: string };
 };
 
@@ -76,6 +78,7 @@ export async function loadLabels(orderIds: number[]): Promise<LabelData[]> {
         zone: o.zone === "inside_dhaka" ? "Inside Dhaka" : "Outside Dhaka",
         items: mine.map((i) => (i.qty > 1 ? `${i.name} ×${i.qty}` : i.name)).join(", "),
         bottles: mine.reduce((n, i) => n + i.qty, 0),
+        gift: !!o.giftMessage,
         from: { phone: store.contactPhone, address: store.address },
       },
     ];
@@ -133,6 +136,23 @@ function Label({ d }: { d: LabelData }) {
         <View>
           <Text style={s.eyebrow}>Order</Text>
           <Text style={{ fontFamily: DISPLAY, fontSize: 20, lineHeight: 1.15 }}>{d.number}</Text>
+          {d.gift ? (
+            <Text
+              style={{
+                alignSelf: "flex-start",
+                borderWidth: 0.8,
+                borderColor: INK,
+                paddingHorizontal: 5,
+                paddingTop: 1.5,
+                marginTop: 3,
+                fontSize: 7.5,
+                fontWeight: 600,
+                letterSpacing: 1.4,
+              }}
+            >
+              GIFT · NOTE CARD INSIDE
+            </Text>
+          ) : null}
         </View>
         <View style={{ alignItems: "flex-end" }}>
           <Text style={s.eyebrow}>{d.cod ? "Collect in cash" : "Paid online"}</Text>

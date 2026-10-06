@@ -152,6 +152,7 @@ export async function placeOrder(
           couponId,
           couponCode: couponId ? input.coupon!.toUpperCase() : null,
           paymentMethod: input.paymentMethod,
+          giftMessage: input.giftMessage ?? null,
           status: cod ? "confirmed" : "pending_payment",
           confirmedAt: cod ? now : null,
           expiresAt,

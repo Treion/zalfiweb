@@ -22,6 +22,7 @@ const columns = (
       ...(discovery ? [{ href: "/discovery", label: "Discovery sets" }] : []),
       { href: "/find", label: "Find your world" },
       { href: "/checkout", label: "Your bag" },
+      { href: "/track", label: "Track your order" },
     ],
   },
   { title: "Help", links: pages("help") },
