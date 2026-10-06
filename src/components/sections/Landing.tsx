@@ -1,12 +1,15 @@
+import Link from "next/link";
 import { LOGO_PARTS, LOGO_VIEWBOX } from "@/components/brand/logo-paths";
+import { HomeLink } from "./HomeLink";
 
 const EMBLEM = ["cap", "body"];
 
 /**
- * The landing: the ZALFI emblem and wordmark, alone in the dark. On load the emblem assembles and
- * the letters rise into place (time-based, once; see the experience timeline), then everything is
- * still. Scrolling lets the logo sink back while the six bottles rise into the line-up. The static
- * layout shows the same logo as a quiet first screen.
+ * The landing: the ZALFI emblem and wordmark in the dark, and three ways in: Shop, Explore the
+ * worlds (the scroll), Find yours. On load the emblem assembles and the letters rise into place, the
+ * choices fade in under them (time-based, once; see the experience timeline), then everything is
+ * still. Scrolling fades the choices first, then lets the logo sink back while the six bottles rise
+ * into the line-up. The static layout shows the same logo and choices as a quiet first screen.
  */
 export function Landing() {
   const emblem = LOGO_PARTS.filter((p) => EMBLEM.includes(p.id));
@@ -59,13 +62,49 @@ export function Landing() {
         </svg>
       </div>
 
+      {/* Above the line-up layer (a later sibling), and hidden with autoAlpha once scrolled away */}
+      <nav
+        aria-label="Start"
+        data-intro-choices
+        className="pointer-events-auto relative z-10 mt-10 flex flex-col items-center gap-6 md:mt-14"
+      >
+        <div className="flex w-full max-w-xs flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
+          <Link
+            href="/fragrances"
+            data-intro-choice
+            data-reveal
+            data-cursor="Shop"
+            className="eyebrow bg-bone text-noir hover:bg-bone/85 px-8 py-4 text-center transition-colors sm:min-w-44"
+          >
+            Shop
+          </Link>
+          <HomeLink
+            to="collection"
+            data-intro-choice
+            data-reveal
+            data-cursor="Explore"
+            className="eyebrow border-bone/40 hover:border-bone border px-8 py-4 text-center transition-colors sm:min-w-44"
+          >
+            Explore the worlds
+          </HomeLink>
+        </div>
+        <Link
+          href="/find"
+          data-intro-choice
+          data-reveal
+          className="eyebrow text-bone-dim hover:text-bone border-bone/30 border-b pb-1 transition-colors"
+        >
+          Not sure? Find yours
+        </Link>
+      </nav>
+
       <div
         data-intro-cue
         aria-hidden
         className="static:hidden absolute bottom-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2"
       >
         <span data-intro-meta data-reveal className="eyebrow text-bone-dim text-[0.6rem]">
-          Scroll
+          Or scroll
         </span>
         <span data-intro-meta data-reveal className="bg-bone/30 block h-8 w-px" />
       </div>

@@ -43,7 +43,7 @@ export function Lineup({ fragrances }: { fragrances: Fragrance[] }) {
     // Checked on each change: the stage may decide on the static layout after this mounts
     const io = new IntersectionObserver(
       ([e]) => {
-        if (isStatic()) setNavSection(e!.intersectionRatio >= 0.35 ? "fragrances" : null);
+        if (isStatic()) setNavSection(e!.intersectionRatio >= 0.35 ? "worlds" : null);
       },
       { threshold: [0, 0.35, 0.6] },
     );

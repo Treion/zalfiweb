@@ -47,6 +47,9 @@ export const EXP = {
   intro_: {
     /** The scroll cue goes first */
     cueOut: [0, 12],
+    /** The three choices under the logo (Shop, Explore, Find yours) fade out, well before the
+     *  line-up takes clicks */
+    choices: [0, 24],
     /** The letters drift a little apart as the logo sinks back */
     drift: [0, 80],
     /** ...and it fades into the dark */

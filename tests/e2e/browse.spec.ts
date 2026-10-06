@@ -10,12 +10,12 @@ import { signIn } from "./helpers";
 test.describe("on a phone", () => {
   test.use({ viewport: { width: 375, height: 812 } });
 
-  test("opens the menu, filters all fragrances and adds one to the bag", async ({ page }) => {
+  test("opens the menu, goes to the shop, filters and adds one to the bag", async ({ page }) => {
     await page.goto("/discovery");
     await page.getByRole("button", { name: "Menu" }).click();
     const menu = page.getByRole("region", { name: "Menu" });
-    await expect(menu.getByRole("link", { name: "All fragrances" })).toBeFocused();
-    await menu.getByRole("link", { name: "All fragrances" }).click();
+    await expect(menu.getByRole("link", { name: "Shop", exact: true })).toBeFocused();
+    await menu.getByRole("link", { name: "Shop", exact: true }).click();
     await page.waitForURL("**/fragrances");
     await expect(menu).toHaveCount(0);
 
@@ -67,4 +67,38 @@ test("shows the delivery times set in Settings on the product page", async ({ pa
   await expect(inside).toContainText("usually 2–3 days");
   // Left empty: the time isn't promised
   await expect(page.locator("dl div", { hasText: "Outside Dhaka" })).not.toContainText("usually");
+});
+
+test("the landing offers three ways in", async ({ page }) => {
+  await page.goto("/");
+  const start = page.getByRole("navigation", { name: "Start" });
+  await expect(start.getByRole("link", { name: "Shop" })).toBeVisible();
+  await expect(start.getByRole("link", { name: "Explore the worlds" })).toBeVisible();
+  await expect(start.getByRole("link", { name: /Find yours/ })).toHaveAttribute("href", "/find");
+  await start.getByRole("link", { name: "Shop" }).click();
+  await page.waitForURL("**/fragrances");
+  await expect(page.getByRole("link", { name: "Shop", exact: true }).first()).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+});
+
+test("search finds a note and adds the fragrance in one tap", async ({ page }) => {
+  await page.goto("/discovery");
+  await page.keyboard.press("/");
+  const dialog = page.getByRole("dialog", { name: "Search" });
+  await expect(dialog.getByRole("searchbox")).toBeFocused();
+  await dialog.getByRole("searchbox").fill("oud");
+  await expect(dialog.getByRole("link", { name: /^Oudor/ })).toBeVisible();
+  await dialog.getByRole("button", { name: "Add Oudor to bag" }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByRole("dialog", { name: /Your bag/ }).getByText("Oudor")).toBeVisible();
+
+  // Nothing found says so, and Esc closes
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Search" }).click();
+  await page.getByRole("searchbox").fill("zzzz");
+  await expect(page.getByText(/Nothing for “zzzz”/)).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "Search" })).toHaveCount(0);
 });

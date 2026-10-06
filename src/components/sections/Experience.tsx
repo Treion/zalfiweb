@@ -133,6 +133,12 @@ export function Experience({ fragrances, noteAvail }: Props) {
           "<0.3",
         )
         .fromTo(
+          q("[data-intro-choice]"),
+          { opacity: 0, y: 8 },
+          { opacity: 1, y: 0, duration: 1, stagger: 0.08 },
+          "<0.45",
+        )
+        .fromTo(
           q("[data-intro-meta]"),
           { opacity: 0, y: 10 },
           { opacity: 1, y: 0, duration: 1.4, stagger: 0.12 },
@@ -173,7 +179,7 @@ export function Experience({ fragrances, noteAvail }: Props) {
             // Scrolling away from the line-up takes its hover world with it
             if (roomOpen() && !open) closeRoom();
             // The nav outlines "Fragrances" while the line-up is open (a no-op unless it changes)
-            setNavSection(open ? "fragrances" : null);
+            setNavSection(open ? "worlds" : null);
           },
         });
         tl.fromTo(stageState, { s: 0 }, { s: total, duration: total }, 0);
@@ -184,6 +190,12 @@ export function Experience({ fragrances, noteAvail }: Props) {
         // and the small wordmark in the nav takes over
         const I = EXP.intro_;
         tl.to(q("[data-intro-cue]"), { opacity: 0, duration: span(I.cueOut) }, I.cueOut[0] * k);
+        // autoAlpha: once faded, the choices can't be clicked or tabbed to
+        tl.to(
+          q("[data-intro-choices]"),
+          { autoAlpha: 0, duration: span(I.choices) },
+          I.choices[0] * k,
+        );
         tl.to(
           q("[data-logo-letter]"),
           { x: (i: number) => (i - 2) * 30, duration: span(I.drift), ease: EASE.glide },

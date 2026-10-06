@@ -285,6 +285,9 @@ html.stage-ready .chapter-name {
   html.static-experience [data-intro] {
     animation: logo-arrive 1.6s var(--ease-cinema) 0.2s both;
   }
+  html.static-experience [data-intro-choices] {
+    animation: logo-arrive 1.4s var(--ease-cinema) 0.8s both;
+  }
   @supports (animation-timeline: view()) {
     html.static-experience [data-static-bottle],
     html.static-experience [data-lineup-in] {

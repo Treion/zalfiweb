@@ -10,6 +10,7 @@ import { CartDrawer } from "@/components/cart/CartDrawer";
 import { Nav } from "@/components/ui/Nav";
 import { Footer } from "@/components/sections/Footer";
 import { getDiscoverySets, getFragrances } from "@/db/queries";
+import { buildSearchIndex } from "@/lib/shop-search";
 import { getShopTerms } from "@/server/checkout/terms";
 import "./globals.css";
 import { countWord, listNames } from "@/lib/words";
@@ -57,6 +58,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     ...sets.flatMap((s) => (s.variant ? [[s.variant.sku, s.variant.pricePoisha] as const] : [])),
   ]);
   const discovery = sets.length > 0;
+  const searchIndex = buildSearchIndex(fragrances, sets);
   const stageFragrances = fragrances.map(({ slug, name, palette, capFinish, bottle }) => ({
     slug,
     name,
@@ -76,7 +78,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <SkipLink />
         <SmoothScroll>
           <CartProvider catalogue={catalogue}>
-            <Nav discovery={discovery} />
+            <Nav discovery={discovery} searchIndex={searchIndex} />
             {children}
             <Footer fragrances={fragrances} discovery={discovery} />
             <CartDrawer worldCount={fragrances.length} discovery={discovery} terms={terms} />
