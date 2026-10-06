@@ -521,6 +521,41 @@ function InventoryForm({ v, canEdit }: { v: Settings<"inventory">; canEdit: bool
   );
 }
 
+function ReviewsForm({ v, canEdit }: { v: Settings<"reviews">; canEdit: boolean }) {
+  const s = useSection(
+    "reviews",
+    (x) => x,
+    (f) => f,
+    v,
+  );
+  return (
+    <SectionCard
+      title="Reviews"
+      description="Only buyers of a delivered order can review it, and nothing shows until it's approved in Reviews."
+      canEdit={canEdit}
+      {...s}
+      dirty={s.form.formState.isDirty}
+    >
+      <div className="flex flex-col gap-3 md:col-span-2">
+        <SwitchRow
+          form={s.form as never}
+          name="show"
+          label="Show reviews on the shop"
+          hint="The average and the approved reviews, on each fragrance's page. Off hides them all."
+          disabled={!canEdit}
+        />
+        <SwitchRow
+          form={s.form as never}
+          name="askAfterDelivery"
+          label="Ask for a review after delivery"
+          hint="One email when an order is delivered, with the link to review it."
+          disabled={!canEdit}
+        />
+      </div>
+    </SectionCard>
+  );
+}
+
 function PermissionsForm({ v }: { v: Settings<"permissions"> }) {
   const s = useSection(
     "permissions",
@@ -594,6 +629,7 @@ export function SettingsTabs({
         <TabsTrigger value="shipping">Shipping</TabsTrigger>
         <TabsTrigger value="payments">Payments</TabsTrigger>
         <TabsTrigger value="inventory">Inventory</TabsTrigger>
+        <TabsTrigger value="reviews">Reviews</TabsTrigger>
         {isOwner && <TabsTrigger value="permissions">Permissions</TabsTrigger>}
       </TabsList>
       <TabsContent value="store">
@@ -612,6 +648,9 @@ export function SettingsTabs({
       </TabsContent>
       <TabsContent value="inventory">
         <InventoryForm v={settings.inventory} canEdit={canEdit} />
+      </TabsContent>
+      <TabsContent value="reviews">
+        <ReviewsForm v={settings.reviews} canEdit={canEdit} />
       </TabsContent>
       {isOwner && (
         <TabsContent value="permissions">

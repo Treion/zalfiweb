@@ -2,6 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import clsx from "clsx";
 import type { DiscoverySet } from "@/lib/discovery";
+import type { ReviewSummary } from "@/lib/reviews";
+import { RatingLine, Reviews } from "@/components/product/Reviews";
 import { sizeLabel } from "@/lib/size";
 import { Rise } from "./Rise";
 import { SetBuy } from "./SetBuy";
@@ -14,10 +16,13 @@ export function SetSpread({
   set: s,
   flip,
   preload,
+  reviews,
 }: {
   set: DiscoverySet;
   flip: boolean;
   preload: boolean;
+  /** Its approved reviews, if it has any */
+  reviews?: ReviewSummary | null;
 }) {
   const label = s.variant ? sizeLabel(s.variant.sizeMl, s.variant.pieces) : null;
   return (
@@ -64,6 +69,7 @@ export function SetSpread({
           {s.name}
         </h2>
         <p className="mt-6 max-w-sm text-lg leading-snug">{s.tagline}</p>
+        {reviews && <RatingLine summary={reviews} href={`#${s.slug}-reviews`} className="mt-4" />}
 
         <h3 className="eyebrow text-smoke mt-12">Inside</h3>
         <ul className="border-noir/15 mt-4 max-w-md border-t">
@@ -100,6 +106,15 @@ export function SetSpread({
         </ul>
 
         <SetBuy set={s} className="mt-10" />
+        {reviews && (
+          <Reviews
+            summary={reviews}
+            name={`the ${s.name}`}
+            id={`${s.slug}-reviews`}
+            limit={3}
+            className="mt-16 max-w-md"
+          />
+        )}
       </div>
     </section>
   );

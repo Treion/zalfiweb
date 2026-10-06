@@ -4,6 +4,7 @@ import {
   BanknoteIcon,
   CircleSlashIcon,
   ClockIcon,
+  MessageSquareQuoteIcon,
   PackageXIcon,
   PlugZapIcon,
   SmartphoneIcon,
@@ -49,6 +50,7 @@ const ATTENTION: Record<Attention["kind"], { label: string; icon: typeof ClockIc
   delivery_failed: { label: "Delivery failed", icon: AlertTriangleIcon },
   return_requested: { label: "Return asked", icon: Undo2Icon },
   out_of_stock: { label: "Sold out", icon: PackageXIcon },
+  reviews: { label: "To read", icon: MessageSquareQuoteIcon },
 };
 
 function greeting(now: Date) {

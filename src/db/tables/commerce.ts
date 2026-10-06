@@ -10,6 +10,7 @@ import {
   pgSequence,
   pgTable,
   serial,
+  smallint,
   text,
   timestamp,
   uniqueIndex,
@@ -67,6 +68,7 @@ export const paymentRecordStatus = pgEnum("payment_record_status", [
   "cancelled",
 ]);
 export const refundStatus = pgEnum("refund_status", ["pending", "completed", "failed"]);
+export const reviewStatus = pgEnum("review_status", ["pending", "approved", "rejected"]);
 
 /* ---------------------------------------------------------------------------------------------- */
 /* Stock                                                                                           */
@@ -276,6 +278,8 @@ export const orders = pgTable(
     returnRequestedAt: ts("return_requested_at"),
     returnedAt: ts("returned_at"),
     receiptSentAt: ts("receipt_sent_at"),
+    /** When the "delivered, how is it?" email asked for a review (once per order) */
+    reviewAskedAt: ts("review_asked_at"),
     createdAt: ts("created_at").notNull().defaultNow(),
     updatedAt: ts("updated_at").notNull().defaultNow(),
   },
@@ -466,5 +470,41 @@ export const restockRequests = pgTable(
       .on(t.variantId, t.phone)
       .where(sql`${t.notifiedAt} is null`),
     index("restock_requests_variant_idx").on(t.variantId),
+  ],
+);
+
+/**
+ * Reviews from verified buyers: one per order line, written from the order's own page once it's
+ * delivered. Nothing shows on the shop until the team approves it; the house may reply.
+ */
+export const reviews = pgTable(
+  "reviews",
+  {
+    id: serial("id").primaryKey(),
+    orderId: integer("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    orderItemId: integer("order_item_id")
+      .notNull()
+      .references(() => orderItems.id, { onDelete: "cascade" }),
+    fragranceId: integer("fragrance_id").references(() => fragrances.id, { onDelete: "cascade" }),
+    setId: integer("set_id").references(() => discoverySets.id, { onDelete: "cascade" }),
+    rating: smallint("rating").notNull(),
+    body: text("body").notNull().default(""),
+    /** As the customer chose to sign it ("Nusrat J.") */
+    displayName: text("display_name").notNull(),
+    status: reviewStatus("status").notNull().default("pending"),
+    reply: text("reply"),
+    repliedAt: ts("replied_at"),
+    moderatedBy: text("moderated_by").references(() => adminUsers.id, { onDelete: "set null" }),
+    moderatedAt: ts("moderated_at"),
+    createdAt: ts("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("reviews_order_item_idx").on(t.orderItemId),
+    index("reviews_fragrance_idx").on(t.fragranceId, t.status),
+    index("reviews_set_idx").on(t.setId, t.status),
+    index("reviews_status_idx").on(t.status, t.createdAt),
+    check("reviews_rating_range", sql`${t.rating} between 1 and 5`),
   ],
 );

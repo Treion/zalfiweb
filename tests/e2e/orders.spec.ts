@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { E2E, orderByNumber, stockOf } from "./db";
-import { checkout, openOrder, orderNumber, receiptFor, signIn } from "./helpers";
+import { checkout, openOrder, orderNumber, receiptFor, shipAndDeliver, signIn } from "./helpers";
 
 /**
  * An order's whole life, in the browser, with the test gateway and the test courier: the customer
@@ -16,20 +16,6 @@ async function admin(page: Page) {
   const a = await ctx.newPage();
   await signIn(a, E2E.owner);
   return a;
-}
-
-/** Packs the order, sends it with the test courier, and plays the courier up to delivered */
-async function shipAndDeliver(a: Page, number: string) {
-  await openOrder(a, number);
-  await a.getByRole("button", { name: "Mark packed" }).click();
-  await expect(a.getByText(`${number}: packed`, { exact: true })).toBeVisible();
-  await a.getByRole("button", { name: "Send to courier" }).first().click();
-  await expect(a.getByRole("dialog").getByText("Test courier")).toBeVisible();
-  await a.getByRole("dialog").getByRole("button", { name: /^Send/ }).click();
-  await expect(a.getByText(/Sent: consignment/)).toBeVisible();
-  await a.getByRole("button", { name: /Courier update/ }).click();
-  await a.getByRole("menuitem", { name: "Delivered" }).click();
-  await expect(a.getByText("Courier: delivered", { exact: true })).toBeVisible();
 }
 
 test("pays online, gets the e-receipt, and is packed, sent and delivered", async ({ page }) => {

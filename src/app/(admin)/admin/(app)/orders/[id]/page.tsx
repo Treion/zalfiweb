@@ -37,6 +37,7 @@ const EVENT_LABELS: Record<string, string> = {
   refund: "Refund",
   attention: "Needs attention",
   receipt: "Receipt",
+  review_ask: "Review",
 };
 
 const ZONE = { inside_dhaka: "Inside Dhaka", outside_dhaka: "Outside Dhaka" } as const;

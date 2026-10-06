@@ -99,6 +99,20 @@ export async function openOrder(page: Page, number: string) {
   await page.waitForURL(/\/admin\/orders\/\d+/);
 }
 
+/** Packs the order, sends it with the test courier, and plays the courier up to delivered */
+export async function shipAndDeliver(a: Page, number: string) {
+  await openOrder(a, number);
+  await a.getByRole("button", { name: "Mark packed" }).click();
+  await expect(a.getByText(`${number}: packed`, { exact: true })).toBeVisible();
+  await a.getByRole("button", { name: "Send to courier" }).first().click();
+  await expect(a.getByRole("dialog").getByText("Test courier")).toBeVisible();
+  await a.getByRole("dialog").getByRole("button", { name: /^Send/ }).click();
+  await expect(a.getByText(/Sent: consignment/)).toBeVisible();
+  await a.getByRole("button", { name: /Courier update/ }).click();
+  await a.getByRole("menuitem", { name: "Delivered" }).click();
+  await expect(a.getByText("Courier: delivered", { exact: true })).toBeVisible();
+}
+
 /** The order's status badge, next to its number at the top of the order page */
 export const statusOf = (page: Page) => page.locator("main [data-slot=badge]").first();
 

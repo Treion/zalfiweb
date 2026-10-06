@@ -5,6 +5,7 @@ import { Topbar } from "@/components/admin/shell/Topbar";
 import { requireAdmin } from "@/server/auth/session";
 import { lowStockCount } from "@/server/catalog/inventory";
 import { ordersToPackCount } from "@/server/orders/admin-query";
+import { pendingReviews } from "@/server/reviews";
 
 /** The signed-in admin: sidebar, top bar and the page. Every page also checks its own permission. */
 export default async function AdminAppLayout({ children }: { children: React.ReactNode }) {
@@ -14,12 +15,18 @@ export default async function AdminAppLayout({ children }: { children: React.Rea
     .map((i) => i.href);
   const collapsed = (await cookies()).get(SIDEBAR_COOKIE)?.value === "1";
   const badges: Record<string, number> = {};
-  const [low, toPack] = await Promise.all([
+  const [low, toPack, toRead] = await Promise.all([
     admin.can("inventory.manage") ? lowStockCount().catch(() => 0) : 0,
     admin.can("orders.view") ? ordersToPackCount().catch(() => 0) : 0,
+    admin.can("products.manage")
+      ? pendingReviews()
+          .then((r) => r.count)
+          .catch(() => 0)
+      : 0,
   ]);
   if (low) badges["/admin/inventory"] = low;
   if (toPack) badges["/admin/orders"] = toPack;
+  if (toRead) badges["/admin/reviews"] = toRead;
   return (
     <div className="flex min-h-svh">
       <Sidebar allowed={allowed} badges={badges} initialCollapsed={collapsed} />

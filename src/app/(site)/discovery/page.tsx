@@ -5,6 +5,7 @@ import { SetSpread } from "@/components/discovery/SetSpread";
 import { DeliveryNote } from "@/components/product/DeliveryNote";
 import { getDiscoverySets } from "@/db/queries";
 import { getShopTerms } from "@/server/checkout/terms";
+import { getReviews } from "@/server/reviews/public";
 import { sizeLabel } from "@/lib/size";
 import { listNames } from "@/lib/words";
 
@@ -38,6 +39,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function DiscoveryPage() {
   const [sets, terms] = await Promise.all([getDiscoverySets(), getShopTerms()]);
   if (!sets.length) notFound();
+  const reviews = await Promise.all(sets.map((s) => getReviews("set", s.slug)));
   const site = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
   const v = sets[0]!.variant!;
 
@@ -92,7 +94,7 @@ export default async function DiscoveryPage() {
         />
       </header>
       {sets.map((s, i) => (
-        <SetSpread key={s.slug} set={s} flip={i % 2 === 1} preload={i === 0} />
+        <SetSpread key={s.slug} set={s} flip={i % 2 === 1} preload={i === 0} reviews={reviews[i]} />
       ))}
     </main>
   );

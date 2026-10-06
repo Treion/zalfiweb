@@ -10,6 +10,7 @@ import {
   sellStock,
 } from "@/server/catalog/stock";
 import { revalidateStorefront } from "@/server/catalog/products";
+import { inBackground } from "@/server/background";
 import { addEvent, type EventActor } from "./events";
 import {
   STATUS_LABELS,
@@ -44,7 +45,8 @@ export const offersRestock = (from: OrderStatus, to: OrderStatus) =>
  *  - cancelling an unpaid order releases its held stock; cancelling a confirmed or packed one puts
  *    its bottles back when `restock` is ticked
  *  - a return puts the bottles back when `restock` is ticked
- *  - delivering a cash-on-delivery order marks it paid (the courier collected the cash)
+ *  - delivering a cash-on-delivery order marks it paid (the courier collected the cash), and
+ *    delivering any order asks for a review by email afterwards (reviews/ask.ts)
  * Every move writes a timeline event; admin moves are also audit-logged.
  */
 export async function transitionOrder(
@@ -111,6 +113,11 @@ export async function transitionOrder(
       before: { status: o.status, paymentStatus: o.paymentStatus },
       after: { status: to, paymentStatus: updated!.paymentStatus, restock: !!opts.restock },
     });
+  // Delivered (not back from a declined return): one email asking for a review, once this commits
+  if (to === "delivered" && o.status !== "return_requested") {
+    const { askForReview } = await import("@/server/reviews/ask");
+    inBackground("review-ask", () => askForReview(orderId));
+  }
   return updated!;
 }
 

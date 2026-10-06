@@ -9,6 +9,8 @@ import { ProductPurchase } from "@/components/product/ProductPurchase";
 import { ScentProfile } from "@/components/product/ScentProfile";
 import { SimilarWorlds } from "@/components/product/SimilarWorlds";
 import { DeliveryNote } from "@/components/product/DeliveryNote";
+import { RatingLine, Reviews } from "@/components/product/Reviews";
+import { getReviews } from "@/server/reviews/public";
 import { getShopTerms } from "@/server/checkout/terms";
 import { StageAnchor } from "@/components/stage/StageAnchor";
 import { BOTTLE_MODELS } from "@/components/stage/model-manifest";
@@ -47,10 +49,11 @@ export async function generateMetadata({
 
 export default async function FragrancePage({ params }: PageProps<"/fragrances/[slug]">) {
   const { slug } = await params;
-  const [all, sets, terms] = await Promise.all([
+  const [all, sets, terms, reviews] = await Promise.all([
     getFragrances(),
     getDiscoverySets(),
     getShopTerms(),
+    getReviews("fragrance", slug),
   ]);
   const index = all.findIndex((x) => x.slug === slug);
   if (!all[index]) notFound();
@@ -76,6 +79,22 @@ export default async function FragrancePage({ params }: PageProps<"/fragrances/[
       availability: v.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
       url: new URL(`/fragrances/${f.slug}`, site).toString(),
     })),
+    ...(reviews && {
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: reviews.average,
+        reviewCount: reviews.count,
+        bestRating: 5,
+        worstRating: 1,
+      },
+      review: reviews.reviews.slice(0, 5).map((r) => ({
+        "@type": "Review",
+        reviewRating: { "@type": "Rating", ratingValue: r.rating, bestRating: 5 },
+        author: { "@type": "Person", name: r.name },
+        datePublished: r.date.slice(0, 10),
+        ...(r.body && { reviewBody: r.body }),
+      })),
+    }),
   };
 
   return (
@@ -137,6 +156,11 @@ export default async function FragrancePage({ params }: PageProps<"/fragrances/[
             Eau de parfum · {f.mood}
             {from ? ` · ${f.variants.length > 1 ? "from " : ""}${from.sizeMl} ml` : ""}
           </p>
+          {reviews && (
+            <div className="mt-4" {...enter(3)}>
+              <RatingLine summary={reviews} />
+            </div>
+          )}
 
           <div className="mt-12 max-w-md" {...enter(4)}>
             <ProductPurchase fragrance={f} />
@@ -181,6 +205,8 @@ export default async function FragrancePage({ params }: PageProps<"/fragrances/[
               ))}
             </section>
           )}
+
+          {reviews && <Reviews summary={reviews} name={f.name} className="mt-24" />}
 
           <div className="mt-16">
             <SimilarWorlds worlds={similarWorlds(f, all)} />

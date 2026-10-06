@@ -17,7 +17,7 @@ export default async function SettingsPage() {
         title="Settings"
         description={
           canEdit
-            ? "Store details, invoices, shipping, payments and stock. Changes apply at once."
+            ? "Store details, invoices, shipping, payments, stock and reviews. Changes apply at once."
             : "You can read these settings. Only the owner can change them."
         }
       />

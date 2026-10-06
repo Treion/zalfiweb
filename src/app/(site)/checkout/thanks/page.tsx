@@ -13,6 +13,11 @@ import { ManualPay } from "@/components/cart/ManualPay";
 import { latestManualPayment, manualWallets } from "@/server/payments/manual";
 import { orderTracking } from "@/server/shipping/tracking-query";
 import { sizeLabel } from "@/lib/size";
+import { formatDate } from "@/lib/time";
+import { signatureOf } from "@/lib/reviews";
+import { STATUS_LABELS } from "@/server/orders/state";
+import { orderReviews } from "@/server/reviews";
+import { ReviewForms } from "@/components/cart/ReviewForm";
 
 export const metadata: Metadata = {
   title: "Thank you",
@@ -27,10 +32,12 @@ export default async function ThanksPage({ searchParams }: PageProps<"/checkout/
   if (!found) notFound();
   const { order, items } = found;
   const manual = order.paymentMethod === "manual";
-  const [tracking, claim, wallets] = await Promise.all([
+  const delivered = order.status === "delivered";
+  const [tracking, claim, wallets, reviewLines] = await Promise.all([
     orderTracking(order.id),
     manual ? latestManualPayment(order.id) : null,
     manual ? manualWallets() : [],
+    delivered ? orderReviews(order.id) : [],
   ]);
   // bKash or Nagad: the transaction ID is with the team, or it wasn't found and can be sent again
   const checking = manual && claim?.status === "initiated";
@@ -79,6 +86,12 @@ export default async function ThanksPage({ searchParams }: PageProps<"/checkout/
                 <br />
                 <span className="display-italic">yours.</span>
               </>
+            ) : delivered ? (
+              <>
+                It&rsquo;s with you,
+                <br />
+                <span className="display-italic">{`${firstName}.`}</span>
+              </>
             ) : (
               <>
                 {`Thank you, ${firstName}.`}
@@ -96,9 +109,11 @@ export default async function ThanksPage({ searchParams }: PageProps<"/checkout/
                   ? expired && !checking
                     ? "This order waited too long, so the bottles went back on the shelf. Place it again from your bag."
                     : waitingLine
-                  : `Your receipt is on its way to ${order.customerEmail}. The courier will call ${formatPhone(order.customerPhone)} before delivery.`}
+                  : delivered
+                    ? `Delivered${order.deliveredAt ? ` on ${formatDate(order.deliveredAt)}` : ""}. Tell us how it wears: a few words help someone else choose.`
+                    : `Your receipt is on its way to ${order.customerEmail}. The courier will call ${formatPhone(order.customerPhone)} before delivery.`}
           </p>
-          {tracking?.url && !cancelled && (
+          {tracking?.url && !cancelled && !delivered && (
             <a
               href={tracking.url}
               target="_blank"
@@ -127,6 +142,23 @@ export default async function ThanksPage({ searchParams }: PageProps<"/checkout/
               Questions? WhatsApp us
             </a>
           </p>
+          {reviewLines.length > 0 && (
+            <section id="review" aria-labelledby="review-title" className="mt-20 scroll-mt-28">
+              <h2 id="review-title" className="display-italic text-4xl">
+                Review your fragrances
+              </h2>
+              <p className="text-smoke mt-3 max-w-sm text-sm leading-relaxed">
+                Only buyers can review. We read each one before it shows on the shop.
+              </p>
+              <div className="mt-8">
+                <ReviewForms
+                  token={o}
+                  lines={reviewLines}
+                  signature={signatureOf(order.customerName)}
+                />
+              </div>
+            </section>
+          )}
         </div>
 
         <section
@@ -190,6 +222,8 @@ export default async function ThanksPage({ searchParams }: PageProps<"/checkout/
                         partially_refunded: "Partly refunded",
                       }[order.paymentStatus as string] ?? "Awaiting payment")}
               </p>
+              <p className="eyebrow text-smoke mt-6">Status</p>
+              <p className="mt-3">{STATUS_LABELS[order.status]}</p>
               <p className="eyebrow text-smoke mt-6">Placed</p>
               <p className="mt-3">{formatDateTime(order.createdAt)}</p>
             </div>

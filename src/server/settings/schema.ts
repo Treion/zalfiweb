@@ -95,6 +95,13 @@ export const SETTINGS_SCHEMAS = {
   inventory: z.object({
     lowStockThreshold: z.number().int().min(0).max(10_000).default(5),
   }),
+  /** Reviews from verified buyers (Admin → Reviews approves each one before it shows) */
+  reviews: z.object({
+    /** Approved reviews and the average show on product pages */
+    show: z.boolean().default(true),
+    /** One email when an order is delivered, with the link to review it */
+    askAfterDelivery: z.boolean().default(true),
+  }),
   /** Owner-only switches that widen what managers may do (src/server/auth/permissions.ts) */
   permissions: z.object({
     managersCanRefund: z.boolean().default(DEFAULT_TOGGLES.managersCanRefund),

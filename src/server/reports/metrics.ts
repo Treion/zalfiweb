@@ -4,6 +4,7 @@ import { orderItems, orders, payments, shipments, stockMovements, variants } fro
 import { poolDb, type Executor } from "@/server/db/pool";
 import { getIntegrations } from "@/server/integrations";
 import { listInventory } from "@/server/catalog/inventory";
+import { pendingReviews } from "@/server/reviews";
 import { getSettings } from "@/server/settings";
 import { effectiveThreshold } from "@/server/catalog/stock";
 import type { OrderStatus } from "@/server/orders/state";
@@ -318,7 +319,8 @@ export type Attention = {
     | "payment_failed"
     | "delivery_failed"
     | "return_requested"
-    | "out_of_stock";
+    | "out_of_stock"
+    | "reviews";
   title: string;
   detail: string;
   href: string;
@@ -329,8 +331,8 @@ export type Attention = {
  * What someone should look at now: a payment gateway, courier or messaging service that is failing
  * (Admin → Integrations), bKash or Nagad payments waiting to be checked, unpaid orders about to
  * lapse (within the hour), online payments that failed in the last day on orders still waiting,
- * failed deliveries, return requests, and sizes on sale that are sold out. Oldest problems first
- * within each kind.
+ * failed deliveries, return requests, sizes on sale that are sold out, and reviews waiting to be
+ * read. Oldest problems first within each kind.
  */
 export async function attention(now: Date = new Date(), exec: Executor = poolDb()) {
   const soon = new Date(now.getTime() + 3600_000);
@@ -344,64 +346,66 @@ export async function attention(now: Date = new Date(), exec: Executor = poolDb(
     failedAt: orders.deliveryFailedAt,
     updatedAt: orders.updatedAt,
   };
-  const [failing, toCheck, expiring, failedPay, failedDelivery, returns, inv] = await Promise.all([
-    getIntegrations(exec).then((list) =>
-      list.filter((r) => r.enabled && r.lastCheck && !r.lastCheck.ok),
-    ),
-    exec
-      .select({ ...pick, payAt: payments.createdAt, wallet: payments.methodReported })
-      .from(payments)
-      .innerJoin(orders, eq(orders.id, payments.orderId))
-      .where(
-        and(
-          eq(payments.provider, "manual"),
-          eq(payments.status, "initiated"),
-          eq(orders.status, "pending_payment"),
-        ),
-      )
-      .orderBy(payments.createdAt)
-      .limit(50),
-    exec
-      .select(pick)
-      .from(orders)
-      .where(
-        and(
-          eq(orders.status, "pending_payment"),
-          sql`${orders.paymentStatus} <> 'paid'`,
-          gte(orders.expiresAt, now),
-          lt(orders.expiresAt, soon),
-        ),
-      )
-      .orderBy(orders.expiresAt)
-      .limit(20),
-    exec
-      .selectDistinctOn([orders.id], { ...pick, payAt: payments.updatedAt })
-      .from(payments)
-      .innerJoin(orders, eq(orders.id, payments.orderId))
-      .where(
-        and(
-          eq(payments.status, "failed"),
-          gte(payments.updatedAt, dayAgo),
-          eq(orders.status, "pending_payment"),
-          sql`${orders.paymentStatus} <> 'paid'`,
-        ),
-      )
-      .orderBy(orders.id, sql`${payments.updatedAt} desc`)
-      .limit(20),
-    exec
-      .select(pick)
-      .from(orders)
-      .where(eq(orders.status, "delivery_failed"))
-      .orderBy(orders.deliveryFailedAt)
-      .limit(20),
-    exec
-      .select(pick)
-      .from(orders)
-      .where(eq(orders.status, "return_requested"))
-      .orderBy(orders.updatedAt)
-      .limit(20),
-    listInventory(exec),
-  ]);
+  const [failing, toCheck, expiring, failedPay, failedDelivery, returns, inv, toRead] =
+    await Promise.all([
+      getIntegrations(exec).then((list) =>
+        list.filter((r) => r.enabled && r.lastCheck && !r.lastCheck.ok),
+      ),
+      exec
+        .select({ ...pick, payAt: payments.createdAt, wallet: payments.methodReported })
+        .from(payments)
+        .innerJoin(orders, eq(orders.id, payments.orderId))
+        .where(
+          and(
+            eq(payments.provider, "manual"),
+            eq(payments.status, "initiated"),
+            eq(orders.status, "pending_payment"),
+          ),
+        )
+        .orderBy(payments.createdAt)
+        .limit(50),
+      exec
+        .select(pick)
+        .from(orders)
+        .where(
+          and(
+            eq(orders.status, "pending_payment"),
+            sql`${orders.paymentStatus} <> 'paid'`,
+            gte(orders.expiresAt, now),
+            lt(orders.expiresAt, soon),
+          ),
+        )
+        .orderBy(orders.expiresAt)
+        .limit(20),
+      exec
+        .selectDistinctOn([orders.id], { ...pick, payAt: payments.updatedAt })
+        .from(payments)
+        .innerJoin(orders, eq(orders.id, payments.orderId))
+        .where(
+          and(
+            eq(payments.status, "failed"),
+            gte(payments.updatedAt, dayAgo),
+            eq(orders.status, "pending_payment"),
+            sql`${orders.paymentStatus} <> 'paid'`,
+          ),
+        )
+        .orderBy(orders.id, sql`${payments.updatedAt} desc`)
+        .limit(20),
+      exec
+        .select(pick)
+        .from(orders)
+        .where(eq(orders.status, "delivery_failed"))
+        .orderBy(orders.deliveryFailedAt)
+        .limit(20),
+      exec
+        .select(pick)
+        .from(orders)
+        .where(eq(orders.status, "return_requested"))
+        .orderBy(orders.updatedAt)
+        .limit(20),
+      listInventory(exec),
+      pendingReviews(exec),
+    ]);
   const mins = (d: Date) => Math.max(1, Math.round((d.getTime() - now.getTime()) / 60_000));
   const items: Attention[] = [
     ...failing.map((r) => ({
@@ -455,6 +459,17 @@ export async function attention(now: Date = new Date(), exec: Executor = poolDb(
         href: "/admin/inventory",
         at: null,
       })),
+    ...(toRead.count
+      ? [
+          {
+            kind: "reviews" as const,
+            title: "Reviews",
+            detail: `${toRead.count} waiting to be read`,
+            href: "/admin/reviews",
+            at: toRead.oldest,
+          },
+        ]
+      : []),
   ];
   return items;
 }

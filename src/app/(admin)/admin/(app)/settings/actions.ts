@@ -24,10 +24,10 @@ export async function saveSettingsAction(input: unknown) {
         }
         throw err;
       }
-      // Permissions and fees are read across the admin; fees, delivery times and payment methods
-      // are also shown on the shop
+      // Permissions and fees are read across the admin; fees, delivery times, payment methods and
+      // reviews are also shown on the shop
       revalidatePath("/admin", "layout");
-      if (d.key === "shipping" || d.key === "payments" || d.key === "store")
+      if (["shipping", "payments", "store", "reviews"].includes(d.key))
         await revalidateStorefront();
     },
   );

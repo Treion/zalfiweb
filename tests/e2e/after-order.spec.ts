@@ -1,10 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { E2E, orderByNumber } from "./db";
-import { checkout, openOrder, orderNumber, signIn } from "./helpers";
+import { checkout, openOrder, orderNumber, shipAndDeliver, signIn } from "./helpers";
 
 /**
  * After the order: a gift with its note (on the customer's page, the admin's order page and the
- * printable card), and finding an order again from /track.
+ * printable card), finding an order again from /track, and a review from a delivered order's page
+ * that reaches the shop once the team approves it.
  */
 const NOTE = "Happy birthday, Apu.\nWear it often.";
 
@@ -38,4 +39,48 @@ test("sends an order as a gift, and the team can print its note", async ({ page,
   expect(pdf.status()).toBe(200);
   expect(pdf.headers()["content-type"]).toBe("application/pdf");
   await ctx.close();
+});
+
+test("reviews a delivered order; the review shows once approved", async ({ page, browser }) => {
+  await checkout(page, "Cash on delivery");
+  const number = await orderNumber(page);
+  const orderPage = page.url();
+  // Not delivered yet: nothing to review
+  await expect(page.getByRole("heading", { name: "Review your fragrances" })).toHaveCount(0);
+
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const a = await ctx.newPage();
+  await signIn(a, E2E.owner);
+  await shipAndDeliver(a, number);
+
+  await page.goto(orderPage);
+  await expect(page.getByText("It’s with you,")).toBeVisible();
+  const section = page.locator("#review");
+  await expect(section.getByRole("heading", { name: "Review your fragrances" })).toBeVisible();
+  await section.getByRole("button", { name: "Send review" }).click();
+  await expect(section.getByRole("alert")).toHaveText("Choose a rating.");
+  await section.getByLabel(`4 out of 5 for ${E2E.name}`).check({ force: true });
+  await section.getByLabel("How does it wear?").fill("Soft at first, then warm all evening.");
+  await section.getByRole("button", { name: "Send review" }).click();
+  await expect(section.getByText("We read every review before it shows.")).toBeVisible();
+
+  // The team reads it, approves it and replies
+  await a.goto("/admin/reviews");
+  const card = a.locator("li", { hasText: "Soft at first, then warm all evening." });
+  await expect(card.getByText(number)).toBeVisible();
+  await card.getByRole("button", { name: "Reply" }).click();
+  await card.getByRole("textbox").fill("Thank you. Wear it well.");
+  await card.getByRole("button", { name: "Save reply" }).click();
+  await expect(card.getByText("Your reply")).toBeVisible();
+  await card.getByRole("button", { name: "Approve" }).click();
+  // Read: it leaves the "To read" list
+  await expect(card).toHaveCount(0);
+  await ctx.close();
+
+  await page.goto(`/fragrances/${E2E.slug}`);
+  const reviews = page.locator("#reviews");
+  await expect(reviews.getByText("Soft at first, then warm all evening.")).toBeVisible();
+  await expect(reviews.getByText("Thank you. Wear it well.")).toBeVisible();
+  const ld = await page.locator('script[type="application/ld+json"]').first().textContent();
+  expect(JSON.parse(ld!).aggregateRating).toMatchObject({ "@type": "AggregateRating" });
 });
