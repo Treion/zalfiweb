@@ -1,6 +1,5 @@
 import type { CSSProperties } from "react";
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BottleImage, bottleAspect } from "@/components/media/BottleImage";
@@ -10,7 +9,13 @@ import { ScentProfile } from "@/components/product/ScentProfile";
 import { SimilarWorlds } from "@/components/product/SimilarWorlds";
 import { DeliveryNote } from "@/components/product/DeliveryNote";
 import { RatingLine, Reviews } from "@/components/product/Reviews";
+import { Folds } from "@/components/product/Folds";
+import { ProductGallery } from "@/components/product/ProductGallery";
+import { RecentlyViewed } from "@/components/product/RecentlyViewed";
+import { VideoCard } from "@/components/content/VideoCard";
+import { getVideos } from "@/server/content/public";
 import { getReviews } from "@/server/reviews/public";
+import { viewedItems } from "@/lib/viewed";
 import { getShopTerms } from "@/server/checkout/terms";
 import { StageAnchor } from "@/components/stage/StageAnchor";
 import { BOTTLE_MODELS } from "@/components/stage/model-manifest";
@@ -18,7 +23,7 @@ import { SetHint } from "@/components/discovery/SetHint";
 import { getDiscoverySets, getFragrance, getFragrances } from "@/db/queries";
 import { availability, withNotePhotos } from "@/lib/assets";
 import { similarWorlds } from "@/lib/finder";
-import { NOTE_LAYERS, notesByLayer, worldVars } from "@/lib/fragrance";
+import { BADGE_LABELS, HOW_TO_WEAR, NOTE_LAYERS, notesByLayer, worldVars } from "@/lib/fragrance";
 
 export const revalidate = 300;
 
@@ -49,11 +54,12 @@ export async function generateMetadata({
 
 export default async function FragrancePage({ params }: PageProps<"/fragrances/[slug]">) {
   const { slug } = await params;
-  const [all, sets, terms, reviews] = await Promise.all([
+  const [all, sets, terms, reviews, videos] = await Promise.all([
     getFragrances(),
     getDiscoverySets(),
     getShopTerms(),
     getReviews("fragrance", slug),
+    getVideos(slug),
   ]);
   const index = all.findIndex((x) => x.slug === slug);
   if (!all[index]) notFound();
@@ -110,7 +116,11 @@ export default async function FragrancePage({ params }: PageProps<"/fragrances/[
       <div className="px-gutter grid grid-cols-12 gap-x-4">
         {/* The bottle, lit live by the stage (DOM photo until then, and for reduced motion) */}
         <div className="col-span-12 md:col-span-7">
-          <div className="flex h-[70svh] items-end justify-center pt-24 md:sticky md:top-0 md:h-svh md:items-center md:pt-0">
+          <ProductGallery
+            name={f.name}
+            bottleImage={f.bottleImage}
+            photos={f.images.map((i) => ({ url: i.url, alt: i.alt }))}
+          >
             <StageAnchor
               kind="product"
               slug={f.slug}
@@ -127,18 +137,23 @@ export default async function FragrancePage({ params }: PageProps<"/fragrances/[
                 />
               </div>
             </StageAnchor>
-          </div>
+          </ProductGallery>
         </div>
 
         <div className="col-span-12 pb-24 md:col-span-5 md:pt-40">
           <nav aria-label="Breadcrumb" className="eyebrow opacity-70" {...enter(0)}>
             <Link href="/fragrances" className="border-b border-current/40 pb-0.5">
-              All fragrances
+              Shop
             </Link>
-            <span className="mx-3">/</span>
-            <span aria-current="page" className="tabular-nums">
-              {String(index + 1).padStart(2, "0")}
+            <span className="mx-3" aria-hidden>
+              /
             </span>
+            <span aria-current="page">{f.name}</span>
+            {f.badge && (
+              <span className="ml-4 border border-current/50 px-2 py-0.5 opacity-100">
+                {BADGE_LABELS[f.badge]}
+              </span>
+            )}
           </nav>
           <h1
             className="font-display mt-8 text-[clamp(4rem,9vw,9.5rem)] leading-[0.85]"
@@ -170,6 +185,34 @@ export default async function FragrancePage({ params }: PageProps<"/fragrances/[
               whatsappText={`Hi ZALFI, a question about ${f.name}`}
             />
             <SetHint sets={sets} slug={f.slug} className="mt-6 opacity-80" />
+            <Folds
+              className="mt-10"
+              items={[
+                ...(f.story ? [{ title: `About ${f.name}`, body: <p>{f.story}</p> }] : []),
+                {
+                  title: "How to wear it",
+                  body: <p className="whitespace-pre-line">{f.howToWear || HOW_TO_WEAR}</p>,
+                },
+                {
+                  title: "Delivery and returns",
+                  body: (
+                    <ul className="space-y-2">
+                      {[
+                        ["/payment-policy", "Delivery and payment"],
+                        ["/refunds", "Refunds and returns"],
+                        ["/track", "Track your order"],
+                      ].map(([href, label]) => (
+                        <li key={href}>
+                          <Link href={href!} className="border-b border-current/40">
+                            {label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  ),
+                },
+              ]}
+            />
           </div>
 
           <div className="mt-20 max-w-md" {...enter(5)}>
@@ -180,33 +223,23 @@ export default async function FragrancePage({ params }: PageProps<"/fragrances/[
             <NotesPyramid fragrance={f} noteAvail={noteAvail} />
           </div>
 
-          {f.images.length > 0 && (
+          {reviews && <Reviews summary={reviews} name={f.name} className="mt-24" />}
+
+          {videos.length > 0 && (
             <section
-              aria-label={`${f.name}, in photographs`}
-              className="mt-24 grid grid-cols-2 gap-3 border-t border-current/15 pt-8"
-              {...enter(7)}
+              aria-labelledby="videos-title"
+              className="mt-24 border-t border-current/15 pt-8"
             >
-              {f.images.map((img, i) => (
-                <figure
-                  key={img.url}
-                  className={`relative overflow-hidden ${i === 0 && f.images.length % 2 === 1 ? "col-span-2" : ""}`}
-                  style={{
-                    aspectRatio: img.width && img.height ? `${img.width} / ${img.height}` : "4 / 5",
-                  }}
-                >
-                  <Image
-                    src={img.url}
-                    alt={img.alt}
-                    fill
-                    sizes="(min-width: 768px) 20vw, 50vw"
-                    className="object-cover"
-                  />
-                </figure>
-              ))}
+              <h2 id="videos-title" className="eyebrow opacity-70">
+                On YouTube
+              </h2>
+              <div className="mt-8 space-y-12">
+                {videos.slice(0, 3).map((v) => (
+                  <VideoCard key={v.id} video={v} />
+                ))}
+              </div>
             </section>
           )}
-
-          {reviews && <Reviews summary={reviews} name={f.name} className="mt-24" />}
 
           <div className="mt-16">
             <SimilarWorlds worlds={similarWorlds(f, all)} />
@@ -229,6 +262,8 @@ export default async function FragrancePage({ params }: PageProps<"/fragrances/[
               →
             </span>
           </Link>
+
+          <RecentlyViewed items={viewedItems(all)} current={f.slug} className="mt-16" />
         </div>
       </div>
     </main>

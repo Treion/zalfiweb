@@ -80,14 +80,22 @@ export function ImagesEditor({ fragranceId, images }: { fragranceId: number; ima
     setOrder(images);
   }
 
+  // One photo per request: a request may carry 5 MB, and a few large photos together would not fit
   function upload() {
-    const form = new FormData();
-    form.set("data", JSON.stringify({ id: fragranceId, alt: "" }));
-    for (const f of files) form.append("images", f);
     start(async () => {
-      const res = await addImagesAction(form);
-      if (!res.ok) return void toast.error(res.error);
-      toast.success(`${res.data.added} image${res.data.added > 1 ? "s" : ""} added`);
+      let added = 0;
+      for (const f of files) {
+        const form = new FormData();
+        form.set("data", JSON.stringify({ id: fragranceId, alt: "" }));
+        form.append("images", f);
+        const res = await addImagesAction(form);
+        if (!res.ok) {
+          toast.error(added ? `${res.error} (${added} added before it)` : res.error);
+          break;
+        }
+        added += res.data.added;
+      }
+      if (added) toast.success(`${added} photo${added > 1 ? "s" : ""} added`);
       setFiles([]);
       setPickKey((k) => k + 1);
     });

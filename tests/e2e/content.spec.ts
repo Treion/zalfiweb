@@ -122,3 +122,68 @@ test("banners and a video added in the admin appear on the shop", async ({ brows
   );
   await phone.close();
 });
+
+test("photos and a badge set in Products show on the product page", async ({ browser }) => {
+  const id = await withDb(
+    async (db) =>
+      (await db.query(`select id from fragrances where slug = $1`, [E2E.slug])).rows[0]
+        .id as number,
+  );
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const a = await ctx.newPage();
+  await signIn(a, E2E.owner);
+
+  // Two photos, chosen together (they go up one at a time)
+  await a.goto(`/admin/products/${id}?tab=images`);
+  await a
+    .locator('input[type="file"][name="images"]')
+    .setInputFiles([
+      await picture("model.jpg", 1200, 1500, "#d8cfc2"),
+      await picture("table.jpg", 1600, 1200, "#3a3226"),
+    ]);
+  await a.getByRole("button", { name: "Upload 2 photos" }).click();
+  await expect(a.getByText("2 photos added")).toBeVisible();
+
+  // A badge
+  await a.goto(`/admin/products/${id}`);
+  await a.getByLabel("Badge").click();
+  await a.getByRole("option", { name: "New" }).click();
+  // The test fragrance is made with order 9999, past what the form takes; it stays last at 990
+  await a.getByLabel("Order in the collection").fill("990");
+  await a.getByRole("button", { name: "Save" }).click();
+  await expect(a.getByText("Saved. The shop is updated.")).toBeVisible();
+  await ctx.close();
+
+  const shopCtx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await shopCtx.newPage();
+  await page.goto(`/fragrances/${E2E.slug}`);
+  await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toContainText("New");
+  const thumbs = page.getByRole("list", { name: `${E2E.name}, in photographs` }).first();
+  await expect(thumbs.getByRole("button")).toHaveCount(3);
+  await thumbs.getByRole("button", { name: /^Photo 1:/ }).click();
+  const enlarge = page.getByRole("button", { name: /^Enlarge:/ });
+  await expect(enlarge).toBeVisible();
+  await enlarge.click();
+  const viewer = page.getByRole("dialog", { name: "Photos" });
+  await expect(viewer).toContainText("1 / 2");
+  await page.keyboard.press("ArrowRight");
+  await expect(viewer).toContainText("2 / 2");
+  await page.keyboard.press("Escape");
+  await expect(viewer).toHaveCount(0);
+  // Back to the lit bottle
+  await thumbs.getByRole("button", { name: `The ${E2E.name} bottle` }).click();
+  await expect(enlarge).toHaveCount(0);
+
+  // The folds: "how to wear it" says the house's plain advice until the owner writes their own
+  await page.getByText("How to wear it").click();
+  await expect(page.getByText(/pulse points/)).toBeVisible();
+  await shopCtx.close();
+
+  if (!process.env.KEEP_CONTENT)
+    await withDb((db) =>
+      db.query(
+        `delete from fragrance_images where fragrance_id = $1; update fragrances set badge = null where id = $1`,
+        [id],
+      ),
+    );
+});
