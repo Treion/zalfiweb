@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
-import { CONTACT, MAPS_URL } from "@/lib/contact";
+import { CONTACT, MAPS_URL, whatsappUrl } from "@/lib/contact";
 
 /**
- * Facebook, Instagram, phone, email and address as a row of hairline marks, drawn here in the
+ * Facebook, Instagram, WhatsApp, phone, email and address as a row of hairline marks, drawn here in the
  * site's own thin line (no icon set). Each is a real link with an accessible name.
  */
 export function ContactIcons({ className }: { className?: string }) {
@@ -15,6 +15,10 @@ export function ContactIcons({ className }: { className?: string }) {
         <rect x="3.5" y="3.5" width="17" height="17" rx="4.5" />
         <circle cx="12" cy="12" r="4" />
         <circle cx="17.2" cy="6.8" r="0.6" fill="currentColor" />
+      </Item>
+      <Item href={whatsappUrl()} label={`WhatsApp ZALFI: ${CONTACT.phoneDisplay}`} external>
+        <path d="M4.4 19.6 5.5 15.8A8 8 0 1 1 8.4 18.6Z" />
+        <path d="M9.2 8.6c.2-.5.6-.5.9-.5h.4c.2 0 .4.1.5.4l.6 1.5c.1.2 0 .5-.1.6l-.5.6c.6 1.1 1.4 1.9 2.5 2.5l.6-.5c.2-.1.4-.2.6-.1l1.5.6c.3.1.4.3.4.5v.4c0 .3 0 .7-.5.9-.5.3-1.4.5-2.7-.1a8.4 8.4 0 0 1-4-4c-.6-1.3-.4-2.2-.1-2.8Z" />
       </Item>
       <Item href={`tel:${CONTACT.phone}`} label={`Call ZALFI: ${CONTACT.phoneDisplay}`}>
         <path d="M6.6 3.5h2.6l1.4 4.3-2 1.4a12 12 0 0 0 6.2 6.2l1.4-2 4.3 1.4v2.6c0 1-.8 1.8-1.8 1.8C10.5 19.2 4.8 13.5 4.8 5.3c0-1 .8-1.8 1.8-1.8Z" />

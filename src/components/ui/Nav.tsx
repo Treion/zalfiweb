@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Logo } from "@/components/brand/Logo";
 import { useCart } from "@/components/cart/cart-store";
 import { INFO_GROUP_LABELS, INFO_NAV, isInfoPath, type InfoGroup } from "@/content/info-nav";
+import { whatsappUrl } from "@/lib/contact";
 import { useHomeJump } from "@/components/sections/home-jump";
 import { useNavSection } from "./nav-section";
 
@@ -305,6 +306,15 @@ function InfoMenu({
                   </li>
                 ))}
               </ul>
+              <a
+                href={whatsappUrl()}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => onClose(false)}
+                className="eyebrow border-bone/40 mt-4 inline-block border-b pb-0.5"
+              >
+                WhatsApp us
+              </a>
             </div>
             {GROUPS.map((g) => (
               <div key={g}>

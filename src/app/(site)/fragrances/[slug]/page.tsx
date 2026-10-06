@@ -8,6 +8,8 @@ import { NotesPyramid } from "@/components/product/NotesPyramid";
 import { ProductPurchase } from "@/components/product/ProductPurchase";
 import { ScentProfile } from "@/components/product/ScentProfile";
 import { SimilarWorlds } from "@/components/product/SimilarWorlds";
+import { DeliveryNote } from "@/components/product/DeliveryNote";
+import { getShopTerms } from "@/server/checkout/terms";
 import { StageAnchor } from "@/components/stage/StageAnchor";
 import { BOTTLE_MODELS } from "@/components/stage/model-manifest";
 import { SetHint } from "@/components/discovery/SetHint";
@@ -45,7 +47,11 @@ export async function generateMetadata({
 
 export default async function FragrancePage({ params }: PageProps<"/fragrances/[slug]">) {
   const { slug } = await params;
-  const [all, sets] = await Promise.all([getFragrances(), getDiscoverySets()]);
+  const [all, sets, terms] = await Promise.all([
+    getFragrances(),
+    getDiscoverySets(),
+    getShopTerms(),
+  ]);
   const index = all.findIndex((x) => x.slug === slug);
   if (!all[index]) notFound();
   const f = withNotePhotos(all[index]);
@@ -134,6 +140,11 @@ export default async function FragrancePage({ params }: PageProps<"/fragrances/[
 
           <div className="mt-12 max-w-md" {...enter(4)}>
             <ProductPurchase fragrance={f} />
+            <DeliveryNote
+              terms={terms}
+              className="mt-8"
+              whatsappText={`Hi ZALFI, a question about ${f.name}`}
+            />
             <SetHint sets={sets} slug={f.slug} className="mt-6 opacity-80" />
           </div>
 

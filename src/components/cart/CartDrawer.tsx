@@ -8,6 +8,8 @@ import { AnimatePresence, motion } from "motion/react";
 import { useLenis } from "@/components/motion/SmoothScroll";
 import { formatPrice } from "@/lib/money";
 import type { CheckoutResponse } from "@/app/api/checkout/route";
+import { whatsappUrl } from "@/lib/contact";
+import { paymentMarks, toFreeDelivery, type ShopTerms } from "@/lib/terms";
 import { lineHref, useCart } from "./cart-store";
 import { countWord } from "@/lib/words";
 import { sizeLabel } from "@/lib/size";
@@ -17,10 +19,13 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 export function CartDrawer({
   worldCount = 6,
   discovery = false,
+  terms,
 }: {
   worldCount?: number;
   /** Whether discovery sets are on sale (the empty bag points to them) */
   discovery?: boolean;
+  /** Delivery and payment terms from Settings (free delivery, fees, how to pay) */
+  terms?: ShopTerms;
 }) {
   const cart = useCart();
   const { open, closeBag } = cart;
@@ -257,8 +262,20 @@ export function CartDrawer({
                     {formatPrice(cart.subtotalPoisha)}
                   </span>
                 </div>
+                {terms && <FreeDelivery subtotal={cart.subtotalPoisha} freeFrom={terms.freeFrom} />}
                 <p className="text-smoke mt-2 text-xs">
-                  Shipping and taxes are calculated at checkout.
+                  Delivery is added at checkout, from your address.{" "}
+                  {paymentMarks(terms ?? { online: false, cod: false, wallets: [] }).includes(
+                    "Cash on delivery",
+                  ) && "Cash on delivery available. "}
+                  <a
+                    href={whatsappUrl("Hi ZALFI, a question about my order")}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-noir border-noir/40 border-b"
+                  >
+                    WhatsApp us
+                  </a>
                 </p>
                 <button
                   type="button"
@@ -278,5 +295,30 @@ export function CartDrawer({
         </div>
       )}
     </AnimatePresence>
+  );
+}
+
+/**
+ * How far the bag is from free delivery: a still hairline whose fill changes only when the bag
+ * does (a transform, never a width), and the words to say it.
+ */
+function FreeDelivery({ subtotal, freeFrom }: { subtotal: number; freeFrom: number | null }) {
+  const left = toFreeDelivery(subtotal, freeFrom);
+  if (left === null || freeFrom === null || freeFrom <= 0) return null;
+  const done = Math.min(1, subtotal / freeFrom);
+  return (
+    <div className="mt-4">
+      <p className="text-sm" aria-live="polite">
+        {left === 0
+          ? "Free delivery on this order."
+          : `${formatPrice(left)} away from free delivery.`}
+      </p>
+      <div aria-hidden className="bg-noir/15 mt-2 h-px w-full overflow-hidden">
+        <div
+          className="bg-noir h-px w-full origin-left transition-transform duration-700 ease-(--ease-cinema)"
+          style={{ transform: `scaleX(${done})` }}
+        />
+      </div>
+    </div>
   );
 }

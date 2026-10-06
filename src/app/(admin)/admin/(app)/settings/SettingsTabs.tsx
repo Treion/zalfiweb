@@ -267,6 +267,8 @@ type ShippingForm = {
   insideDhakaFee: string;
   outsideDhakaFee: string;
   freeShippingThreshold: string;
+  insideDhakaDays: string;
+  outsideDhakaDays: string;
   defaultCourier: Settings<"shipping">["defaultCourier"];
   insideDhakaAreas: string[];
 };
@@ -287,6 +289,8 @@ function ShippingSection({
       outsideDhakaFee: String(poishaToTaka(x.outsideDhakaFee)),
       freeShippingThreshold:
         x.freeShippingThreshold === null ? "" : String(poishaToTaka(x.freeShippingThreshold)),
+      insideDhakaDays: x.insideDhakaDays,
+      outsideDhakaDays: x.outsideDhakaDays,
       defaultCourier: x.defaultCourier,
       insideDhakaAreas: x.insideDhakaAreas,
     }),
@@ -297,6 +301,8 @@ function ShippingSection({
         f.freeShippingThreshold.trim() === ""
           ? null
           : takaToPoisha(Number(f.freeShippingThreshold)),
+      insideDhakaDays: f.insideDhakaDays.trim(),
+      outsideDhakaDays: f.outsideDhakaDays.trim(),
       defaultCourier: f.defaultCourier,
       insideDhakaAreas: f.insideDhakaAreas,
       // Switched on Admin → Integrations; carried through unchanged
@@ -339,6 +345,20 @@ function ShippingSection({
           placeholder="Off"
           {...s.form.register("freeShippingThreshold")}
         />
+      </Field>
+      <Field
+        label="Delivery inside Dhaka (days)"
+        htmlFor="ship-in-days"
+        hint='Shown on the shop as "usually 1–2 days". Leave empty to hide it.'
+      >
+        <Input id="ship-in-days" placeholder="1–2" {...s.form.register("insideDhakaDays")} />
+      </Field>
+      <Field
+        label="Delivery outside Dhaka (days)"
+        htmlFor="ship-out-days"
+        hint="Leave empty to hide it."
+      >
+        <Input id="ship-out-days" placeholder="3–5" {...s.form.register("outsideDhakaDays")} />
       </Field>
       <Field
         label="Default courier"

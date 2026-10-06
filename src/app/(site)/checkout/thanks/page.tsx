@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { whatsappUrl } from "@/lib/contact";
 import { notFound } from "next/navigation";
 import { PAYMENT_LABELS } from "@/lib/checkout";
 import { formatPrice } from "@/lib/money";
@@ -113,12 +114,19 @@ export default async function ThanksPage({ searchParams }: PageProps<"/checkout/
           {awaitingPayment && !expired && manual && !checking && (
             <ManualPay token={o} total={order.total} reference={order.number} wallets={wallets} />
           )}
-          <Link
-            href="/#collection"
-            className="eyebrow border-noir mt-10 inline-block border-b pb-1"
-          >
-            Back to the collection
-          </Link>
+          <p className="mt-10 flex flex-wrap gap-x-8 gap-y-4">
+            <Link href="/fragrances" className="eyebrow border-noir inline-block border-b pb-1">
+              Back to the collection
+            </Link>
+            <a
+              href={whatsappUrl(`Hi ZALFI, about my order ${order.number}`)}
+              target="_blank"
+              rel="noreferrer"
+              className="eyebrow border-noir inline-block border-b pb-1"
+            >
+              Questions? WhatsApp us
+            </a>
+          </p>
         </div>
 
         <section

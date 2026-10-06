@@ -60,6 +60,9 @@ export const SETTINGS_SCHEMAS = {
       .default([...DHAKA_CITY_THANAS]),
     /** Orders at or above this subtotal ship free. Null: off. */
     freeShippingThreshold: poisha.nullable().default(null),
+    /** How long delivery usually takes, as the shop says it ("1–2" days). Empty: not shown. */
+    insideDhakaDays: z.string().trim().max(20).default("1–2"),
+    outsideDhakaDays: z.string().trim().max(20).default("3–5"),
     defaultCourier: z.enum(COURIER_NAMES).default("mock"),
     /** "Other courier": parcels sent another way, recorded and moved along by the team */
     manualCourierEnabled: z.boolean().default(true),

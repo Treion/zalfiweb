@@ -10,6 +10,7 @@ import { CartDrawer } from "@/components/cart/CartDrawer";
 import { Nav } from "@/components/ui/Nav";
 import { Footer } from "@/components/sections/Footer";
 import { getDiscoverySets, getFragrances } from "@/db/queries";
+import { getShopTerms } from "@/server/checkout/terms";
 import "./globals.css";
 import { countWord, listNames } from "@/lib/words";
 
@@ -45,7 +46,11 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const [fragrances, sets] = await Promise.all([getFragrances(), getDiscoverySets()]);
+  const [fragrances, sets, terms] = await Promise.all([
+    getFragrances(),
+    getDiscoverySets(),
+    getShopTerms(),
+  ]);
   // Every sku on sale, bottles and discovery sets: a saved bag keeps only these
   const catalogue = Object.fromEntries([
     ...fragrances.flatMap((f) => f.variants.map((v) => [v.sku, v.pricePoisha] as const)),
@@ -74,7 +79,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             <Nav discovery={discovery} />
             {children}
             <Footer fragrances={fragrances} discovery={discovery} />
-            <CartDrawer worldCount={fragrances.length} discovery={discovery} />
+            <CartDrawer worldCount={fragrances.length} discovery={discovery} terms={terms} />
           </CartProvider>
         </SmoothScroll>
         <StageLoader fragrances={stageFragrances} />

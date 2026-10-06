@@ -11,3 +11,7 @@ export const CONTACT = {
 export const MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
   CONTACT.address.join(", "),
 )}`;
+
+/** A WhatsApp chat with the house, optionally with a first message written for the customer */
+export const whatsappUrl = (text?: string) =>
+  `https://wa.me/${CONTACT.phone.replace(/\D/g, "")}${text ? `?text=${encodeURIComponent(text)}` : ""}`;

@@ -2,7 +2,9 @@ import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { SetSpread } from "@/components/discovery/SetSpread";
+import { DeliveryNote } from "@/components/product/DeliveryNote";
 import { getDiscoverySets } from "@/db/queries";
+import { getShopTerms } from "@/server/checkout/terms";
 import { sizeLabel } from "@/lib/size";
 import { listNames } from "@/lib/words";
 
@@ -34,7 +36,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function DiscoveryPage() {
-  const sets = await getDiscoverySets();
+  const [sets, terms] = await Promise.all([getDiscoverySets(), getShopTerms()]);
   if (!sets.length) notFound();
   const site = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
   const v = sets[0]!.variant!;
@@ -83,6 +85,11 @@ export default async function DiscoveryPage() {
         >
           {`The house in ${sizeLabel(v.sizeMl)} vials, three to a box. Wear each for a day. Then choose your 50 ml.`}
         </p>
+        <DeliveryNote
+          terms={terms}
+          className="col-span-12 max-w-md md:col-span-4 md:col-start-9 md:row-start-3"
+          whatsappText="Hi ZALFI, a question about the discovery sets"
+        />
       </header>
       {sets.map((s, i) => (
         <SetSpread key={s.slug} set={s} flip={i % 2 === 1} preload={i === 0} />

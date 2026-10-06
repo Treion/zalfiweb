@@ -202,7 +202,6 @@ export function ProductPurchase({ fragrance: f }: { fragrance: Fragrance }) {
           {soldOut ? "Sold out" : added ? "Added to your bag" : "Add to bag"}
         </motion.span>
       </button>
-      <p className="mt-3 text-xs opacity-60">Shipping and taxes are calculated at checkout.</p>
 
       {client && createPortal(bar, document.body)}
     </div>

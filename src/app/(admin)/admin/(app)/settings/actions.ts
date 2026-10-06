@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { UserFacingError } from "@/server/errors";
 import { runAction } from "@/server/auth/session";
+import { revalidateStorefront } from "@/server/catalog/products";
 import { saveSettings, SETTINGS_KEYS } from "@/server/settings";
 
 const EDITABLE = SETTINGS_KEYS.filter((k) => k !== "integrations") as [string, ...string[]];
@@ -23,8 +24,11 @@ export async function saveSettingsAction(input: unknown) {
         }
         throw err;
       }
-      // Permissions and fees are read across the admin and (later) the checkout
+      // Permissions and fees are read across the admin; fees, delivery times and payment methods
+      // are also shown on the shop
       revalidatePath("/admin", "layout");
+      if (d.key === "shipping" || d.key === "payments" || d.key === "store")
+        await revalidateStorefront();
     },
   );
 }
