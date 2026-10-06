@@ -66,7 +66,13 @@ export function SetBuy({
         onClick={addToBag}
         disabled={soldOut}
         data-cursor="Add"
-        aria-label={soldOut ? `${set.name}: sold out` : `Add the ${set.name} to your bag`}
+        aria-label={
+          soldOut
+            ? `Sold out: ${set.name}`
+            : added
+              ? `In your bag: ${set.name}`
+              : `Add the set: ${set.name}`
+        }
         className="eyebrow bg-noir text-bone relative overflow-hidden px-8 py-4 transition-opacity disabled:opacity-40"
       >
         <motion.span

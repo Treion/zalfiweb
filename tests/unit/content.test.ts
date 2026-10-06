@@ -1,12 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  bannerDetailsSchema,
-  isShowing,
-  linkSchema,
-  videoInputSchema,
-  youtubeCover,
-  youtubeIdOf,
-} from "@/lib/content";
+import { isShowing, youtubeCover, youtubeIdOf } from "@/lib/content";
+import { bannerDetailsSchema, linkSchema, videoInputSchema } from "@/lib/content-schema";
 
 describe("content: videos", () => {
   it("reads the video id from any YouTube link", () => {

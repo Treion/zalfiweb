@@ -33,6 +33,7 @@ type State = { lines: CartLine[]; open: boolean; hydrated: boolean };
 
 type Action =
   | { type: "hydrate"; lines: CartLine[] }
+  | { type: "reprice"; catalogue: Record<string, number> }
   | { type: "add"; line: Omit<CartLine, "qty">; qty: number }
   | { type: "setQty"; sku: string; qty: number }
   | { type: "remove"; sku: string }
@@ -44,10 +45,32 @@ const MAX_QTY = 10;
 // v2: prices in poisha (BDT). A v1 bag held USD cents and is dropped.
 const KEY = "zalfi.bag.v2";
 
-function reducer(state: State, a: Action): State {
+/** The saved lines, then any added since, quantities summed */
+function merge(saved: CartLine[], added: CartLine[]): CartLine[] {
+  const lines = saved.map((l) => ({ ...l }));
+  for (const n of added) {
+    const l = lines.find((x) => x.sku === n.sku);
+    if (l) l.qty = Math.min(MAX_QTY, l.qty + n.qty);
+    else lines.push(n);
+  }
+  return lines;
+}
+
+/** Exported for tests */
+export function cartReducer(state: State, a: Action): State {
   switch (a.type) {
     case "hydrate":
-      return { ...state, lines: a.lines, hydrated: true };
+      // Once only (Strict Mode runs effects twice). Anything added before the saved bag was read
+      // stays in it.
+      if (state.hydrated) return state;
+      return { ...state, lines: merge(a.lines, state.lines), hydrated: true };
+    case "reprice":
+      return {
+        ...state,
+        lines: state.lines
+          .filter((l) => l.sku in a.catalogue)
+          .map((l) => ({ ...l, pricePoisha: a.catalogue[l.sku]! })),
+      };
     case "add": {
       const existing = state.lines.find((l) => l.sku === a.line.sku);
       const lines = existing
@@ -96,8 +119,9 @@ export function useCart() {
 
 /**
  * The bag lives on this device (localStorage). Prices are re-validated by /api/checkout.
- * `catalogue` (sku → current price) lets a saved bag drop sizes that are no longer sold and pick
- * up price changes when it is restored.
+ * `catalogue` (sku → current price) lets the bag drop sizes that are no longer sold and pick up
+ * price changes. The saved bag is read once; a new catalogue (the layout re-rendered) reprices the
+ * bag in memory, so it can never put back an older bag over something just added.
  */
 export function CartProvider({
   children,
@@ -106,7 +130,7 @@ export function CartProvider({
   children: ReactNode;
   catalogue?: Record<string, number>;
 }) {
-  const [state, dispatch] = useReducer(reducer, { lines: [], open: false, hydrated: false });
+  const [state, dispatch] = useReducer(cartReducer, { lines: [], open: false, hydrated: false });
 
   useEffect(() => {
     let lines: CartLine[] = [];
@@ -117,11 +141,12 @@ export function CartProvider({
       /* storage blocked or corrupt: start empty */
     }
     if (!Array.isArray(lines)) lines = [];
-    if (catalogue)
-      lines = lines
-        .filter((l) => l.sku in catalogue)
-        .map((l) => ({ ...l, pricePoisha: catalogue[l.sku] }));
     dispatch({ type: "hydrate", lines });
+  }, []);
+
+  // Runs after the hydrate above on mount, and again whenever the catalogue changes
+  useEffect(() => {
+    if (catalogue) dispatch({ type: "reprice", catalogue });
   }, [catalogue]);
 
   useEffect(() => {

@@ -14,7 +14,7 @@ test("buys a discovery set from its page; the set's boxes go down, the bottles d
 
   await page.goto("/discovery");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Three vials.");
-  await page.getByRole("button", { name: `Add the ${E2E.set.name} to your bag` }).click();
+  await page.getByRole("button", { name: `Add the set: ${E2E.set.name}` }).click();
   const bag = page.getByRole("dialog", { name: /Your bag/ });
   await expect(bag.getByText("Discovery set · 3 × 3 ml")).toBeVisible();
   await bag.getByRole("button", { name: "Close" }).click();

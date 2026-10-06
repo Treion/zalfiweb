@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { BANNER_PLACEMENTS, bannerDetailsSchema, videoInputSchema } from "@/lib/content";
+import { BANNER_PLACEMENTS } from "@/lib/content";
+import { bannerDetailsSchema, videoInputSchema } from "@/lib/content-schema";
 import { runAction } from "@/server/auth/session";
 import { MAX_UPLOAD_BYTES } from "@/server/catalog/upload";
 import {

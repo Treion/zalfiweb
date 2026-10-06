@@ -310,12 +310,13 @@ function NavItem({
 const GROUPS: InfoGroup[] = ["house", "help", "legal"];
 
 /** The shop's way in, shown in the menu below md only (the bar has them on larger screens) */
+/** The menu's shop links. `bar`: the top bar shows it from md, so the menu leaves it out there */
 const shopLinks = (discovery: boolean) => [
-  { href: "/fragrances", title: "Shop" },
-  { href: "/#collection", title: "The worlds" },
-  ...(discovery ? [{ href: "/discovery", title: "Discovery sets" }] : []),
-  { href: "/find", title: "Find yours" },
-  { href: "/track", title: "Track your order" },
+  { href: "/fragrances", title: "Shop", bar: true },
+  { href: "/#collection", title: "The worlds", bar: false },
+  ...(discovery ? [{ href: "/discovery", title: "Discovery sets", bar: true }] : []),
+  { href: "/find", title: "Find yours", bar: true },
+  { href: "/track", title: "Track your order", bar: false },
 ];
 
 /**
@@ -390,11 +391,11 @@ function InfoMenu({
           }}
         >
           <div className="space-y-7">
-            <div className="md:hidden">
+            <div className="lg:hidden">
               <p className="eyebrow text-bone-dim">Shop</p>
               <ul className="mt-3 space-y-1.5">
                 {shopLinks(discovery).map((l) => (
-                  <li key={l.href}>
+                  <li key={l.href} className={l.bar ? "md:hidden" : undefined}>
                     {l.href === "/#collection" ? (
                       // On the home page this glides to the line-up instead of reloading
                       <HomeLink

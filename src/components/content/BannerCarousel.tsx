@@ -162,7 +162,7 @@ function Slide({
   );
 
   const external = !!b.link && /^https:\/\//.test(b.link);
-  const linkLabel = b.headline || b.alt;
+  // The link is named by what it shows: the picture's description, then any words drawn on it
   return (
     <div
       role={position ? "group" : undefined}
@@ -181,18 +181,12 @@ function Slide({
             href={b.link}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label={linkLabel}
             className="absolute inset-0 block"
           >
             {content}
           </a>
         ) : (
-          <Link
-            href={b.link}
-            aria-label={linkLabel}
-            data-cursor="Discover"
-            className="absolute inset-0 block"
-          >
+          <Link href={b.link} data-cursor="Discover" className="absolute inset-0 block">
             {content}
           </Link>
         )

@@ -1,11 +1,7 @@
 import { and, asc, eq, gt, lt, sql } from "drizzle-orm";
 import { banners, fragrances, videos } from "@/db/schema";
-import {
-  youtubeIdOf,
-  type BannerDetails,
-  type BannerPlacement,
-  type videoInputSchema,
-} from "@/lib/content";
+import { youtubeIdOf, type BannerPlacement } from "@/lib/content";
+import type { BannerDetails, videoInputSchema } from "@/lib/content-schema";
 import type { z } from "zod";
 import { audit, type Actor } from "@/server/audit";
 import { revalidateStorefront } from "@/server/catalog/products";
