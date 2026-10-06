@@ -6,6 +6,7 @@ import { ContactIcons } from "@/components/ui/ContactIcons";
 import { INFO_PAGES, type InfoPage } from "@/content/pages";
 import { CONTACT, MAPS_URL } from "@/lib/contact";
 import type { Fragrance } from "@/lib/fragrance";
+import { paymentMarks, type ShopTerms } from "@/lib/terms";
 import { countWord } from "@/lib/words";
 
 const pages = (group: InfoPage["group"]) =>
@@ -18,7 +19,7 @@ const columns = (
     title: "The house",
     links: [
       ...pages("house"),
-      { href: "/fragrances", label: "All fragrances" },
+      { href: "/fragrances", label: "Shop all fragrances" },
       ...(discovery ? [{ href: "/discovery", label: "Discovery sets" }] : []),
       { href: "/find", label: "Find your world" },
       { href: "/checkout", label: "Your bag" },
@@ -30,17 +31,21 @@ const columns = (
 ];
 
 /**
- * The footer: the six worlds, the house's pages, how to reach us, and the wordmark set as large as
- * the page allows.
+ * The footer: the six worlds, the house's pages, how to reach us, the ways to pay, and the
+ * wordmark set as large as the page allows.
  */
 export function Footer({
   fragrances,
   discovery = false,
+  terms,
 }: {
   fragrances: Pick<Fragrance, "slug" | "name" | "mood">[];
   /** Whether discovery sets are on sale (the house column links to them) */
   discovery?: boolean;
+  /** How customers can pay, from Settings (only what checkout really offers) */
+  terms?: ShopTerms;
 }) {
+  const marks = terms ? paymentMarks(terms) : [];
   return (
     <footer className="bg-noir px-gutter text-bone relative overflow-hidden pt-24 pb-8">
       <div className="grid grid-cols-12 gap-x-4 gap-y-12">
@@ -106,6 +111,16 @@ export function Footer({
           </a>
         </address>
         <ContactIcons className="col-span-12 flex items-center gap-3 sm:col-span-6 sm:justify-end lg:col-span-7" />
+        {marks.length > 0 && (
+          <p className="col-span-12 flex flex-wrap items-center gap-1.5" aria-label="Ways to pay">
+            <span className="eyebrow text-bone-dim mr-2">We accept</span>
+            {marks.map((m) => (
+              <span key={m} className="border-bone/25 border px-2 py-0.5 text-xs">
+                {m}
+              </span>
+            ))}
+          </p>
+        )}
       </div>
 
       <Logo variant="wordmark" className="text-bone mt-20 w-full md:mt-28" title="ZALFI" />

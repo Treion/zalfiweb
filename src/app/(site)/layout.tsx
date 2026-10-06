@@ -80,7 +80,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           <CartProvider catalogue={catalogue}>
             <Nav discovery={discovery} searchIndex={searchIndex} />
             {children}
-            <Footer fragrances={fragrances} discovery={discovery} />
+            <Footer fragrances={fragrances} discovery={discovery} terms={terms} />
             <CartDrawer worldCount={fragrances.length} discovery={discovery} terms={terms} />
           </CartProvider>
         </SmoothScroll>

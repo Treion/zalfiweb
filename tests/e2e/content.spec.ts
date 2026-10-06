@@ -33,14 +33,14 @@ async function picture(name: string, width: number, height: number, bg: string) 
   return file;
 }
 
-async function addBanner(a: Page, alt: string, file: string) {
-  const shop = a.locator("section", { has: a.getByRole("heading", { name: "Top of the shop" }) });
+async function addBanner(a: Page, alt: string, file: string, place = "Top of the shop") {
+  const shop = a.locator("section", { has: a.getByRole("heading", { name: place }) });
   await shop.getByRole("button", { name: "Add a banner" }).click();
   const dialog = a.getByRole("dialog");
   await dialog.locator('input[type="file"]').setInputFiles(file);
   await dialog.getByLabel("What it shows").fill(alt);
   await dialog.getByRole("button", { name: "Add banner" }).click();
-  await expect(a.getByText("Banner added.")).toBeVisible();
+  await expect(a.getByText("Banner added.").last()).toBeVisible();
   await expect(dialog).toHaveCount(0);
 }
 
@@ -75,6 +75,14 @@ test("banners and a video added in the admin appear on the shop", async ({ brows
   // A second one, with its words in the picture
   await addBanner(a, "Zz e2e: Oudor in smoke", await picture("wide2.jpg", 2400, 1000, "#3a1d22"));
 
+  // One for the home page, after the worlds
+  await addBanner(
+    a,
+    "Zz e2e: The house at night",
+    await picture("home.jpg", 2400, 1000, "#1d1a17"),
+    "Home, after the worlds",
+  );
+
   // A video about Reva
   await a.getByRole("tab", { name: "Videos" }).click();
   await a.getByLabel("YouTube link").first().fill("https://youtu.be/dQw4w9WgXcQ");
@@ -108,6 +116,17 @@ test("banners and a video added in the admin appear on the shop", async ({ brows
     1,
   );
   await shopCtx.close();
+
+  // The home page shows its banner after the worlds
+  const homeCtx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const home = await homeCtx.newPage();
+  await home.goto("/");
+  await expect(
+    home.getByRole("region", { name: "From the house" }).getByRole("img", {
+      name: "Zz e2e: The house at night",
+    }),
+  ).toBeAttached();
+  await homeCtx.close();
 
   // On a phone, the phone picture
   const phone = await browser.newContext({ viewport: { width: 375, height: 812 } });
